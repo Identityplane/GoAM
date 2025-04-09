@@ -1,0 +1,16 @@
+# Runing the Server
+```
+go mod tidy
+go run ./cmd/main.go
+```
+
+# Database Migration (SQLite Local)
+```
+sqlite3 cmd/goiam.db < internal/db/sqlite/migrations/001_create_users.sql
+```
+
+# Running Test
+```
+go test ./test/unit
+go test ./test/integration
+```
