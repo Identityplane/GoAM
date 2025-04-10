@@ -1,7 +1,9 @@
 package web
 
 import (
-	"goiam/internal/auth/graph"
+	"goiam/internal"
+	"goiam/internal/auth/graph/yaml"
+	"log"
 
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
@@ -15,10 +17,15 @@ func New() *router.Router {
 		ctx.SetBodyString("pong")
 	})
 
-	//userRepo := sqlite.NewUserRepository()
+	flows, err := yaml.LoadFlowsFromDir(internal.FlowsDir)
+	if err != nil {
+		log.Fatalf("failed to load flows: %v", err)
+	}
 
-	r.ANY("/login", NewGraphHandler(graph.UsernamePasswordAuthFlow).Handle)
-	r.ANY("/register", NewGraphHandler(graph.UserRegisterFlow).Handle)
+	for _, flow := range flows {
+		r.ANY(flow.Route, NewGraphHandler(flow.Flow).Handle)
+		log.Printf("Registered flow %s on %s", flow.Flow.Name, flow.Route)
+	}
 
 	return r
 }
