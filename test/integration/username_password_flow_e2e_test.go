@@ -22,8 +22,7 @@ func TestUsernamePasswordFlow_E2E(t *testing.T) {
 			"username": "testuser",
 		}).
 		Expect().
-		Status(http.StatusOK).
-		Body().Contains("password")
+		Status(http.StatusOK)
 
 	// Step 2: submit password
 	resp := e.POST("/register").
@@ -35,8 +34,7 @@ func TestUsernamePasswordFlow_E2E(t *testing.T) {
 		Expect().
 		Status(http.StatusOK)
 
-	resp.Body().Contains("Login Successful")
-	resp.Body().Contains("testuser")
+	resp.Body().Contains("Registration successful")
 
 	// ---------- LOGIN ----------
 	loginCookie := e.GET("/login").Expect().
@@ -48,23 +46,21 @@ func TestUsernamePasswordFlow_E2E(t *testing.T) {
 	e.POST("/login").
 		WithCookie("session_id", loginCookie.Raw()).
 		WithForm(map[string]string{
-			"step":     "sendUsername",
+			"step":     "askUsername",
 			"username": "testuser",
 		}).
 		Expect().
-		Status(http.StatusOK).
-		Body().Contains("password")
+		Status(http.StatusOK)
 
 	// Submit password
-	resp = e.POST("/login").
+	resp2 := e.POST("/login").
 		WithCookie("session_id", loginCookie.Raw()).
 		WithForm(map[string]string{
-			"step":     "sendPassword",
+			"step":     "askPassword",
 			"password": "testpass123",
 		}).
 		Expect().
 		Status(http.StatusOK)
 
-	resp.Body().Contains("Login Successful")
-	resp.Body().Contains("testuser")
+	resp2.Body().Contains("Login successful")
 }

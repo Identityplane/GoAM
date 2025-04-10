@@ -1,8 +1,7 @@
 package web
 
 import (
-	"goiam/internal/auth/flows"
-	"goiam/internal/db/sqlite"
+	"goiam/internal/auth/graph"
 
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
@@ -16,13 +15,10 @@ func New() *router.Router {
 		ctx.SetBodyString("pong")
 	})
 
-	userRepo := sqlite.NewUserRepository()
+	//userRepo := sqlite.NewUserRepository()
 
-	loginFlow := flows.NewUsernamePasswordFlow(userRepo)
-	r.ANY("/login", NewHttpFlowRunner(loginFlow).Handle)
-
-	registerFlow := flows.NewUserRegistrationFlow(userRepo)
-	r.ANY("/register", NewHttpFlowRunner(registerFlow).Handle)
+	r.ANY("/login", NewGraphHandler(graph.UsernamePasswordAuthFlow).Handle)
+	r.ANY("/register", NewGraphHandler(graph.UserRegisterFlow).Handle)
 
 	return r
 }

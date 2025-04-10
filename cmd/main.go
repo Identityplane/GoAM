@@ -1,6 +1,8 @@
 package main
 
 import (
+	"goiam/internal/auth/graph"
+	"goiam/internal/db/sqlite"
 	db "goiam/internal/db/sqlite"
 	"goiam/internal/web"
 	"log"
@@ -19,6 +21,9 @@ func main() {
 		log.Fatalf("DB init failed: %v", err)
 		return
 	}
+
+	// Init Services
+	graph.Services.UserRepo = sqlite.NewUserRepository()
 
 	// Init web adapter
 	r := web.New()

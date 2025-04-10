@@ -2,17 +2,21 @@ package integration
 
 import (
 	"context"
+	"fmt"
+	"goiam/internal/auth/graph"
+	"goiam/internal/db/sqlite"
 	"goiam/internal/web"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"testing"
-
-	db "goiam/internal/db/sqlite"
 
 	"github.com/gavv/httpexpect/v2"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
+
+	db "goiam/internal/db/sqlite"
 )
 
 func SetupIntegrationTest(t *testing.T) httpexpect.Expect {
@@ -20,16 +24,26 @@ func SetupIntegrationTest(t *testing.T) httpexpect.Expect {
 	// Init Database
 	err := db.Init(db.Config{
 		Driver: "sqlite",
-		DSN:    "goiam.db?_foreign_keys=on",
+		DSN:    ":memory:?_foreign_keys=on",
 	})
+
+	// Check db
 	if err != nil {
 		log.Fatalf("DB init failed: %v", err)
 		t.Fail()
 	}
 
+	// Migrate database
+	err = RunTestMigrations()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create user repo object
+	graph.Services.UserRepo = sqlite.NewUserRepository()
+
 	// Setup Http
 	handler := web.New().Handler
-
 	ln := fasthttputil.NewInmemoryListener()
 
 	// Serve fasthttp using the in-memory listener
@@ -50,7 +64,23 @@ func SetupIntegrationTest(t *testing.T) httpexpect.Expect {
 		Client:   client,
 		BaseURL:  "http://example.com", // just a placeholder
 		Reporter: httpexpect.NewRequireReporter(t),
+		Printers: []httpexpect.Printer{
+			httpexpect.NewDebugPrinter(t, true),
+		},
 	})
 
 	return *e
+}
+
+func RunTestMigrations() error {
+	sqlBytes, err := os.ReadFile("../../internal/db/sqlite/migrations/001_create_users.up.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read migration: %w", err)
+	}
+
+	_, err = db.DB.Exec(string(sqlBytes))
+	if err != nil {
+		return fmt.Errorf("failed to execute migration: %w", err)
+	}
+	return nil
 }
