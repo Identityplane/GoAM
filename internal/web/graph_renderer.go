@@ -35,6 +35,11 @@ func RenderPrompts(ctx *fasthttp.RequestCtx, flow *graph.FlowDefinition, state *
 			b.WriteString(string(js))
 		}
 		b.WriteString("</pre>")
+
+		b.WriteString(`<svg width="1000" height="666">`)
+		b.WriteString(`<image xlink:href="/debug/flow/graph.svg?flow=` + flow.Name + `" src="/debug/flow/graph.svg?flow=` + flow.Name + `" width="100%" height="100%"/>`)
+		b.WriteString(`</svg>`)
+
 	}
 
 	b.WriteString("</body></html>")
@@ -43,7 +48,7 @@ func RenderPrompts(ctx *fasthttp.RequestCtx, flow *graph.FlowDefinition, state *
 	ctx.SetBodyString(b.String())
 }
 
-func RenderResult(ctx *fasthttp.RequestCtx, node *graph.GraphNode, state *graph.FlowState) {
+func RenderResult(ctx *fasthttp.RequestCtx, flow *graph.FlowDefinition, node *graph.GraphNode, state *graph.FlowState) {
 	var b strings.Builder
 	b.WriteString("<html><body>")
 	b.WriteString("<h2>Flow Completed</h2>")
@@ -59,6 +64,10 @@ func RenderResult(ctx *fasthttp.RequestCtx, node *graph.GraphNode, state *graph.
 			b.WriteString(string(js))
 		}
 		b.WriteString("</pre>")
+
+		b.WriteString(`<svg width="1000" height="666">`)
+		b.WriteString(`<image xlink:href="/debug/flow/graph.svg?flow=` + flow.Name + `" src="/debug/flow/graph.svg?flow=` + flow.Name + `" width="100%" height="100%"/>`)
+		b.WriteString(`</svg>`)
 	}
 
 	b.WriteString("</body></html>")

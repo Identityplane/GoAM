@@ -67,7 +67,7 @@ func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 	}
 
 	if resultNode != nil {
-		RenderResult(ctx, resultNode, state)
+		RenderResult(ctx, h.Flow, resultNode, state)
 		return
 	}
 

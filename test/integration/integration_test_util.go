@@ -24,6 +24,7 @@ func SetupIntegrationTest(t *testing.T) httpexpect.Expect {
 
 	// Overwrite config dir
 	internal.FlowsDir = "../../config/flows"
+	internal.InitializeFlows()
 
 	// Init Database
 	err := db.Init(db.Config{

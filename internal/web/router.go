@@ -2,7 +2,6 @@ package web
 
 import (
 	"goiam/internal"
-	"goiam/internal/auth/graph/yaml"
 	"log"
 
 	"github.com/fasthttp/router"
@@ -17,15 +16,15 @@ func New() *router.Router {
 		ctx.SetBodyString("pong")
 	})
 
-	flows, err := yaml.LoadFlowsFromDir(internal.FlowsDir)
-	if err != nil {
-		log.Fatalf("failed to load flows: %v", err)
+	for name, flow := range internal.FlowRegistry {
+
+		r.ANY(flow.Route, NewGraphHandler(flow.Flow).Handle)
+		log.Printf("Registered flow %q at route %q", name, flow.Route)
 	}
 
-	for _, flow := range flows {
-		r.ANY(flow.Route, NewGraphHandler(flow.Flow).Handle)
-		log.Printf("Registered flow %s on %s", flow.Flow.Name, flow.Route)
-	}
+	r.GET("/debug/flows", HandleListFlows)
+	r.GET("/debug/flow/graph.png", HandleFlowGraphPNG)
+	r.GET("/debug/flow/graph.svg", HandleFlowGraphSVG)
 
 	return r
 }

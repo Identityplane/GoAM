@@ -1,0 +1,40 @@
+name: user_register
+route: /register
+start: init
+nodes:
+  init:
+    use: init
+    next:
+      start: askUsername
+
+  askUsername:
+    use: askUsername
+    next:
+      submitted: checkUsernameAvailable
+
+  checkUsernameAvailable:
+    use: checkUsernameAvailable
+    next:
+      available: askPassword
+      taken: registerFailed
+
+  askPassword:
+    use: askPassword
+    next:
+      submitted: createUser
+
+  createUser:
+    use: createUser
+    next:
+      success: registerSuccess
+      fail: registerFailed
+
+  registerSuccess:
+    use: successResult
+    custom_config:
+      message: Registration successful!
+
+  registerFailed:
+    use: failureResult
+    custom_config:
+      message: Registration failed. Username may already exist.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"goiam/internal"
 	"goiam/internal/auth/graph"
 	"goiam/internal/db/sqlite"
 	db "goiam/internal/db/sqlite"
@@ -11,6 +12,9 @@ import (
 )
 
 func main() {
+
+	// Init Flows
+	internal.InitializeFlows()
 
 	// Init Database
 	err := db.Init(db.Config{
