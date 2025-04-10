@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"goiam/internal"
 	"goiam/internal/auth/graph"
 	"goiam/internal/db/sqlite"
 	"goiam/internal/web"
@@ -20,6 +21,9 @@ import (
 )
 
 func SetupIntegrationTest(t *testing.T) httpexpect.Expect {
+
+	// Overwrite config dir
+	internal.FlowsDir = "../../config/flows"
 
 	// Init Database
 	err := db.Init(db.Config{
