@@ -117,10 +117,18 @@ func GetUserByUsername(ctx context.Context, username string) (*model.User, error
 		return nil, err
 	}
 
+	user.Roles = []string{}
+	user.Groups = []string{}
+	user.TrustedDevices = []string{}
+
 	_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
 	_ = json.Unmarshal([]byte(groupsJSON), &user.Groups)
 	_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
 	_ = json.Unmarshal([]byte(trustedJSON), &user.TrustedDevices)
+
+	if user.Attributes == nil {
+		user.Attributes = map[string]string{}
+	}
 
 	return &user, nil
 }

@@ -43,6 +43,10 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) httpexpect.Expect {
 
 	}
 
+	// Overwrite Template Dirs
+	web.LayoutTemplatePath = "../../internal/web/templates/layout.html"
+	web.NodeTemplatesPath = "../../internal/web/templates/nodes"
+
 	// Init Database
 	err := db.Init(db.Config{
 		Driver: "sqlite",

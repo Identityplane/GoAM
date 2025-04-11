@@ -141,20 +141,37 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string) (map[
 
 	case NodeTypeQueryWithLogic:
 
-		// CASE Answer
-		// TODO Implement case where answer is sent
-
-		// CASE Promt
 		nodeDefinition := NodeDefinitions[node.Name]
 
-		// generate the prompts
-		thePrompts, err := nodeDefinition.GeneratePrompts(state, node)
-		if err != nil {
-			return nil, nil, err
-		}
+		if inputs == nil {
 
-		state.History = append(state.History, state.Current)
-		return thePrompts, nil, nil
+			// Case when prompt care calculated
+			thePrompts, err := nodeDefinition.GeneratePrompts(state, node)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			state.History = append(state.History, state.Current+":requested")
+			return thePrompts, nil, nil
+
+		} else {
+
+			condition, err := nodeDefinition.ProcessSubmission(state, node, inputs)
+
+			if err != nil {
+				return nil, nil, err
+			}
+
+			// Add to history with condition
+			state.History = append(state.History, fmt.Sprintf("%s:%s", node.Name, condition))
+
+			next, ok := node.Next[condition]
+			if !ok {
+				return nil, nil, fmt.Errorf("no transition defined for condition '%s' in node '%s'", condition, node.Name)
+			}
+			state.Current = next
+			return Run(flow, state, nil)
+		}
 
 	default:
 		return nil, nil, fmt.Errorf("unsupported node type: %s", def.Type)

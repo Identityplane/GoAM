@@ -17,15 +17,15 @@ const (
 )
 
 type NodeDefinition struct {
-	Name              string                                                             `json:"name"`       // e.g. "askUsername"
-	Type              NodeType                                                           `json:"type"`       // query, logic, etc.
-	Inputs            []string                                                           `json:"inputs"`     // required context fields
-	Outputs           []string                                                           `json:"outputs"`    // new fields it will write
-	Prompts           map[string]string                                                  `json:"prompts"`    // key: label/type shown to user
-	Conditions        []string                                                           `json:"conditions"` // e.g. ["success", "fail"]
-	GeneratePrompts   func(state *FlowState, node *GraphNode) (map[string]string, error) // For NodeTypeQueryWithLogic generate prompt
-	ProcessSubmission func(state *FlowState, node *GraphNode) (string, error)            // For NodeTypeQueryWithLogic process result
-	Run               func(state *FlowState, node *GraphNode) (string, error)            // Run function for logic nodes
+	Name              string                                                                           `json:"name"`       // e.g. "askUsername"
+	Type              NodeType                                                                         `json:"type"`       // query, logic, etc.
+	Inputs            []string                                                                         `json:"inputs"`     // required context fields
+	Outputs           []string                                                                         `json:"outputs"`    // new fields it will write
+	Prompts           map[string]string                                                                `json:"prompts"`    // key: label/type shown to user
+	Conditions        []string                                                                         `json:"conditions"` // e.g. ["success", "fail"]
+	GeneratePrompts   func(state *FlowState, node *GraphNode) (map[string]string, error)               // For NodeTypeQueryWithLogic generate prompt
+	ProcessSubmission func(state *FlowState, node *GraphNode, input map[string]string) (string, error) // For NodeTypeQueryWithLogic process result
+	Run               func(state *FlowState, node *GraphNode) (string, error)                          // Run function for logic nodes
 }
 
 type GraphNode struct {
