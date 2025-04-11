@@ -11,6 +11,7 @@ var NodeDefinitions = map[string]*NodeDefinition{
 	CreateUserNode.Name:               CreateUserNode,
 	SetVariableNode.Name:              SetVariableNode,
 	PasskeyRegisterNode.Name:          PasskeyRegisterNode,
+	PasskeysVerifyNode.Name:           PasskeysVerifyNode,
 }
 
 var LogicFunctions = map[string]LogicFunc{

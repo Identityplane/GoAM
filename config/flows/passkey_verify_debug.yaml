@@ -1,0 +1,18 @@
+name: test_passkeys
+route: /test_verify_passkeys
+start: init
+nodes:
+  init:
+    use: init
+    next:
+      start: askUsername
+  askUsername:
+    use: askUsername
+    next:
+      submitted: verifyPasskey
+  verifyPasskey:
+    use: verifyPasskey
+    next:
+      success: finish
+  finish:
+    use: successResult

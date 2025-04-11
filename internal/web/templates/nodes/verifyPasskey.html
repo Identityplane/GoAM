@@ -1,0 +1,59 @@
+{{ define "content" }}
+<h2>Verify Passkey</h2>
+
+<p>Click the button below to verify your identity using a registered passkey.</p>
+
+<form id="passkey-form" method="POST">
+  <input type="hidden" name="step" value="{{ .NodeName }}">
+  <input type="hidden" id="passkeysFinishLoginJson" name="passkeysFinishLoginJson">
+  <input type="hidden" id="passkeysLoginOptions" value='{{ .Prompts.passkeysLoginOptions }}'>
+
+  <button type="button" onclick="startPasskeyLogin()">Verify with Passkey</button>
+</form>
+
+<script>
+function base64urlToBuffer(base64url) {
+  const padding = '='.repeat((4 - base64url.length % 4) % 4);
+  const base64 = (base64url + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const raw = atob(base64);
+  return new Uint8Array([...raw].map(char => char.charCodeAt(0)));
+}
+
+function bufferToBase64url(buffer) {
+  const binary = String.fromCharCode.apply(null, new Uint8Array(buffer));
+  const base64 = btoa(binary);
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+async function startPasskeyLogin() {
+  try {
+    const optionsInput = document.getElementById("passkeysLoginOptions").value;
+    const options = JSON.parse(optionsInput);
+
+    options.publicKey.challenge = base64urlToBuffer(options.publicKey.challenge);
+    options.publicKey.allowCredentials = options.publicKey.allowCredentials.map(cred => {
+      cred.id = base64urlToBuffer(cred.id);
+      return cred;
+    });
+
+    const useMock = false;
+    let assertion;
+    if (useMock) {
+      // Add your mock here if needed
+      assertion = { id: "mock-id", rawId: "mock-rawId", type: "public-key" }; // placeholder
+    } else {
+      assertion = await navigator.credentials.get({ publicKey: options.publicKey });
+    }
+
+    document.getElementById("passkeysFinishLoginJson").value = JSON.stringify(assertion);
+    document.getElementById("passkey-form").submit();
+
+  } catch (err) {
+    alert("Passkey verification failed: " + err.message);
+    console.error(err);
+  }
+}
+</script>
+{{ end }}

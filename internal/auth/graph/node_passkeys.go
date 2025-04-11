@@ -24,6 +24,19 @@ var PasskeyRegisterNode = &NodeDefinition{
 	ProcessSubmission: ProcessPasskeyRegistration,
 }
 
+var PasskeysVerifyNode = &NodeDefinition{
+	Name:   "verifyPasskey",
+	Type:   NodeTypeQueryWithLogic,
+	Inputs: []string{"username"},
+	Prompts: map[string]string{
+		"passkeysFinishLoginJson": "json",
+	},
+	Outputs:           []string{"passkeysFinishLoginJson", "passkeysLoginSession", "passkeysLoginOptions"},
+	Conditions:        []string{"success", "failure"},
+	GeneratePrompts:   GeneratePasskeysLoginOptions,
+	ProcessSubmission: ProcessPasskeyLogin,
+}
+
 func GeneratePasskeysOptions(state *FlowState, node *GraphNode) (map[string]string, error) {
 	//ctx := context.Background()
 	username := state.Context["username"]
@@ -148,9 +161,121 @@ func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[str
 	return "success", nil
 }
 
-// PasskeysBeginLoginNode
+func GeneratePasskeysLoginOptions(state *FlowState, node *GraphNode) (map[string]string, error) {
+	username := state.Context["username"]
 
-// PasskeysFinishLoginNode
+	// Setup config
+	wconfig := &webauthn.Config{
+		RPDisplayName: "Go IAM",
+		RPID:          "localhost",
+		RPOrigins:     []string{"http://localhost:8080"},
+	}
+
+	webAuth, err := webauthn.New(wconfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize webauthn config: %w", err)
+	}
+
+	ctx := context.Background()
+	userModel, err := Services.UserRepo.GetByUsername(ctx, username)
+	if err != nil || userModel == nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	credJSON, ok := userModel.Attributes["webauthn_credential"]
+	if !ok || len(credJSON) == 0 {
+		return nil, fmt.Errorf("user has no registered passkey")
+	}
+
+	var cred webauthn.Credential
+	if err := json.Unmarshal([]byte(credJSON), &cred); err != nil {
+		return nil, fmt.Errorf("failed to parse stored credential: %w", err)
+	}
+
+	user := &WebAuthnUserCredentials{
+		Username:    userModel.Username,
+		ID:          []byte(userModel.Username),
+		Credentials: []webauthn.Credential{cred},
+	}
+
+	options, session, err := webAuth.BeginLogin(user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start passkey login: %w", err)
+	}
+
+	// Store in context
+	sessionJSON, _ := json.Marshal(session)
+	optionsJSON, _ := json.Marshal(options)
+	state.Context["passkeysLoginSession"] = string(sessionJSON)
+	state.Context["passkeysLoginOptions"] = string(optionsJSON)
+
+	return map[string]string{
+		"passkeysLoginOptions": string(optionsJSON),
+	}, nil
+}
+
+func ProcessPasskeyLogin(state *FlowState, node *GraphNode, input map[string]string) (string, error) {
+	ctx := context.Background()
+	username := state.Context["username"]
+
+	// Load session from context
+	sessionJSON := state.Context["passkeysLoginSession"]
+	var session webauthn.SessionData
+	if err := json.Unmarshal([]byte(sessionJSON), &session); err != nil {
+		return "failure", fmt.Errorf("failed to unmarshal login session: %w", err)
+	}
+
+	// Parse credential from user input
+	responseJSONStr := input["passkeysFinishLoginJson"]
+	parsedCredential, err := protocol.ParseCredentialRequestResponseBytes([]byte(responseJSONStr))
+	if err != nil {
+		return "failure", fmt.Errorf("failed to parse credential assertion: %w", err)
+	}
+
+	// Get user from DB
+	userModel, err := Services.UserRepo.GetByUsername(ctx, username)
+	if err != nil {
+		return "failure", fmt.Errorf("user not found: %w", err)
+	}
+
+	var storedCredential webauthn.Credential
+	if err := json.Unmarshal([]byte(userModel.Attributes["webauthn_credential"]), &storedCredential); err != nil {
+		return "failure", fmt.Errorf("failed to unmarshal stored credential: %w", err)
+	}
+
+	user := &WebAuthnUserCredentials{
+		Username:    username,
+		ID:          []byte(username),
+		Credentials: []webauthn.Credential{storedCredential},
+	}
+
+	// WebAuthn verify
+	wconfig := &webauthn.Config{
+		RPDisplayName: "Go IAM",
+		RPID:          "localhost",
+		RPOrigins:     []string{"http://localhost:8080"},
+	}
+
+	webAuth, err := webauthn.New(wconfig)
+	if err != nil {
+		return "failure", fmt.Errorf("failed to initialize WebAuthn: %w", err)
+	}
+
+	_, err = webAuth.ValidateLogin(user, session, parsedCredential)
+	if err != nil {
+		return "failure", fmt.Errorf("passkey login failed: %w", err)
+	}
+
+	// Store user in flow context
+	userBytes, err := json.Marshal(user)
+	if err != nil {
+		return "failure", fmt.Errorf("failed to serialize user: %w", err)
+	}
+	state.Context["user"] = string(userBytes)
+
+	log.Printf("User %s successfully verified via passkey", username)
+	return "success", nil
+}
 
 // WebAuthnUserCredentials is a simple struct that implements the webauthn.User interface
 type WebAuthnUserCredentials struct {
