@@ -99,7 +99,7 @@ func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[str
 
 	parsedCredential, err := protocol.ParseCredentialCreationResponseBytes([]byte(responseJSONStr))
 	if err != nil {
-		return "", fmt.Errorf("failed to parse credential response: %w", err)
+		return "failure", fmt.Errorf("failed to parse credential response: %w", err)
 	}
 
 	// Recreate the user object (must match the one used in BeginRegistration)

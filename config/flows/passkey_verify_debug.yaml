@@ -1,4 +1,4 @@
-name: test_passkeys
+name: test_passkeys_verify
 route: /test_verify_passkeys
 start: init
 nodes:

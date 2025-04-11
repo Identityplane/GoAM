@@ -47,13 +47,41 @@ async function startPasskeyLogin() {
       assertion = await navigator.credentials.get({ publicKey: options.publicKey });
     }
 
-    document.getElementById("passkeysFinishLoginJson").value = JSON.stringify(assertion);
+    serializedAssertion = serializeCredential(assertion);
+    document.getElementById("passkeysFinishLoginJson").value = JSON.stringify(serializedAssertion);
     document.getElementById("passkey-form").submit();
 
   } catch (err) {
     alert("Passkey verification failed: " + err.message);
     console.error(err);
   }
+}
+
+function serializeCredential(cred) {
+  if (!cred) return null;
+
+  const json = {
+    id: cred.id,
+    type: cred.type,
+    rawId: bufferToBase64url(cred.rawId),
+    authenticatorAttachment: cred.authenticatorAttachment || null,
+    clientExtensionResults: cred.getClientExtensionResults?.() || {},
+    response: {}
+  };
+
+  if (cred.response) {
+    const r = cred.response;
+    if (r.clientDataJSON) json.response.clientDataJSON = bufferToBase64url(r.clientDataJSON);
+    if (r.attestationObject) json.response.attestationObject = bufferToBase64url(r.attestationObject); // registration
+    if (r.authenticatorData) json.response.authenticatorData = bufferToBase64url(r.authenticatorData); // login
+    if (r.signature) json.response.signature = bufferToBase64url(r.signature);                         // login
+    if (r.userHandle) json.response.userHandle = bufferToBase64url(r.userHandle);                     // login
+    if (r.publicKey) json.response.publicKey = r.publicKey;                                           // registration
+    if (r.publicKeyAlgorithm) json.response.publicKeyAlgorithm = r.publicKeyAlgorithm;               // registration
+    if (r.transports) json.response.transports = r.transports;                                        // registration
+  }
+
+  return json;
 }
 </script>
 {{ end }}
