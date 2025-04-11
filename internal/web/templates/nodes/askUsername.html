@@ -1,0 +1,9 @@
+{{ define "content" }}
+<h2>{{ .NodeName | title }}</h2>
+<form method="POST">
+  <input type="hidden" name="step" value="{{ .NodeName }}">
+  <label>Username:</label><br>
+  <input name="username" type="text"><br><br>
+  <input type="submit" value="Submit">
+</form>
+{{ end }}

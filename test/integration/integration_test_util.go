@@ -28,7 +28,7 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) httpexpect.Expect {
 
 		// Load standard flow when no flow is given
 		internal.FlowsDir = "../../config/flows"
-		internal.InitializeFlows()
+		internal.Initialize()
 	} else {
 
 		// Overwrite flow registry with this flow

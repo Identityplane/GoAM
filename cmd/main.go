@@ -7,14 +7,19 @@ import (
 	db "goiam/internal/db/sqlite"
 	"goiam/internal/web"
 	"log"
+	"os"
 
 	"github.com/valyala/fasthttp"
 )
 
 func main() {
 
+	// Printout current working dir
+	wd, _ := os.Getwd()
+	log.Printf("Starting GoIAM with pwd: %s\n", wd)
+
 	// Init Flows
-	internal.InitializeFlows()
+	internal.Initialize()
 
 	// Init Database
 	err := db.Init(db.Config{

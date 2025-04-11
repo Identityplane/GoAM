@@ -16,6 +16,9 @@ type GraphHandler struct {
 }
 
 func NewGraphHandler(flow *graph.FlowDefinition) *GraphHandler {
+	if err := InitTemplates(); err != nil {
+		log.Fatalf("Failed to load templates: %v", err)
+	}
 	return &GraphHandler{Flow: flow}
 }
 
@@ -25,7 +28,6 @@ func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 	var state *graph.FlowState
 
 	if ctx.IsGet() {
-		// Reset flow on GET
 		state = graph.InitFlow(h.Flow)
 	} else {
 		state = session.Load(sessionID)
@@ -34,51 +36,24 @@ func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	// Handle POSTed input if present
 	var input map[string]string
 	if ctx.IsPost() {
 		step := string(ctx.PostArgs().Peek("step"))
 		if step != "" && state.Current == step {
-			// Build input map
-			input = make(map[string]string)
-			for key, node := range h.Flow.Nodes {
-				if key == step {
-					def := graph.NodeDefinitions[node.Use]
-					for promptKey := range def.Prompts {
-						inputVal := string(ctx.PostArgs().Peek(promptKey))
-						if inputVal != "" {
-							input[promptKey] = inputVal
-						}
-					}
-					break
-				}
-			}
+			input = extractPromptsFromRequest(ctx, h.Flow, step)
 		}
 	}
 
-	// Run the flow
 	prompts, resultNode, err := graph.Run(h.Flow, state, input)
-
 	session.Save(sessionID, state)
 
-	// Render appropriate response
 	if err != nil {
-		log.Fatal(err)
-		ctx.SetStatusCode(500)
+		log.Printf("flow error: %v", err)
+		RenderError(ctx, err.Error())
 		return
 	}
 
-	if resultNode != nil {
-		RenderResult(ctx, h.Flow, resultNode, state)
-		return
-	}
-
-	if prompts != nil {
-		RenderPrompts(ctx, h.Flow, state, prompts)
-		return
-	}
-
-	RenderError(ctx, "Unknown flow state")
+	Render(ctx, h.Flow, state, resultNode, prompts)
 }
 
 func (h *GraphHandler) getOrCreateSessionID(ctx *fasthttp.RequestCtx) string {
@@ -95,4 +70,23 @@ func (h *GraphHandler) getOrCreateSessionID(ctx *fasthttp.RequestCtx) string {
 	c.SetHTTPOnly(true)
 	ctx.Response.Header.SetCookie(c)
 	return sessionID
+}
+
+func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *graph.FlowDefinition, step string) map[string]string {
+	input := make(map[string]string)
+
+	node := flow.Nodes[step]
+	if node == nil {
+		return input
+	}
+
+	def := graph.NodeDefinitions[node.Use]
+	for key := range def.Prompts {
+		val := string(ctx.PostArgs().Peek(key))
+		if val != "" {
+			input[key] = val
+		}
+	}
+
+	return input
 }

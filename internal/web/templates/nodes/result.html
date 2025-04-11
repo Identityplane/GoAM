@@ -1,0 +1,10 @@
+{{ define "content" }}
+<h2>Flow Completed</h2>
+
+{{ if .Message }}
+  <p>{{ .Message }}</p>
+{{ else }}
+  <p>The flow has completed.</p>
+{{ end }}
+
+{{ end }}

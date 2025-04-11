@@ -1,0 +1,30 @@
+{{ define "layout" }}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ .Title }}</title>
+  <link rel="stylesheet" href="{{ .StylePath }}">
+  <script defer src="{{ .ScriptPath }}"></script>
+</head>
+<body>
+  <main>
+    {{ if .Error }}
+      <div class="error" style="color: red; font-weight: bold;">
+        {{ .Error }}
+      </div>
+    {{ end }}
+
+    {{ template "content" . }}
+  </main>
+
+  {{ if .Debug }}
+    <hr><h3>Debug State</h3>
+    <pre>{{ .StateJSON }}</pre>
+
+    <svg width="1000" height="666">
+      <image xlink:href="/debug/flow/graph.svg?flow={{ .FlowName }}" src="/debug/flow/graph.svg?flow={{ .FlowName }}" width="100%" height="100%" />
+    </svg>
+  {{ end }}
+</body>
+</html>
+{{ end }}

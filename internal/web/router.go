@@ -2,6 +2,7 @@ package web
 
 import (
 	"goiam/internal"
+	"goiam/internal/web/debug"
 	"log"
 
 	"github.com/fasthttp/router"
@@ -22,9 +23,9 @@ func New() *router.Router {
 		log.Printf("Registered flow %q at route %q", name, flow.Route)
 	}
 
-	r.GET("/debug/flows", HandleListFlows)
-	r.GET("/debug/flow/graph.png", HandleFlowGraphPNG)
-	r.GET("/debug/flow/graph.svg", HandleFlowGraphSVG)
+	r.GET("/debug/flows", debug.HandleListFlows)
+	r.GET("/debug/flow/graph.png", debug.HandleFlowGraphPNG)
+	r.GET("/debug/flow/graph.svg", debug.HandleFlowGraphSVG)
 
 	return r
 }

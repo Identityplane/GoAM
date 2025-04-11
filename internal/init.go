@@ -10,8 +10,9 @@ var FlowsDir = "../config/flows"
 
 var FlowRegistry = map[string]*graph.FlowWithRoute{}
 
-func InitializeFlows() {
+func Initialize() {
 
+	// Init Flows
 	flows, err := yaml.LoadFlowsFromDir(FlowsDir)
 	if err != nil {
 		log.Fatalf("failed to load flows: %v", err)
