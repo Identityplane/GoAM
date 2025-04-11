@@ -22,6 +22,35 @@ type yamlFlow struct {
 	Nodes map[string]yamlGraphNode `yaml:"nodes"`
 }
 
+func LoadFlowFromYAMLString(content string) (*graph.FlowWithRoute, error) {
+	var yflow yamlFlow
+	if err := yaml.Unmarshal([]byte(content), &yflow); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML: %w", err)
+	}
+
+	nodes := make(map[string]*graph.GraphNode)
+	for name, yn := range yflow.Nodes {
+		nodes[name] = &graph.GraphNode{
+			Name:         name,
+			Use:          yn.Use,
+			Next:         yn.Next,
+			CustomConfig: yn.CustomConfig,
+		}
+	}
+
+	flow := &graph.FlowWithRoute{
+		Route: yflow.Route,
+		Flow: &graph.FlowDefinition{
+			Name:  yflow.Name,
+			Start: yflow.Start,
+			Nodes: nodes,
+		},
+	}
+
+	return flow, nil
+
+}
+
 func LoadFlowFromYAML(path string) (*graph.FlowDefinition, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

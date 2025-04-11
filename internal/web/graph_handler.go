@@ -3,6 +3,7 @@ package web
 import (
 	"goiam/internal/auth/graph"
 	"goiam/internal/web/session"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
@@ -62,7 +63,8 @@ func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 
 	// Render appropriate response
 	if err != nil {
-		RenderError(ctx, *state.Error)
+		log.Fatal(err)
+		ctx.SetStatusCode(500)
 		return
 	}
 

@@ -46,9 +46,28 @@ var AskPasswordNode = &NodeDefinition{
 	Conditions: []string{"submitted"},
 }
 
+var SetVariableNode = &NodeDefinition{
+	Name:       "setVariable",
+	Type:       NodeTypeLogic,
+	Inputs:     []string{},
+	Outputs:    []string{},
+	Conditions: []string{"done"},
+	Run:        RunSetVariableNode,
+}
+
 func RunInitNode(state *FlowState, node *GraphNode) (string, error) {
 
 	return "start", nil
+}
+
+func RunSetVariableNode(state *FlowState, node *GraphNode) (string, error) {
+
+	key := node.CustomConfig["key"]
+	value := node.CustomConfig["value"]
+
+	state.Context[key] = value
+
+	return "done", nil
 }
 
 func ptr[T any](v T) *T {

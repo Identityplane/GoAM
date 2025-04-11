@@ -6,7 +6,7 @@ import (
 )
 
 func TestUsernamePasswordFlow_E2E(t *testing.T) {
-	e := SetupIntegrationTest(t)
+	e := SetupIntegrationTest(t, "")
 
 	// ---------- REGISTER ----------
 	registerCookie := e.GET("/register").Expect().

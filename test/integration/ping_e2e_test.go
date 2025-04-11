@@ -7,7 +7,7 @@ import (
 
 func TestPingE2E(t *testing.T) {
 
-	e := SetupIntegrationTest(t)
+	e := SetupIntegrationTest(t, "")
 
 	e.GET("/ping").
 		Expect().

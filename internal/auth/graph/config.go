@@ -9,6 +9,8 @@ var NodeDefinitions = map[string]*NodeDefinition{
 	FailureResultNode.Name:            FailureResultNode,
 	CheckUsernameAvailableNode.Name:   CheckUsernameAvailableNode,
 	CreateUserNode.Name:               CreateUserNode,
+	SetVariableNode.Name:              SetVariableNode,
+	PasskeyRegisterNode.Name:          PasskeyRegisterNode,
 }
 
 var LogicFunctions = map[string]LogicFunc{
@@ -16,6 +18,7 @@ var LogicFunctions = map[string]LogicFunc{
 	ValidateUsernamePasswordNode.Name: RunValidateUsernamePasswordNode,
 	CreateUserNode.Name:               RunCreateUserNode,
 	CheckUsernameAvailableNode.Name:   RunCheckUsernameAvailableNode,
+	SetVariableNode.Name:              RunSetVariableNode,
 }
 
 func GetNodeDefinitionByName(name string) *NodeDefinition {

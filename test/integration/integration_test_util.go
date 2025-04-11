@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"goiam/internal"
 	"goiam/internal/auth/graph"
+	"goiam/internal/auth/graph/yaml"
 	"goiam/internal/db/sqlite"
 	"goiam/internal/web"
 	"log"
@@ -20,11 +21,27 @@ import (
 	db "goiam/internal/db/sqlite"
 )
 
-func SetupIntegrationTest(t *testing.T) httpexpect.Expect {
+func SetupIntegrationTest(t *testing.T, flowYaml string) httpexpect.Expect {
 
 	// Overwrite config dir
-	internal.FlowsDir = "../../config/flows"
-	internal.InitializeFlows()
+	if flowYaml == "" {
+
+		// Load standard flow when no flow is given
+		internal.FlowsDir = "../../config/flows"
+		internal.InitializeFlows()
+	} else {
+
+		// Overwrite flow registry with this flow
+		flow, err := yaml.LoadFlowFromYAMLString(flowYaml)
+		if err != nil {
+			log.Fatalf("failed to load flows: %v", err)
+		}
+
+		flowWithRoute := &graph.FlowWithRoute{Route: flow.Route, Flow: flow.Flow}
+
+		internal.FlowRegistry[flow.Flow.Name] = flowWithRoute
+
+	}
 
 	// Init Database
 	err := db.Init(db.Config{

@@ -139,6 +139,23 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string) (map[
 		state.History = append(state.History, state.Current)
 		return nil, node, nil
 
+	case NodeTypeQueryWithLogic:
+
+		// CASE Answer
+		// TODO Implement case where answer is sent
+
+		// CASE Promt
+		nodeDefinition := NodeDefinitions[node.Name]
+
+		// generate the prompts
+		thePrompts, err := nodeDefinition.GeneratePrompts(state, node)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		state.History = append(state.History, state.Current)
+		return thePrompts, nil, nil
+
 	default:
 		return nil, nil, fmt.Errorf("unsupported node type: %s", def.Type)
 	}
