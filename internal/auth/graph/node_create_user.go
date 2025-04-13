@@ -2,7 +2,6 @@ package graph
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"goiam/internal/db/model"
 	"time"
@@ -12,32 +11,33 @@ import (
 )
 
 var CreateUserNode = &NodeDefinition{
-	Name:       "createUser",
-	Type:       NodeTypeLogic,
-	Inputs:     []string{"username", "password"},
-	Outputs:    []string{"user_id"},
-	Conditions: []string{"success", "fail"},
+	Name:            "createUser",
+	Type:            NodeTypeLogic,
+	RequiredContext: []string{"username", "password"},
+	OutputContext:   []string{"user_id"},
+	Conditions:      []string{"success", "fail"},
+	Run:             RunCreateUserNode,
 }
 
-func RunCreateUserNode(state *FlowState, node *GraphNode) (string, error) {
+func RunCreateUserNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
 	ctx := context.Background()
 	username := state.Context["username"]
 	password := state.Context["password"]
 
 	userRepo := Services.UserRepo
 	if userRepo == nil {
-		return "fail", errors.New("UserRepo not initialized")
+		return NewNodeResultWithTextError("UserRepo not initialized")
 	}
 
 	// Check for existing user
 	existing, _ := userRepo.GetByUsername(ctx, username)
 	if existing != nil {
-		return "fail", fmt.Errorf("username already exists")
+		return NewNodeResultWithTextError("username already exists")
 	}
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "fail", fmt.Errorf("failed to hash password: %w", err)
+		return NewNodeResultWithError(fmt.Errorf("failed to hash password: %w", err))
 	}
 
 	user := &model.User{
@@ -49,7 +49,7 @@ func RunCreateUserNode(state *FlowState, node *GraphNode) (string, error) {
 	}
 
 	if err := userRepo.Create(ctx, user); err != nil {
-		return "fail", fmt.Errorf("failed to create user: %w", err)
+		return NewNodeResultWithError(fmt.Errorf("failed to create user: %w", err))
 	}
 
 	state.User = user
@@ -64,5 +64,5 @@ func RunCreateUserNode(state *FlowState, node *GraphNode) (string, error) {
 		FlowName:      "user_register",
 	}
 
-	return "success", nil
+	return NewNodeResultWithCondition("success")
 }

@@ -1,34 +1,63 @@
 package graph
 
 var InitNode = &NodeDefinition{
-	Name:       "init",
-	Type:       NodeTypeInit,
-	Inputs:     []string{},
-	Outputs:    []string{},
-	Conditions: []string{"start"},
+	Name:            "init",
+	Type:            NodeTypeInit,
+	RequiredContext: []string{},
+	OutputContext:   []string{},
+	Conditions:      []string{"start"},
+	Run:             RunInitNode,
 }
 
 var SuccessResultNode = &NodeDefinition{
-	Name:       "successResult",
-	Type:       NodeTypeResult,
-	Inputs:     []string{"user_id", "username"}, // expected to be set by now
-	Outputs:    []string{},
-	Conditions: []string{}, // terminal node
+	Name:            "successResult",
+	Type:            NodeTypeResult,
+	RequiredContext: []string{"user_id", "username"}, // expected to be set by now
+	OutputContext:   []string{},
+	Conditions:      []string{}, // terminal node
+	Run:             RunAuthSuccessNode,
+}
+
+func RunAuthSuccessNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+
+	state.Result = &FlowResult{
+		UserID:        state.Context["user_id"],
+		Username:      state.Context["username"],
+		Authenticated: true}
+
+	return &NodeResult{
+		Condition: "",
+		Prompts:   nil,
+	}, nil
+
 }
 
 var FailureResultNode = &NodeDefinition{
-	Name:       "failureResult",
-	Type:       NodeTypeResult,
-	Inputs:     []string{},
-	Outputs:    []string{},
-	Conditions: []string{}, // terminal node
+	Name:            "failureResult",
+	Type:            NodeTypeResult,
+	RequiredContext: []string{},
+	OutputContext:   []string{},
+	Conditions:      []string{}, // terminal node
+	Run:             RunAuthFailureNode,
+}
+
+func RunAuthFailureNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+	state.Result = &FlowResult{
+		UserID:        "",
+		Username:      "",
+		Authenticated: false}
+
+	return &NodeResult{
+		Condition: "",
+		Prompts:   nil,
+	}, nil
 }
 
 var AskUsernameNode = &NodeDefinition{
-	Name:    "askUsername",
-	Type:    NodeTypeQuery,
-	Inputs:  []string{},
-	Outputs: []string{"username"},
+	Name:            "askUsername",
+	Type:            NodeTypeQuery,
+	RequiredContext: []string{},
+	OutputContext:   []string{"username"},
 	Prompts: map[string]string{
 		"username": "text",
 	},
@@ -36,10 +65,10 @@ var AskUsernameNode = &NodeDefinition{
 }
 
 var AskPasswordNode = &NodeDefinition{
-	Name:    "askPassword",
-	Type:    NodeTypeQuery,
-	Inputs:  []string{},
-	Outputs: []string{"password"},
+	Name:            "askPassword",
+	Type:            NodeTypeQuery,
+	RequiredContext: []string{},
+	OutputContext:   []string{"password"},
 	Prompts: map[string]string{
 		"password": "password",
 	},
@@ -47,27 +76,27 @@ var AskPasswordNode = &NodeDefinition{
 }
 
 var SetVariableNode = &NodeDefinition{
-	Name:       "setVariable",
-	Type:       NodeTypeLogic,
-	Inputs:     []string{},
-	Outputs:    []string{},
-	Conditions: []string{"done"},
-	Run:        RunSetVariableNode,
+	Name:            "setVariable",
+	Type:            NodeTypeLogic,
+	RequiredContext: []string{},
+	OutputContext:   []string{},
+	Conditions:      []string{"done"},
+	Run:             RunSetVariableNode,
 }
 
-func RunInitNode(state *FlowState, node *GraphNode) (string, error) {
+func RunInitNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
 
-	return "start", nil
+	return NewNodeResultWithCondition("start")
 }
 
-func RunSetVariableNode(state *FlowState, node *GraphNode) (string, error) {
+func RunSetVariableNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
 
 	key := node.CustomConfig["key"]
 	value := node.CustomConfig["value"]
 
 	state.Context[key] = value
 
-	return "done", nil
+	return NewNodeResultWithCondition("done")
 }
 
 func ptr[T any](v T) *T {

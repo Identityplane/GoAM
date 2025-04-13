@@ -12,14 +12,7 @@ var NodeDefinitions = map[string]*NodeDefinition{
 	SetVariableNode.Name:              SetVariableNode,
 	PasskeyRegisterNode.Name:          PasskeyRegisterNode,
 	PasskeysVerifyNode.Name:           PasskeysVerifyNode,
-}
-
-var LogicFunctions = map[string]LogicFunc{
-	InitNode.Name:                     RunInitNode,
-	ValidateUsernamePasswordNode.Name: RunValidateUsernamePasswordNode,
-	CreateUserNode.Name:               RunCreateUserNode,
-	CheckUsernameAvailableNode.Name:   RunCheckUsernameAvailableNode,
-	SetVariableNode.Name:              RunSetVariableNode,
+	UnlockAccountNode.Name:            UnlockAccountNode,
 }
 
 func GetNodeDefinitionByName(name string) *NodeDefinition {

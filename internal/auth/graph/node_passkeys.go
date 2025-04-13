@@ -12,29 +12,72 @@ import (
 )
 
 var PasskeyRegisterNode = &NodeDefinition{
-	Name:   "registerPasskey",
-	Type:   NodeTypeQueryWithLogic,
-	Inputs: []string{"username"},
+	Name:            "registerPasskey",
+	Type:            NodeTypeQueryWithLogic,
+	RequiredContext: []string{"username"},
 	Prompts: map[string]string{
 		"passkeysFinishRegistrationJson": "json",
 	},
-	Outputs:           []string{"passkeysFinishRegistrationJson", "passkeysSession", "passkeysOptions"},
-	Conditions:        []string{"success", "failure"},
-	GeneratePrompts:   GeneratePasskeysOptions,
-	ProcessSubmission: ProcessPasskeyRegistration,
+	OutputContext: []string{"passkeysFinishRegistrationJson", "passkeysSession", "passkeysOptions"},
+	Conditions:    []string{"success", "failure"},
+	Run:           RunPasskeyRegisterNode,
 }
 
 var PasskeysVerifyNode = &NodeDefinition{
-	Name:   "verifyPasskey",
-	Type:   NodeTypeQueryWithLogic,
-	Inputs: []string{"username"},
+	Name:            "verifyPasskey",
+	Type:            NodeTypeQueryWithLogic,
+	RequiredContext: []string{"username"},
 	Prompts: map[string]string{
 		"passkeysFinishLoginJson": "json",
 	},
-	Outputs:           []string{"passkeysFinishLoginJson", "passkeysLoginSession", "passkeysLoginOptions"},
-	Conditions:        []string{"success", "failure"},
-	GeneratePrompts:   GeneratePasskeysLoginOptions,
-	ProcessSubmission: ProcessPasskeyLogin,
+	OutputContext: []string{"passkeysFinishLoginJson", "passkeysLoginSession", "passkeysLoginOptions"},
+	Conditions:    []string{"success", "failure"},
+	Run:           RunPasskeyVerifyNode,
+}
+
+func RunPasskeyRegisterNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+
+	// Check if input is present, if not generate options, if present process registration
+	if _, ok := input["passkeysFinishRegistrationJson"]; !ok {
+
+		// Generate options
+		prompts, err := GeneratePasskeysOptions(state, node)
+		if err != nil {
+
+			return NewNodeResultWithError(fmt.Errorf("failed to generate passkeys options: %w", err))
+		}
+		return NewNodeResultWithPrompts(prompts)
+
+	} else {
+		// Process registration
+		result, err := ProcessPasskeyRegistration(state, node, input)
+		if err != nil {
+			return NewNodeResultWithError(fmt.Errorf("failed to process passkey registration: %w", err))
+		}
+		return NewNodeResultWithCondition(result)
+	}
+}
+
+func RunPasskeyVerifyNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+
+	// Check if input is present, if not generate options, if present process assertion
+	if _, ok := input["passkeysFinishLoginJson"]; !ok {
+
+		// Generate options
+		prompts, err := GeneratePasskeysLoginOptions(state, node)
+		if err != nil {
+			return NewNodeResultWithError(fmt.Errorf("failed to generate passkeys options: %w", err))
+		}
+		return NewNodeResultWithPrompts(prompts)
+
+	} else {
+		// Process assertion
+		result, err := ProcessPasskeyLogin(state, node, input)
+		if err != nil {
+			return NewNodeResultWithError(fmt.Errorf("failed to process passkey login: %w", err))
+		}
+		return NewNodeResultWithCondition(result)
+	}
 }
 
 func GeneratePasskeysOptions(state *FlowState, node *GraphNode) (map[string]string, error) {

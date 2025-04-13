@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"errors"
 	"goiam/internal/auth/repository"
 	"goiam/internal/db/model"
 )
@@ -17,15 +18,18 @@ const (
 )
 
 type NodeDefinition struct {
-	Name              string                                                                           `json:"name"`       // e.g. "askUsername"
-	Type              NodeType                                                                         `json:"type"`       // query, logic, etc.
-	Inputs            []string                                                                         `json:"inputs"`     // required context fields
-	Outputs           []string                                                                         `json:"outputs"`    // new fields it will write
-	Prompts           map[string]string                                                                `json:"prompts"`    // key: label/type shown to user
-	Conditions        []string                                                                         `json:"conditions"` // e.g. ["success", "fail"]
-	GeneratePrompts   func(state *FlowState, node *GraphNode) (map[string]string, error)               // For NodeTypeQueryWithLogic generate prompt
-	ProcessSubmission func(state *FlowState, node *GraphNode, input map[string]string) (string, error) // For NodeTypeQueryWithLogic process result
-	Run               func(state *FlowState, node *GraphNode) (string, error)                          // Run function for logic nodes
+	Name            string                                                                                `json:"name"`       // e.g. "askUsername"
+	Type            NodeType                                                                              `json:"type"`       // query, logic, etc.
+	RequiredContext []string                                                                              `json:"inputs"`     // field that the node requires from the flow context
+	OutputContext   []string                                                                              `json:"outputs"`    // fields that the node will set in the flow context
+	Prompts         map[string]string                                                                     `json:"prompts"`    // key: label/type shown to user, will be returned via the user input argument
+	Conditions      []string                                                                              `json:"conditions"` // e.g. ["success", "fail"]
+	Run             func(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) // Run function for logic nodes, must either return a condition or a set of prompts
+}
+
+type NodeResult struct {
+	Prompts   map[string]string // Prompts to be shown to the user, if applicable
+	Condition string            // The next state, if applicable
 }
 
 type GraphNode struct {
@@ -54,9 +58,8 @@ type FlowState struct {
 	Error   *string           `json:"error,omitempty"`
 	Result  *FlowResult       `json:"result,omitempty"`
 	User    *model.User       `json:"user,omitempty"`
+	Prompts map[string]string `json:"prompts,omitempty"` // Prompts to be shown to the user, if applicable
 }
-
-type LogicFunc func(state *FlowState, node *GraphNode) (condition string, err error)
 
 type AuthLevel string
 
@@ -78,4 +81,30 @@ var Services = &ServiceRegistry{}
 
 type ServiceRegistry struct {
 	UserRepo repository.UserRepository
+}
+
+// Create NodeResult with state
+func NewNodeResultWithCondition(condition string) (*NodeResult, error) {
+	return &NodeResult{
+		Prompts:   nil,
+		Condition: condition,
+	}, nil
+}
+
+// Create NodeResult with prompts
+func NewNodeResultWithPrompts(prompts map[string]string) (*NodeResult, error) {
+	return &NodeResult{
+		Prompts:   prompts,
+		Condition: "",
+	}, nil
+}
+
+// Create NodeResult with error
+func NewNodeResultWithError(err error) (*NodeResult, error) {
+	return nil, err
+}
+
+// Create NodeResult with text error
+func NewNodeResultWithTextError(text string) (*NodeResult, error) {
+	return nil, errors.New(text)
 }

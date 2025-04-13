@@ -8,25 +8,26 @@ import (
 )
 
 var ValidateUsernamePasswordNode = &NodeDefinition{
-	Name:       "validateUsernamePassword",
-	Type:       NodeTypeLogic,
-	Inputs:     []string{"username", "password"},
-	Outputs:    []string{"auth_result"}, // or we may skip outputs if conditions imply it
-	Conditions: []string{"success", "fail", "locked"},
+	Name:            "validateUsernamePassword",
+	Type:            NodeTypeLogic,
+	RequiredContext: []string{"username", "password"},
+	OutputContext:   []string{"auth_result"}, // or we may skip outputs if conditions imply it
+	Conditions:      []string{"success", "fail", "locked"},
+	Run:             RunValidateUsernamePasswordNode,
 }
 
-func RunValidateUsernamePasswordNode(state *FlowState, node *GraphNode) (string, error) {
+func RunValidateUsernamePasswordNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
 	username := state.Context["username"]
 	password := state.Context["password"]
 
 	ctx := context.Background()
 	user, err := Services.UserRepo.GetByUsername(ctx, username)
 	if err != nil || user == nil {
-		return "fail", nil
+		return NewNodeResultWithCondition("fail")
 	}
 
 	if user.FailedLoginAttempts >= 3 || user.AccountLocked {
-		return "locked", nil
+		return NewNodeResultWithCondition("locked")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
@@ -36,7 +37,7 @@ func RunValidateUsernamePasswordNode(state *FlowState, node *GraphNode) (string,
 			user.AccountLocked = true
 		}
 		_ = Services.UserRepo.Update(ctx, user)
-		return "fail", nil
+		return NewNodeResultWithCondition("fail")
 	}
 
 	user.FailedLoginAttempts = 0
@@ -48,5 +49,5 @@ func RunValidateUsernamePasswordNode(state *FlowState, node *GraphNode) (string,
 	state.Context["auth_result"] = "success"
 	state.Context["user_id"] = user.ID
 
-	return "success", nil
+	return NewNodeResultWithCondition("success")
 }

@@ -1,0 +1,29 @@
+name: unlock_account
+route: /unlockAccount
+start: init
+nodes:
+  init:
+    use: init
+    next:
+      start: askUsername
+
+  askUsername:
+    use: askUsername
+    next:
+      submitted: unlockAccount
+
+  unlockAccount:
+    use: unlockAccount
+    next:
+      success: unlockSuccess
+      fail: unlockFailure
+
+  unlockSuccess:
+    use: successResult
+    custom_config:
+      message: "The account has been successfully unlocked."
+
+  unlockFailure:
+    use: failureResult
+    custom_config:
+      message: "Failed to unlock the account. Please try again or contact support."

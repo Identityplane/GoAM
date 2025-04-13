@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 )
@@ -24,43 +25,6 @@ func NewEngine(def *FlowDefinition) (*Engine, error) {
 	return engine, nil
 }
 
-// validate checks for basic structural integrity of the flow
-func (e *Engine) validate() error {
-
-	// Check if start node is in map
-	_, ok := e.Flow.Nodes[e.Flow.Start]
-	if !ok {
-		return fmt.Errorf("start node '%s' not found in nodes", e.Flow.Start)
-	}
-	def := e.Flow
-
-	// Check start node is of type 'init'
-	if def.Start == "" {
-		return errors.New("flow start node is not defined")
-	}
-	if def.Nodes[def.Start] == nil {
-		return fmt.Errorf("start node '%s' is missing from the graph", def.Start)
-	}
-	if nodeDef := def.Nodes[def.Start]; nodeDef.Use != "init" {
-		return fmt.Errorf("start node '%s' must be of type 'init'", def.Start)
-	}
-
-	// Check non-terminal nodes have a Next map
-	for name, node := range def.Nodes {
-		nodeType := NodeTypeInit
-		if def := getNodeDefinitionByName(node.Use); def != nil {
-			nodeType = def.Type
-		} else if node.Use == "successResult" || node.Use == "failureResult" {
-			nodeType = NodeTypeResult
-		}
-
-		if nodeType != NodeTypeResult && node.Next == nil {
-			return fmt.Errorf("node '%s' must define a 'Next' map", name)
-		}
-	}
-	return nil
-}
-
 // InitFlow creates a new FlowState for a given flow
 func InitFlow(flow *FlowDefinition) *FlowState {
 	return &FlowState{
@@ -71,146 +35,233 @@ func InitFlow(flow *FlowDefinition) *FlowState {
 	}
 }
 
-// Run processes one step of the flow and returns either:
-// - prompts for query node
-// - result node
-// - or nil and continues internally
-func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string) (map[string]string, *GraphNode, error) {
+// Run processes one step of the flow and returns either
+// - flow state when graph is requesting prompt or is finished
+// - error if any internal error occurred
+func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string) (*FlowState, error) {
+
+	// Check if state is present and valid
 	if state == nil || state.Current == "" {
-		return nil, nil, errors.New("invalid or uninitialized flow state")
+		return nil, errors.New("invalid or uninitialized flow state")
 	}
 
+	// Check if node for current state exists in flow
 	node, ok := flow.Nodes[state.Current]
 	if !ok {
-		return nil, nil, fmt.Errorf("node '%s' not found in flow", state.Current)
+		return nil, fmt.Errorf("node '%s' not found in flow", state.Current)
 	}
 
+	// Load node definition from node name
 	def := getNodeDefinitionByName(node.Use)
 	if def == nil {
-		return nil, nil, fmt.Errorf("node definition for '%s' not found", node.Use)
+		return nil, fmt.Errorf("node definition for '%s' not found", node.Use)
 	}
 
+	var nodeResult *NodeResult
+	var err error
+
+	// Process node by type
 	switch def.Type {
-	case NodeTypeInit, NodeTypeLogic:
-		condition, err := runNodeLogic(state, node)
-		if err != nil {
-			msg := err.Error()
-			state.Error = &msg
-			return nil, nil, err
-		}
+	case NodeTypeInit:
+		nodeResult, err = ProcessInitTypeNode(state, node, def, inputs)
 
-		// Add to history with condition
-		state.History = append(state.History, fmt.Sprintf("%s:%s", node.Name, condition))
-
-		next, ok := node.Next[condition]
-		if !ok {
-			return nil, nil, fmt.Errorf("no transition defined for condition '%s' in node '%s'", condition, node.Name)
-		}
-		state.Current = next
-		return Run(flow, state, nil)
+	case NodeTypeLogic:
+		nodeResult, err = ProcessLogicTypeNode(state, node, def, inputs)
 
 	case NodeTypeQuery:
-		if inputs == nil {
-			state.History = append(state.History, state.Current)
-			return def.Prompts, nil, nil
-		}
-
-		inputSummary := make(map[string]string)
-		for inputKey := range def.Prompts {
-			val, ok := inputs[inputKey]
-			if !ok || val == "" {
-				return nil, nil, fmt.Errorf("missing value for prompt '%s'", inputKey)
-			}
-			state.Context[inputKey] = val
-			inputSummary[inputKey] = val
-		}
-
-		// Marshal inputs for history
-		inputJson, err := json.Marshal(inputSummary)
-		if err != nil {
-			inputJson = []byte(`{}`)
-		}
-		state.History = append(state.History, fmt.Sprintf("%s:submitted:%s", node.Name, inputJson))
-
-		state.Current = node.Next["submitted"]
-		return Run(flow, state, nil)
+		nodeResult, err = ProcessQueryTypeNode(state, node, def, inputs)
 
 	case NodeTypeResult:
-		state.History = append(state.History, state.Current)
-		return nil, node, nil
+		nodeResult, err = ProcessResultTypeNode(state, node, def, inputs)
 
 	case NodeTypeQueryWithLogic:
-
-		nodeDefinition := NodeDefinitions[node.Name]
-
-		if inputs == nil {
-
-			// Case when prompt care calculated
-			thePrompts, err := nodeDefinition.GeneratePrompts(state, node)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			state.History = append(state.History, state.Current+":requested")
-			return thePrompts, nil, nil
-
-		} else {
-
-			condition, err := nodeDefinition.ProcessSubmission(state, node, inputs)
-
-			if err != nil {
-				return nil, nil, err
-			}
-
-			// Add to history with condition
-			state.History = append(state.History, fmt.Sprintf("%s:%s", node.Name, condition))
-
-			next, ok := node.Next[condition]
-			if !ok {
-				return nil, nil, fmt.Errorf("no transition defined for condition '%s' in node '%s'", condition, node.Name)
-			}
-			state.Current = next
-			return Run(flow, state, nil)
-		}
+		nodeResult, err = ProcessQueryWithLogicTypeNode(state, node, def, inputs)
 
 	default:
-		return nil, nil, fmt.Errorf("unsupported node type: %s", def.Type)
+		return nil, fmt.Errorf("unsupported node type: %s", def.Type)
 	}
+
+	// Return error if present
+	if err != nil {
+		log.Printf("Error processing node '%s': %v", node.Name, err)
+		return nil, err
+	}
+
+	// End the graph if the node is a result node
+	if def.Type == NodeTypeResult {
+
+		return state, nil
+	}
+
+	// if there are prompt in the result we update the state and return
+	if nodeResult.Prompts != nil {
+
+		// turn the nodeResult.Prompts into a strong for logging
+		promptsString, err := json.Marshal(nodeResult.Prompts)
+		if err != nil {
+			log.Printf("Error marshalling prompts: %v", err)
+			return nil, err
+		}
+
+		// log the node name, type and prompts
+		log.Printf("Node %w of type %w resulted in prompts %s", node.Name, def.Type, promptsString)
+		state.History = append(state.History, fmt.Sprintf("%s:prompted:%s", node.Name, promptsString))
+
+		// Update prompts in string and return
+		state.Prompts = nodeResult.Prompts
+		return state, nil
+	}
+	if nodeResult.Condition != "" {
+
+		// log the node name and condition
+		condition := nodeResult.Condition
+		state.History = append(state.History, fmt.Sprintf("%s:%s", node.Name, condition))
+
+		// Check if resulting condition is valid as defined in the node definiton
+		valid := false
+		for _, c := range def.Conditions {
+			if c == condition {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return nil, fmt.Errorf("invalid condition '%s' returned by node '%s'", condition, node.Name)
+		}
+
+		// Clear prompts if no prompts are present
+		state.Prompts = nil
+
+		// lookup transition in graph
+		if nextNodeName, ok := node.Next[condition]; ok {
+			state.Current = nextNodeName
+		} else {
+			return nil, fmt.Errorf("no next node defined for condition '%s'", condition)
+		}
+
+		// Clear inputs as next node does not expect any inputs
+		inputs = nil
+
+		// recursively call run with the new state
+		return Run(flow, state, inputs)
+	}
+
+	// throw an error if no condition or prompts are present
+	panic(fmt.Sprintf("node '%s' returned neither prompts nor condition", node.Name))
 }
 
-// runNodeLogic runs built-in logic for known nodes
-func runNodeLogic(state *FlowState, node *GraphNode) (string, error) {
+// ProcessQueryTypeNode processes a query node
+// and returns the next state and any prompts to be shown to the user
+func ProcessQueryTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
 
-	logicFunc, ok := LogicFunctions[node.Use]
-	if !ok {
-		return "", fmt.Errorf("no logic function registered for node '%s'", node.Use)
+	// If no inputs are present send prompts to user
+	if inputs == nil {
+
+		return &NodeResult{Prompts: def.Prompts, Condition: ""}, nil
 	}
 
-	// Execute node
-	condition, err := logicFunc(state, node)
+	// Else if we have inputs to context and return submitted
+	for k, v := range inputs {
+		state.Context[k] = v
+	}
+	return &NodeResult{Prompts: nil, Condition: "submitted"}, nil
+}
+
+func ProcessResultTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
+
+	// we expect no inputs for a result node
+	if inputs != nil {
+		return nil, fmt.Errorf("result node '%s' must not have inputs", node.Name)
+	}
+
+	// run the node logic
+	// Check if den.Run is not nil
+	if def.Run == nil {
+		return nil, fmt.Errorf("result node '%s' has no run function", node.Name)
+	}
+
+	result, err := def.Run(state, node, nil)
+
+	// we expect the result to have no prompts and no condition as this is a terminal node
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	if result.Prompts != nil {
+		return nil, fmt.Errorf("result node '%s' must not have prompts", node.Name)
+	}
+	if result.Condition != "" {
+		return nil, fmt.Errorf("result node '%s' must not have condition", node.Name)
 	}
 
-	// Check if return conditon is valid
-	def := getNodeDefinitionByName(node.Use)
-	if def == nil {
-		return "", fmt.Errorf("no node definition found for '%s'", node.Use)
+	// The result node must set the flow result
+	if state.Result == nil {
+		return nil, fmt.Errorf("result node '%s' must set the flow result", node.Name)
 	}
 
-	valid := false
-	for _, c := range def.Conditions {
-		if c == condition {
-			valid = true
-			break
-		}
-	}
-	if !valid {
-		return "", fmt.Errorf("invalid condition '%s' returned by logic for node '%s'", condition, node.Name)
+	// update history
+	state.History = append(state.History, node.Name)
+
+	return result, nil
+}
+
+// ProcessInitTypeNode processes an init node
+// and returns the next state and any prompts to be shown to the user
+func ProcessInitTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
+
+	// Run init node logic
+	result, err := def.Run(state, node, inputs)
+
+	if err != nil {
+		return nil, err
 	}
 
-	return condition, nil
+	// init node must return a condition
+	if result.Condition == "" {
+		return nil, fmt.Errorf("init node '%s' must return a condition", node.Name)
+	}
 
+	return result, nil
+}
+
+// ProcessLogicTypeNode processes a logic node
+// and returns the next state
+func ProcessLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
+
+	// Run node logic
+	result, err := def.Run(state, node, inputs)
+	if err != nil {
+		return nil, err
+	}
+	// Check if result is valid
+	if result.Condition == "" {
+		return nil, fmt.Errorf("logic node '%s' must return a condition", node.Name)
+	}
+
+	return result, nil
+}
+
+// Process NodeTypeQueryWithLogic node
+// and returns the next state and any prompts to be shown to the user
+func ProcessQueryWithLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
+
+	// Run node logic
+	result, err := def.Run(state, node, inputs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// check if the result is a prompt or a condition
+	if result.Prompts != nil {
+
+		return result, nil
+	} else if result.Condition != "" {
+
+		return result, nil
+	}
+
+	// if no result is returned, return an error
+	return nil, fmt.Errorf("query node '%s' must return a prompt or a condition", node.Name)
 }
 
 func getNodeDefinitionByName(name string) *NodeDefinition {

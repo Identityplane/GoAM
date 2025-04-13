@@ -2,32 +2,33 @@ package graph
 
 import (
 	"context"
-	"errors"
 )
 
 var CheckUsernameAvailableNode = &NodeDefinition{
-	Name:       "checkUsernameAvailable",
-	Type:       NodeTypeLogic,
-	Inputs:     []string{"username"},
-	Outputs:    []string{},
-	Conditions: []string{"available", "taken"},
+	Name:            "checkUsernameAvailable",
+	Type:            NodeTypeLogic,
+	RequiredContext: []string{"username"},
+	OutputContext:   []string{},
+	Conditions:      []string{"available", "taken"},
+	Run:             RunCheckUsernameAvailableNode,
 }
 
-func RunCheckUsernameAvailableNode(state *FlowState, node *GraphNode) (string, error) {
+func RunCheckUsernameAvailableNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
 	username := state.Context["username"]
 	ctx := context.Background()
 
+	// Load use Repository
 	userRepo := Services.UserRepo
 	if userRepo == nil {
-		return "taken", errors.New("UserRepo not initialized")
+		return NewNodeResultWithTextError("UserRepo not initialized")
 	}
 
 	existing, err := userRepo.GetByUsername(ctx, username)
 	if err != nil {
-		return "taken", err
+		return NewNodeResultWithCondition("taken")
 	}
 	if existing != nil {
-		return "taken", nil
+		return NewNodeResultWithCondition("taken")
 	}
-	return "available", nil
+	return NewNodeResultWithCondition("available")
 }

@@ -44,8 +44,28 @@ func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	prompts, resultNode, err := graph.Run(h.Flow, state, input)
+	//TODO Adapt to new interface
+	// Run the flow engine with the current state and input
+	state, err := graph.Run(h.Flow, state, input)
+	if err != nil {
+		log.Printf("flow resulted in error: %v", err)
+		RenderError(ctx, err.Error())
+		return
+	}
+
+	prompts := state.Prompts
 	session.Save(sessionID, state)
+
+	// This should be cleaned up in the future, its not beautiful to manually lookup the result node like this
+	var resultNode *graph.GraphNode
+	if state.Result != nil {
+		resultNode = h.Flow.Nodes[state.Current]
+		if resultNode == nil {
+			log.Printf("result node not found: %s", state.Current)
+			RenderError(ctx, "Result node not found")
+			return
+		}
+	}
 
 	if err != nil {
 		log.Printf("flow error: %v", err)
