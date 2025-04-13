@@ -1,9 +1,8 @@
 {{ define "content" }}
-<h2>Verify Passkey</h2>
+<form class="login-form" id="passkey-form" method="POST">
+  <h2>Welcometo GoAM</h2>
+  <p>{{index .CustomConfig "message"}}</p>
 
-<p>Click the button below to verify your identity using a registered passkey.</p>
-
-<form id="passkey-form" method="POST">
   <input type="hidden" name="step" value="{{ .NodeName }}">
   <input type="hidden" id="passkeysFinishLoginJson" name="passkeysFinishLoginJson">
   <input type="hidden" id="passkeysLoginOptions" value='{{ .Prompts.passkeysLoginOptions }}'>

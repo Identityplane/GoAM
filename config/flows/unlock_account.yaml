@@ -11,6 +11,8 @@ nodes:
     use: askUsername
     next:
       submitted: unlockAccount
+    custom_config:
+      message: Enter username to unlock your account
 
   unlockAccount:
     use: unlockAccount

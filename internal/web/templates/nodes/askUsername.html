@@ -1,9 +1,18 @@
 {{ define "content" }}
-<h2>{{ .NodeName | title }}</h2>
-<form method="POST">
-  <input type="hidden" name="step" value="{{ .NodeName }}">
-  <label>Username:</label><br>
-  <input name="username" type="text"><br><br>
-  <input type="submit" value="Submit">
+<form method="POST" class="login-form">
+  <h2>Welcometo GoAM</h2>
+  <p>{{index .CustomConfig "message"}}</p>
+
+  <div class="input-group">
+    <input type="hidden" name="step" value="{{ .NodeName }}">
+    <label for="username">Username</label>
+    <input type="text" name="username" id="username" placeholder="username" required />
+  </div>
+  <button type="submit">Login</button>
+
+  {{ if index .CustomConfig "showRegisterLink" }}
+    <p class="register-link">Don't have an account? <a href="/register">Sign up</a></p>
+  {{ end }}
+
 </form>
 {{ end }}

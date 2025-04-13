@@ -1,10 +1,12 @@
 {{ define "content" }}
-<h2>Flow Completed</h2>
+<div class="login-form">
+  <h2>Flow Completed</h2>
 
-{{ if .Message }}
-  <p>{{ .Message }}</p>
-{{ else }}
-  <p>The flow has completed.</p>
-{{ end }}
-
+  {{ if .Message }}
+    <p>{{ .Message }}</p>
+  {{ else }}
+    <p>The flow has completed.</p>
+  {{ end }}
+  
+</div>
 {{ end }}

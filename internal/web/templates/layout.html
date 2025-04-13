@@ -7,23 +7,31 @@
   <script defer src="{{ .ScriptPath }}"></script>
 </head>
 <body>
-  <main>
-    {{ if .Error }}
-      <div class="error" style="color: red; font-weight: bold;">
-        {{ .Error }}
-      </div>
-    {{ end }}
+  
+  
+  <div class="main-content">
+    <div class="login-container">
 
-    {{ template "content" . }}
-  </main>
+        {{ if .Error }}
+        <div class="error" style="color: red; font-weight: bold;">
+          {{ .Error }}
+        </div>
+        {{ end }}
+
+        {{ template "content" . }}
+
+      </div>
+</div>
 
   {{ if .Debug }}
+  <div class="debug">
     <hr><h3>Debug State</h3>
     <pre>{{ .StateJSON }}</pre>
 
     <svg width="1000" height="666">
       <image xlink:href="/debug/flow/graph.svg?flow={{ .FlowName }}" src="/debug/flow/graph.svg?flow={{ .FlowName }}" width="100%" height="100%" />
     </svg>
+  </div>
   {{ end }}
 </body>
 </html>

@@ -11,6 +11,8 @@ nodes:
     use: askUsername
     next:
       submitted: checkUsernameAvailable
+    custom_config:
+      message: Please register your account
 
   checkUsernameAvailable:
     use: checkUsernameAvailable
@@ -22,6 +24,8 @@ nodes:
     use: askPassword
     next:
       submitted: createUser
+    custom_config:
+      message: Please register your account
 
   createUser:
     use: createUser

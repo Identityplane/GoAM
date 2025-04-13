@@ -20,16 +20,17 @@ var (
 
 // ViewData is passed to all templates for dynamic rendering
 type ViewData struct {
-	Title      string
-	NodeName   string
-	Prompts    map[string]string
-	Debug      bool
-	Error      string
-	StateJSON  string
-	FlowName   string
-	StylePath  string
-	ScriptPath string
-	Message    string
+	Title        string
+	NodeName     string
+	Prompts      map[string]string
+	Debug        bool
+	Error        string
+	StateJSON    string
+	FlowName     string
+	StylePath    string
+	ScriptPath   string
+	Message      string
+	CustomConfig map[string]string
 }
 
 // InitTemplates loads and parses the base layout template
@@ -72,17 +73,29 @@ func Render(ctx *fasthttp.RequestCtx, flow *graph.FlowDefinition, state *graph.F
 		}
 	}
 
+	currentGraphNode, ok := flow.Nodes[state.Current]
+	if !ok {
+		RenderError(ctx, "Did not find current graph node: "+state.Current)
+		return
+	}
+
+	CustomConfig := currentGraphNode.CustomConfig
+	if CustomConfig == nil {
+		CustomConfig = make(map[string]string)
+	}
+
 	view := &ViewData{
-		Title:      state.Current,
-		NodeName:   state.Current,
-		Prompts:    prompts,
-		Debug:      debug,
-		Error:      resolveErrorMessage(state),
-		StateJSON:  stateJSON,
-		FlowName:   flow.Name,
-		Message:    customMessage,
-		StylePath:  "/theme/default/style.css", // TODO: per realm
-		ScriptPath: "/theme/default/script.js",
+		Title:        state.Current,
+		NodeName:     state.Current,
+		Prompts:      prompts,
+		Debug:        debug,
+		Error:        resolveErrorMessage(state),
+		StateJSON:    stateJSON,
+		FlowName:     flow.Name,
+		Message:      customMessage,
+		StylePath:    "/theme/default/style.css",
+		ScriptPath:   "/theme/default/script.js",
+		CustomConfig: CustomConfig,
 	}
 
 	tmpl, err := baseTemplates.Clone()

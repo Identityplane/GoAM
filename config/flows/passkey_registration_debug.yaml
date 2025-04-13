@@ -17,5 +17,7 @@ nodes:
     use: registerPasskey
     next:
       success: finish
+    custom_config:
+      message: Click the button below to register a registered passkey.
   finish:
     use: successResult
