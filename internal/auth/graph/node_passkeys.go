@@ -35,6 +35,37 @@ var PasskeysVerifyNode = &NodeDefinition{
 	Run:           RunPasskeyVerifyNode,
 }
 
+var PasskeysCheckUserRegistered = &NodeDefinition{
+	Name:            "checkPasskeyRegistered",
+	Type:            NodeTypeLogic,
+	RequiredContext: []string{"username"},
+	Prompts:         nil,
+	OutputContext:   []string{},
+	Conditions:      []string{"registered", "not_registered", "user_not_found"},
+	Run:             RunCheckUserHasPasskeyNode,
+}
+
+func RunCheckUserHasPasskeyNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+	ctx := context.Background()
+	username := state.Context["username"]
+
+	// Load user from DB
+	userModel, err := Services.UserRepo.GetByUsername(ctx, username)
+	if err != nil || userModel == nil {
+		return NewNodeResultWithCondition("user_not_found")
+	}
+
+	// Check if the user has a passkey registered
+	_, ok := userModel.Attributes["webauthn_credential"]
+	if !ok {
+		state.Context["hasPasskeyRegistered"] = "not_registered"
+		return NewNodeResultWithCondition("not_registered")
+	} else {
+		state.Context["hasPasskeyRegistered"] = "registered"
+		return NewNodeResultWithCondition("registered")
+	}
+}
+
 func RunPasskeyRegisterNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
 
 	// Check if input is present, if not generate options, if present process registration

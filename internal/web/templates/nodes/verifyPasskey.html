@@ -11,6 +11,15 @@
 </form>
 
 <script>
+
+document.addEventListener("DOMContentLoaded", function () {
+  const autoSubmit = '{{index .CustomConfig "autosubmit"}}';
+  if (autoSubmit === "true") {
+    startPasskeyLogin(); // or directly submit the form depending on what startPasskeyLogin does
+  }
+});
+
+
 function base64urlToBuffer(base64url) {
   const padding = '='.repeat((4 - base64url.length % 4) % 4);
   const base64 = (base64url + padding)

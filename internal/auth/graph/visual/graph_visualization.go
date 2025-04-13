@@ -3,6 +3,7 @@ package visual
 import (
 	"fmt"
 	"goiam/internal/auth/graph"
+	"log"
 	"strings"
 )
 
@@ -16,6 +17,11 @@ func RenderDOTGraph(flow *graph.FlowDefinition) string {
 	for name, node := range flow.Nodes {
 		def := graph.GetNodeDefinitionByName(node.Use)
 		style := `shape=box`
+
+		if def == nil {
+			log.Panic("No node definiton found")
+		}
+
 		switch def.Type {
 		case graph.NodeTypeInit:
 			style = `shape=diamond, style=filled, fillcolor=lightgreen`

@@ -1,0 +1,56 @@
+name: login_auth
+route: /login
+start: init
+nodes:
+  init:
+    use: init
+    next:
+      start: askUsername
+
+  askUsername:
+    use: askUsername
+    next:
+      submitted: checkPasskeyRegistered
+    custom_config:
+      message: Please login to your account
+      showRegisterLink: true
+
+  checkPasskeyRegistered:
+    use: checkPasskeyRegistered
+    next:
+      registered: verifyPasskey
+      not_registered: askPassword
+      user_not_found: authFailure
+
+  verifyPasskey:
+    use: verifyPasskey
+    next:
+      success: authSuccess
+      failure: authFailure
+    custom_config:
+      autosubmit: true
+      message: Click the button below to verify your identity using a registered passkey.
+
+  askPassword:
+    use: askPassword
+    next:
+      submitted: validateUsernamePassword
+    custom_config:
+      message: Please login to your account
+
+  validateUsernamePassword:
+    use: validateUsernamePassword
+    next:
+      success: authSuccess
+      fail: askPassword
+      locked: authFailure
+
+  authSuccess:
+    use: successResult
+    custom_config:
+      message: Login successful!
+
+  authFailure:
+    use: failureResult
+    custom_config:
+      message: Invalid credentials or account locked.
