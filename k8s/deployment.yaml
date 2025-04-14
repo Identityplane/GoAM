@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goiam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goiam
+  template:
+    metadata:
+      labels:
+        app: goiam
+    spec:
+      containers:
+        - name: goiam
+          image: goiam:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GOIAM_DB_DSN
+              value: postgres://goiam:secret123@localhost:5432/goiamdb?sslmode=disable
+          volumeMounts:
+            - name: shared-data
+              mountPath: /tmp/app
+
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: goiam
+            - name: POSTGRES_PASSWORD
+              value: secret123
+            - name: POSTGRES_DB
+              value: goiamdb
+          volumeMounts:
+            - name: shared-data
+              mountPath: /var/lib/postgresql/data
+
+      volumes:
+        - name: shared-data
+          emptyDir: {}

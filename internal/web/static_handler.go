@@ -1,14 +1,12 @@
 package web
 
 import (
+	"goiam/internal"
 	"os"
 	"path/filepath"
 
 	"github.com/valyala/fasthttp"
 )
-
-// Base directory for static files
-const configBaseDir = "../config/"
 
 // StaticHandler serves static content for a given realm
 func StaticHandler(ctx *fasthttp.RequestCtx) {
@@ -19,7 +17,7 @@ func StaticHandler(ctx *fasthttp.RequestCtx) {
 	filename := ctx.UserValue("filename").(string)
 
 	// Construct the file path
-	filePath := filepath.Join(configBaseDir, "tenants", tenant, realm, "static", filepath.Clean(filename))
+	filePath := filepath.Join(internal.ConfigPath, "tenants", tenant, realm, "static", filepath.Clean(filename))
 
 	// Check if the file exists
 	if !fileExists(filePath) {

@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"goiam/internal/auth/graph"
@@ -14,8 +15,8 @@ import (
 // Configuration
 var (
 	baseTemplates      *template.Template
-	LayoutTemplatePath = "../internal/web/templates/layout.html"
-	NodeTemplatesPath  = "../internal/web/templates/nodes"
+	LayoutTemplatePath = "templates/layout.html"
+	NodeTemplatesPath  = "templates/nodes"
 )
 
 // ViewData is passed to all templates for dynamic rendering
@@ -36,11 +37,16 @@ type ViewData struct {
 	FlowPath     string
 }
 
+//go:embed templates/*
+var templatesFS embed.FS
+
 // InitTemplates loads and parses the base layout template
 func InitTemplates() error {
+
+	// Parse the base layout template
 	tmpl, err := template.New("layout").Funcs(template.FuncMap{
 		"title": title,
-	}).ParseFiles(LayoutTemplatePath)
+	}).ParseFS(templatesFS, LayoutTemplatePath)
 
 	if err != nil {
 		return fmt.Errorf("failed to parse base template: %w", err)
@@ -110,7 +116,8 @@ func Render(ctx *fasthttp.RequestCtx, flow *graph.FlowDefinition, state *graph.F
 		return
 	}
 
-	_, err = tmpl.ParseFiles(filepath.Join(NodeTemplatesPath, templateFile))
+	filepath := filepath.Join(NodeTemplatesPath, templateFile)
+	_, err = tmpl.ParseFS(templatesFS, filepath)
 	if err != nil {
 		RenderError(ctx, "Parse error: "+err.Error())
 		return

@@ -12,6 +12,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/fasthttp/router"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
@@ -25,10 +26,12 @@ var (
 	DefaultRealm  = "customers"
 )
 
+var Router *router.Router = nil
+
 func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 
 	// Setup Realm
-	realms.InitRealms("../../config/tenants/") // #nosec
+	realms.InitRealms("../../config/") // #nosec
 
 	// if present manually add the flow to the realm
 	if flowYaml != "" {
@@ -47,8 +50,8 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	}
 
 	// Overwrite Template Dirs
-	web.LayoutTemplatePath = "../../internal/web/templates/layout.html"
-	web.NodeTemplatesPath = "../../internal/web/templates/nodes"
+	//web.LayoutTemplatePath = "../../internal/web/templates/layout.html"
+	//web.NodeTemplatesPath = "../../internal/web/templates/nodes"
 
 	// Init Database
 	err := db.Init(db.Config{
@@ -72,7 +75,8 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	graph.Services.UserRepo = sqlite.NewUserRepository()
 
 	// Setup Http
-	handler := web.New().Handler
+	Router = web.New()
+	handler := Router.Handler
 	ln := fasthttputil.NewInmemoryListener()
 
 	// Serve fasthttp using the in-memory listener
