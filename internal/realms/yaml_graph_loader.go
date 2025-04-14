@@ -53,7 +53,7 @@ func LoadFlowFromYAMLString(content string) (*FlowWithRoute, error) {
 }
 
 func LoadFlowFromYAML(path string) (*graph.FlowDefinition, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 (the path is trusted as it is not meant to be used with user input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read YAML file %s: %w", path, err)
 	}
@@ -76,7 +76,7 @@ func LoadFlowsFromDir(dir string) ([]FlowWithRoute, error) {
 	var flows []FlowWithRoute
 
 	for _, file := range files {
-		data, err := os.ReadFile(file)
+		data, err := os.ReadFile(file) // #nosec G304 (the dir load is trusted as it is not mean to used with user input)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read flow file %s: %w", file, err)
 		}

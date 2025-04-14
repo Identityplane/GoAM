@@ -3,8 +3,8 @@ package main
 import (
 	"goiam/internal"
 	"goiam/internal/auth/graph"
-	"goiam/internal/db/sqlite"
-	db "goiam/internal/db/sqlite"
+	"goiam/internal/db/sqlite"    // lint:ignore ST1019 (This should be fixed, but is not a priority)
+	db "goiam/internal/db/sqlite" // lint:ignore ST1019
 	"goiam/internal/web"
 	"log"
 	"os"

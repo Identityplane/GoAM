@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"goiam/internal/auth/graph"
-	"goiam/internal/db/sqlite"
 	"goiam/internal/realms"
 	"goiam/internal/web"
 	"log"
@@ -17,7 +16,8 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
 
-	db "goiam/internal/db/sqlite"
+	"goiam/internal/db/sqlite"    // lint:ignore ST1019 (This should be fixed, but is not a priority)
+	db "goiam/internal/db/sqlite" // lint:ignore
 )
 
 var (
@@ -25,10 +25,10 @@ var (
 	DefaultRealm  = "customers"
 )
 
-func SetupIntegrationTest(t *testing.T, flowYaml string) httpexpect.Expect {
+func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 
 	// Setup Realm
-	realms.InitRealms("../../config/tenants/")
+	realms.InitRealms("../../config/tenants/") // #nosec
 
 	// if present manually add the flow to the realm
 	if flowYaml != "" {
@@ -98,7 +98,7 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) httpexpect.Expect {
 		},
 	})
 
-	return *e
+	return e
 }
 
 func RunTestMigrations() error {

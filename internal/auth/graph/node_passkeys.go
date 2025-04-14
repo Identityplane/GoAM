@@ -206,12 +206,12 @@ func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[str
 	// First load
 	userRepo := Services.UserRepo
 	if userRepo == nil {
-		return "fail", errors.New("UserRepo not initialized")
+		return "fail", errors.New("userRepo not initialized")
 	}
 
 	userModel, err := Services.UserRepo.GetByUsername(ctx, username)
 	if err != nil || user == nil {
-		return "fail", errors.New("Could not load user")
+		return "fail", errors.New("could not load user")
 	}
 
 	credBytes, err := json.Marshal(cred)
@@ -221,7 +221,10 @@ func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[str
 	userModel.Attributes["webauthn_credential"] = string(credBytes)
 
 	// Then store again
-	userRepo.Update(ctx, userModel)
+	err = userRepo.Update(ctx, userModel)
+	if err != nil {
+		return "", fmt.Errorf("failed to update user: %w", err)
+	}
 
 	// Also store user into flow context
 	userBytes, err := json.Marshal(cred)

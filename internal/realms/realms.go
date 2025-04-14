@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"goiam/internal/auth/graph"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,15 +53,17 @@ func InitRealms(configRoot string) error {
 	newRealms := make(map[string]*LoadedRealm)
 
 	err := filepath.WalkDir(configRoot, func(path string, d fs.DirEntry, err error) error {
+
 		if err != nil || d.IsDir() || filepath.Ext(path) != ".yaml" {
-			return nil // Skip folders and non-YAML files
+
+			return nil // Ignore non-yaml files
 		}
 
 		fmt.Printf("Loading realm config: %s\n", path)
 
 		cfg, err := loadRealmConfig(path)
 		if err != nil {
-			return fmt.Errorf("error parsing %s: %w", path, err)
+			return fmt.Errorf("error loading realm config at %s: %w", path, err)
 		}
 
 		id := fmt.Sprintf("%s/%s", cfg.Tenant, cfg.Realm)
@@ -76,8 +77,7 @@ func InitRealms(configRoot string) error {
 
 	if err != nil {
 
-		log.Panicf("failed to initialize realms: %w", err)
-
+		return fmt.Errorf("failed to walk realm config directory %s: %w", configRoot, err)
 	}
 
 	// Swap global registry
@@ -85,10 +85,10 @@ func InitRealms(configRoot string) error {
 	defer loadedRealmsMu.Unlock()
 	loadedRealms = newRealms
 
-	return nil
+	return nil // All good
 }
 func loadRealmConfig(path string) (*RealmConfig, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 (the path is trusted as it is not meant to be used with user input)
 	if err != nil {
 		return nil, fmt.Errorf("read failed: %w", err)
 	}

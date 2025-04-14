@@ -104,7 +104,7 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string) (*Flo
 		}
 
 		// log the node name, type and prompts
-		log.Printf("Node %w of type %w resulted in prompts %s", node.Name, def.Type, promptsString)
+		log.Printf("Node %s of type %s resulted in prompts %s", node.Name, def.Type, promptsString)
 		state.History = append(state.History, fmt.Sprintf("%s:prompted:%s", node.Name, promptsString))
 
 		// Update prompts in string and return
