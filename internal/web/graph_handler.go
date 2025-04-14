@@ -2,6 +2,7 @@ package web
 
 import (
 	"goiam/internal/auth/graph"
+	"goiam/internal/realms"
 	"goiam/internal/web/session"
 	"log"
 
@@ -12,14 +13,45 @@ import (
 const sessionCookieName = "session_id"
 
 type GraphHandler struct {
-	Flow *graph.FlowDefinition
+	Flow   *graph.FlowDefinition
+	Tenant string
+	Realm  string
 }
 
-func NewGraphHandler(flow *graph.FlowDefinition) *GraphHandler {
+func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
+
+	tenant := ctx.UserValue("tenant").(string)
+	realm := ctx.UserValue("realm").(string)
+	path := ctx.UserValue("path").(string)
+
+	flow, err := realms.LookupFlow(tenant, realm, path)
+	if err != nil {
+		// return 404
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		ctx.SetBodyString("flow not found")
+		return
+	}
+
+	handler := NewGraphHandler(tenant, realm, flow.Flow)
+
+	// Execute the actual handler
+	handler.Handle(ctx)
+}
+
+func NewGraphHandler(tenant string, realm string, flow *graph.FlowDefinition) *GraphHandler {
+
+	// check if tenant, realm and flow are valid
+	if tenant == "" || realm == "" || flow == nil {
+		log.Fatalf("Invalid parameters: tenant=%s, realm=%s, flow=%v", tenant, realm, flow)
+	}
+
+	// load templates for rendering
+	// currently we reload this with every request, this should be improved
 	if err := InitTemplates(); err != nil {
 		log.Fatalf("Failed to load templates: %v", err)
 	}
-	return &GraphHandler{Flow: flow}
+
+	return &GraphHandler{Flow: flow, Tenant: tenant, Realm: realm}
 }
 
 func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {

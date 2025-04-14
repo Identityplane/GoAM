@@ -39,11 +39,6 @@ type GraphNode struct {
 	CustomConfig map[string]string `json:"custom_config,omitempty"` // for overrides (optional)
 }
 
-type FlowWithRoute struct {
-	Route string
-	Flow  *FlowDefinition
-}
-
 type FlowDefinition struct {
 	Name  string                `json:"name"`
 	Start string                `json:"start"` // e.g., "init"

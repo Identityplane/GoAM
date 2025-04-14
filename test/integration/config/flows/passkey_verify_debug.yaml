@@ -1,0 +1,24 @@
+name: test_passkeys_verify
+route: /test_verify_passkeys
+start: init
+nodes:
+  init:
+    use: init
+    next:
+      start: askUsername
+  askUsername:
+    use: askUsername
+    next:
+      submitted: verifyPasskey
+    custom_config:
+      message: Please enter your username to login with passkey
+
+  verifyPasskey:
+    use: verifyPasskey
+    next:
+      success: finish
+    custom_config:
+      message: Click the button below to verify your identity using a registered passkey.
+
+  finish:
+    use: successResult

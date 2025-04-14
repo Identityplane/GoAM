@@ -4,19 +4,45 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"goiam/internal"
 	"goiam/internal/auth/graph/visual"
+	"goiam/internal/realms"
 	"os/exec"
 
 	"github.com/valyala/fasthttp"
 )
 
+// HandleListAllFlows returns a list of all flows across all tenants/realms.
+func HandleListAllFlows(ctx *fasthttp.RequestCtx) {
+	ctx.SetContentType("text/plain; charset=utf-8")
+
+	all := realms.GetAllRealms()
+
+	for _, r := range all {
+		fmt.Fprintf(ctx, "Realm: %s/%s\n", r.Config.Tenant, r.Config.Realm)
+		for _, f := range r.Config.Flows {
+			fmt.Fprintf(ctx, "  → %s  (%s)\n", f.Route, f.Flow.Name)
+		}
+		fmt.Fprintln(ctx)
+	}
+}
+
 // HandleListFlows responds with a list of available flow names and routes
 func HandleListFlows(ctx *fasthttp.RequestCtx) {
 	var flowList []map[string]string
 
+	tenant := ctx.UserValue("tenant").(string)
+	realm := ctx.UserValue("realm").(string)
+
 	// Iterate over FlowRegistry to collect names and routes
-	for _, flowWithRoute := range internal.FlowRegistry {
+	flows, err := realms.ListFlowsPerRealm(tenant, realm)
+
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		ctx.SetBodyString("Failed to list flows: " + err.Error())
+		return
+	}
+
+	for _, flowWithRoute := range flows {
 		flowList = append(flowList, map[string]string{
 			"name":  flowWithRoute.Flow.Name,
 			"route": flowWithRoute.Route,
@@ -27,30 +53,40 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 	ctx.SetStatusCode(fasthttp.StatusOK)
 
-	if err := json.NewEncoder(ctx).Encode(flowList); err != nil {
+	// use pretty printing for better readability
+	flowListJSON, err := json.MarshalIndent(flowList, "", "  ")
+	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		ctx.SetBodyString("Failed to encode flow list: " + err.Error())
+		return
 	}
+
+	// Set the response body to the JSON-encoded flow list
+	ctx.SetBody(flowListJSON)
 }
 
 // HandleFlowGraphPNG generates and serves a PNG image of the requested flow graph.
 // Usage: GET /debug/flow/graph.png?flow=flow_name
 func HandleFlowGraphPNG(ctx *fasthttp.RequestCtx) {
-	// Get flow name from the query parameter
-	flowName := string(ctx.QueryArgs().Peek("flow"))
-	if flowName == "" {
+
+	tenant := ctx.UserValue("tenant").(string)
+	realm := ctx.UserValue("realm").(string)
+	flowPath := ctx.UserValue("flow").(string)
+
+	if flowPath == "" {
 		// Return a bad request if flow name is missing
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		ctx.SetBodyString("Missing query parameter: ?flow=")
+		ctx.SetBodyString("Missing parameter: flow")
 		return
 	}
 
 	// Look up the flow in the registry
-	flowWithRoute, ok := internal.FlowRegistry[flowName]
-	if !ok || flowWithRoute.Flow == nil {
+	flowWithRoute, err := realms.LookupFlow(tenant, realm, flowPath)
+
+	if err != nil {
 		// Return 404 if flow is not found
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		ctx.SetBodyString(fmt.Sprintf("Flow not found: %q", flowName))
+		ctx.SetBodyString(fmt.Sprintf("Flow not found: %q", flowPath))
 		return
 	}
 
@@ -81,21 +117,25 @@ func HandleFlowGraphPNG(ctx *fasthttp.RequestCtx) {
 
 // HandleFlowGraphSVG generates and serves an SVG image of the requested flow graph.
 func HandleFlowGraphSVG(ctx *fasthttp.RequestCtx) {
-	// Get flow name from the query parameter
-	flowName := string(ctx.QueryArgs().Peek("flow"))
-	if flowName == "" {
+
+	tenant := ctx.UserValue("tenant").(string)
+	realm := ctx.UserValue("realm").(string)
+	flowPath := ctx.UserValue("flow").(string)
+
+	if flowPath == "" {
 		// Return a bad request if the flow name is missing
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		ctx.SetBodyString("Missing query parameter: ?flow=")
+		ctx.SetBodyString("Missing query flow")
 		return
 	}
 
 	// Look up the flow in the registry
-	flowWithRoute, ok := internal.FlowRegistry[flowName]
-	if !ok || flowWithRoute.Flow == nil {
-		// Return 404 if the flow is not found
+	flowWithRoute, err := realms.LookupFlow(tenant, realm, flowPath)
+
+	if err != nil {
+		// Return 404 if flow is not found
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		ctx.SetBodyString(fmt.Sprintf("Flow not found: %q", flowName))
+		ctx.SetBodyString(fmt.Sprintf("Flow not found: %q", flowPath))
 		return
 	}
 

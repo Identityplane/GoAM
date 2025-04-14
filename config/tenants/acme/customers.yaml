@@ -1,0 +1,12 @@
+realm: customers
+
+flows:
+  - route: /login
+    file: login.yaml
+
+  - route: /register
+    file: register.yaml
+
+  - route: /passkey_enroll
+    file: passkey_registration_debug.yaml
+

@@ -8,25 +8,18 @@ import (
 )
 
 // Base directory for static files
-const staticBaseDir = "../config/renderer/static"
-
-// Default realm
-const defaultRealm = "default"
+const configBaseDir = "../config/"
 
 // StaticHandler serves static content for a given realm
 func StaticHandler(ctx *fasthttp.RequestCtx) {
 
 	// Extract realm and filename from the URL
+	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 	filename := ctx.UserValue("filename").(string)
 
-	// Default to the "default" realm if not implemented
-	if realm != defaultRealm {
-		realm = defaultRealm
-	}
-
 	// Construct the file path
-	filePath := filepath.Join(staticBaseDir, realm, filepath.Clean(filename))
+	filePath := filepath.Join(configBaseDir, tenant, realm, "sattic", filepath.Clean(filename))
 
 	// Check if the file exists
 	if !fileExists(filePath) {

@@ -31,6 +31,9 @@ type ViewData struct {
 	ScriptPath   string
 	Message      string
 	CustomConfig map[string]string
+	Tenant       string
+	Realm        string
+	FlowPath     string
 }
 
 // InitTemplates loads and parses the base layout template
@@ -93,9 +96,12 @@ func Render(ctx *fasthttp.RequestCtx, flow *graph.FlowDefinition, state *graph.F
 		StateJSON:    stateJSON,
 		FlowName:     flow.Name,
 		Message:      customMessage,
-		StylePath:    "/theme/default/style.css",
-		ScriptPath:   "/theme/default/script.js",
+		StylePath:    "../static/style.css",
+		ScriptPath:   "../static/script.js",
 		CustomConfig: CustomConfig,
+		Tenant:       ctx.UserValue("tenant").(string),
+		Realm:        ctx.UserValue("realm").(string),
+		FlowPath:     ctx.UserValue("path").(string),
 	}
 
 	tmpl, err := baseTemplates.Clone()
@@ -128,7 +134,9 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string) {
 }
 
 func isDebugMode(ctx *fasthttp.RequestCtx) bool {
-	return string(ctx.URI().QueryArgs().Peek("debug")) == "true"
+
+	debugParam := ctx.URI().QueryArgs().Peek("debug")
+	return debugParam != nil
 }
 
 func resolveErrorMessage(state *graph.FlowState) string {

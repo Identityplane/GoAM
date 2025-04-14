@@ -3,10 +3,9 @@ package integration
 import (
 	"context"
 	"fmt"
-	"goiam/internal"
 	"goiam/internal/auth/graph"
-	"goiam/internal/auth/graph/yaml"
 	"goiam/internal/db/sqlite"
+	"goiam/internal/realms"
 	"goiam/internal/web"
 	"log"
 	"net"
@@ -21,26 +20,30 @@ import (
 	db "goiam/internal/db/sqlite"
 )
 
+var (
+	DefaultTenant = "acme"
+	DefaultRealm  = "customers"
+)
+
 func SetupIntegrationTest(t *testing.T, flowYaml string) httpexpect.Expect {
 
-	// Overwrite config dir
-	if flowYaml == "" {
+	// Setup Realm
+	realms.InitRealms("../../config/tenants/")
 
-		// Load standard flow when no flow is given
-		internal.FlowsDir = "../../config/flows"
-		internal.Initialize()
-	} else {
+	// if present manually add the flow to the realm
+	if flowYaml != "" {
+		flow, err := realms.LoadFlowFromYAMLString(flowYaml)
 
-		// Overwrite flow registry with this flow
-		flow, err := yaml.LoadFlowFromYAMLString(flowYaml)
 		if err != nil {
-			log.Fatalf("failed to load flows: %v", err)
+			t.Fatalf("failed to load flow from YAML: %v", err)
 		}
 
-		flowWithRoute := &graph.FlowWithRoute{Route: flow.Route, Flow: flow.Flow}
-
-		internal.FlowRegistry[flow.Flow.Name] = flowWithRoute
-
+		// Add the flow to the realm
+		realm, _ := realms.GetRealm(DefaultTenant + "/" + DefaultRealm)
+		if realm == nil {
+			t.Fatalf("failed to get realm %s/%s", DefaultTenant, DefaultRealm)
+		}
+		realm.Config.Flows = append(realm.Config.Flows, *flow)
 	}
 
 	// Overwrite Template Dirs

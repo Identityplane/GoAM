@@ -31,7 +31,7 @@ nodes:
 
 	e := SetupIntegrationTest(t, flow)
 
-	e.GET("/test_passkeys").Expect().
+	e.GET("/acme/customers/auth/test_passkeys").Expect().
 		Status(http.StatusOK).
 		Body().Contains("passkeysOptions")
 

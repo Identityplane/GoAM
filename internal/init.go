@@ -1,25 +1,31 @@
 package internal
 
 import (
-	"goiam/internal/auth/graph"
-	"goiam/internal/auth/graph/yaml"
+	"goiam/internal/realms"
 	"log"
 )
 
-var FlowsDir = "../config/flows"
+var (
+	// All loaded realm configurations, indexed by "tenant/realm"
+	LoadedRealms = map[string]*realms.LoadedRealm{}
+)
 
-var FlowRegistry = map[string]*graph.FlowWithRoute{}
-
+// Initialize loads all tenant/realm configurations at startup.
+// Each realm must include its own flow configuration.
 func Initialize() {
+	const realmConfigRoot = "../config/tenants"
 
-	// Init Flows
-	flows, err := yaml.LoadFlowsFromDir(FlowsDir)
-	if err != nil {
-		log.Fatalf("failed to load flows: %v", err)
+	if err := realms.InitRealms(realmConfigRoot); err != nil {
+		log.Fatalf("failed to initialize realms: %v", err)
 	}
 
-	for _, flow := range flows {
-		FlowRegistry[flow.Flow.Name] = &flow
+	// Cache all loaded realms locally if needed
+	allRealms := make(map[string]*realms.LoadedRealm)
+	for id, realm := range realms.GetAllRealms() {
+		allRealms[id] = realm
 	}
 
+	LoadedRealms = allRealms
+
+	log.Printf("Loaded %d realms\n", len(LoadedRealms))
 }

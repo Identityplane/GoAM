@@ -1,9 +1,7 @@
 package web
 
 import (
-	"goiam/internal"
 	"goiam/internal/web/debug"
-	"log"
 
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
@@ -18,19 +16,17 @@ func New() *router.Router {
 		ctx.SetBodyString("pong")
 	})
 
-	// Graph routes
-	for name, flow := range internal.FlowRegistry {
-		r.ANY(flow.Route, NewGraphHandler(flow.Flow).Handle)
-		log.Printf("Registered flow %q at route %q", name, flow.Route)
-	}
+	// Main authentication routes
+	r.ANY("/{tenant}/{realm}/auth/{path}", HandleAuthRequest)
 
 	// Debug routes
-	r.GET("/debug/flows", debug.HandleListFlows)
-	r.GET("/debug/flow/graph.png", debug.HandleFlowGraphPNG)
-	r.GET("/debug/flow/graph.svg", debug.HandleFlowGraphSVG)
+	r.GET("/debug/flows/all", debug.HandleListAllFlows)
+	r.GET("/{tenant}/{realm}/debug/flows", debug.HandleListFlows)
+	r.GET("/{tenant}/{realm}/debug/{flow}/graph.png", debug.HandleFlowGraphPNG)
+	r.GET("/{tenant}/{realm}/debug/{flow}/graph.svg", debug.HandleFlowGraphSVG)
 
 	// Static files
-	r.GET("/theme/{realm}/{filename}", StaticHandler)
+	r.GET("/{tenant}/{realm}/static/{filename}", StaticHandler)
 
 	return r
 }
