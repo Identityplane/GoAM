@@ -45,15 +45,18 @@ var PasskeysCheckUserRegistered = &NodeDefinition{
 	Run:             RunCheckUserHasPasskeyNode,
 }
 
-func RunCheckUserHasPasskeyNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunCheckUserHasPasskeyNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 	ctx := context.Background()
 	username := state.Context["username"]
 
 	// Load user from DB
-	userModel, err := Services.UserRepo.GetByUsername(ctx, username)
+	userModel, err := services.UserRepo.GetByUsername(ctx, username)
 	if err != nil || userModel == nil {
 		return NewNodeResultWithCondition("user_not_found")
 	}
+
+	// since we load the user we can also add it to the state
+	state.User = userModel
 
 	// Check if the user has a passkey registered
 	_, ok := userModel.Attributes["webauthn_credential"]
@@ -66,7 +69,7 @@ func RunCheckUserHasPasskeyNode(state *FlowState, node *GraphNode, input map[str
 	}
 }
 
-func RunPasskeyRegisterNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunPasskeyRegisterNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	// Check if input is present, if not generate options, if present process registration
 	if _, ok := input["passkeysFinishRegistrationJson"]; !ok {
@@ -81,7 +84,7 @@ func RunPasskeyRegisterNode(state *FlowState, node *GraphNode, input map[string]
 
 	} else {
 		// Process registration
-		result, err := ProcessPasskeyRegistration(state, node, input)
+		result, err := ProcessPasskeyRegistration(state, node, input, services)
 		if err != nil {
 			return NewNodeResultWithError(fmt.Errorf("failed to process passkey registration: %w", err))
 		}
@@ -89,13 +92,13 @@ func RunPasskeyRegisterNode(state *FlowState, node *GraphNode, input map[string]
 	}
 }
 
-func RunPasskeyVerifyNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunPasskeyVerifyNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	// Check if input is present, if not generate options, if present process assertion
 	if _, ok := input["passkeysFinishLoginJson"]; !ok {
 
 		// Generate options
-		prompts, err := GeneratePasskeysLoginOptions(state, node)
+		prompts, err := GeneratePasskeysLoginOptions(state, node, services)
 		if err != nil {
 			return NewNodeResultWithError(fmt.Errorf("failed to generate passkeys options: %w", err))
 		}
@@ -103,7 +106,7 @@ func RunPasskeyVerifyNode(state *FlowState, node *GraphNode, input map[string]st
 
 	} else {
 		// Process assertion
-		result, err := ProcessPasskeyLogin(state, node, input)
+		result, err := ProcessPasskeyLogin(state, node, input, services)
 		if err != nil {
 			return NewNodeResultWithError(fmt.Errorf("failed to process passkey login: %w", err))
 		}
@@ -157,7 +160,7 @@ func GeneratePasskeysOptions(state *FlowState, node *GraphNode) (map[string]stri
 	return *prompts, nil
 }
 
-func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[string]string) (string, error) {
+func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (string, error) {
 
 	ctx := context.Background()
 
@@ -204,12 +207,12 @@ func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[str
 
 	// Store new credential with user
 	// First load
-	userRepo := Services.UserRepo
+	userRepo := services.UserRepo
 	if userRepo == nil {
 		return "fail", errors.New("userRepo not initialized")
 	}
 
-	userModel, err := Services.UserRepo.GetByUsername(ctx, username)
+	userModel, err := services.UserRepo.GetByUsername(ctx, username)
 	if err != nil || user == nil {
 		return "fail", errors.New("could not load user")
 	}
@@ -238,7 +241,7 @@ func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[str
 	return "success", nil
 }
 
-func GeneratePasskeysLoginOptions(state *FlowState, node *GraphNode) (map[string]string, error) {
+func GeneratePasskeysLoginOptions(state *FlowState, node *GraphNode, services *ServiceRegistry) (map[string]string, error) {
 	username := state.Context["username"]
 
 	// Setup config
@@ -254,7 +257,7 @@ func GeneratePasskeysLoginOptions(state *FlowState, node *GraphNode) (map[string
 	}
 
 	ctx := context.Background()
-	userModel, err := Services.UserRepo.GetByUsername(ctx, username)
+	userModel, err := services.UserRepo.GetByUsername(ctx, username)
 	if err != nil || userModel == nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
@@ -291,7 +294,7 @@ func GeneratePasskeysLoginOptions(state *FlowState, node *GraphNode) (map[string
 	}, nil
 }
 
-func ProcessPasskeyLogin(state *FlowState, node *GraphNode, input map[string]string) (string, error) {
+func ProcessPasskeyLogin(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (string, error) {
 	ctx := context.Background()
 	username := state.Context["username"]
 
@@ -310,7 +313,7 @@ func ProcessPasskeyLogin(state *FlowState, node *GraphNode, input map[string]str
 	}
 
 	// Get user from DB
-	userModel, err := Services.UserRepo.GetByUsername(ctx, username)
+	userModel, err := services.UserRepo.GetByUsername(ctx, username)
 	if err != nil {
 		return "failure", fmt.Errorf("user not found: %w", err)
 	}

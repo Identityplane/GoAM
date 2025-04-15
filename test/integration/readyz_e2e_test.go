@@ -15,7 +15,7 @@ func TestPingE2E(t *testing.T) {
 	e.GET("/readyz").
 		Expect().
 		Status(http.StatusOK).
-		Body().Contains("\"Realms\": \"ready\"").Contains("\"UserRepo\": \"ready\"")
+		Body().Contains("\"Realms\": \"ready\"")
 }
 
 func TestCrashRecovery(t *testing.T) {

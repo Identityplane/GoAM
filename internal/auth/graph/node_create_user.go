@@ -19,12 +19,12 @@ var CreateUserNode = &NodeDefinition{
 	Run:             RunCreateUserNode,
 }
 
-func RunCreateUserNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunCreateUserNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 	ctx := context.Background()
 	username := state.Context["username"]
 	password := state.Context["password"]
 
-	userRepo := Services.UserRepo
+	userRepo := services.UserRepo
 	if userRepo == nil {
 		return NewNodeResultWithTextError("UserRepo not initialized")
 	}
@@ -41,11 +41,11 @@ func RunCreateUserNode(state *FlowState, node *GraphNode, input map[string]strin
 	}
 
 	user := &model.User{
-		ID:           uuid.NewString(),
-		Username:     username,
-		PasswordHash: string(hashed),
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:                 uuid.NewString(),
+		Username:           username,
+		PasswordCredential: string(hashed),
+		CreatedAt:          time.Now(),
+		UpdatedAt:          time.Now(),
 	}
 
 	if err := userRepo.Create(ctx, user); err != nil {

@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"goiam/internal/auth/graph"
 	"goiam/internal/realms"
@@ -17,21 +18,26 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
 
-	"goiam/internal/db/sqlite"    // lint:ignore ST1019 (This should be fixed, but is not a priority)
-	db "goiam/internal/db/sqlite" // lint:ignore
+	"goiam/internal/db/sqlite_adapter"    // lint:ignore ST1019 (This should be fixed, but is not a priority)
+	db "goiam/internal/db/sqlite_adapter" // lint:ignore
 )
 
 var (
 	DefaultTenant = "acme"
 	DefaultRealm  = "customers"
+	ConfigPath    = "../../config"
 )
 
 var Router *router.Router = nil
 
 func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 
+	// Debug print current working directory
+	pwd, _ := os.Getwd()
+	fmt.Println("Current working directory:", pwd)
+
 	// Setup Realm
-	realms.InitRealms("../../config/") // #nosec
+	realms.InitRealms(ConfigPath) // #nosec
 
 	// if present manually add the flow to the realm
 	if flowYaml != "" {
@@ -54,7 +60,7 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	//web.NodeTemplatesPath = "../../internal/web/templates/nodes"
 
 	// Init Database
-	err := db.Init(db.Config{
+	database, err := db.Init(db.Config{
 		Driver: "sqlite",
 		DSN:    ":memory:?_foreign_keys=on",
 	})
@@ -66,16 +72,23 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	}
 
 	// Migrate database
-	err = RunTestMigrations()
+	err = RunTestMigrations(database)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Create user repo object
-	graph.Services.UserRepo = sqlite.NewUserRepository()
+	userDb := sqlite_adapter.NewSQLiteUserDB(database)
+	userRepo := sqlite_adapter.NewUserRepository(DefaultTenant, DefaultRealm, userDb)
+
+	// get the loaded realm and init the service registry
+	realm, _ := realms.GetRealm(DefaultTenant + "/" + DefaultRealm)
+	realm.Services = &graph.ServiceRegistry{
+		UserRepo: userRepo,
+	}
 
 	// Setup Http
-	Router = web.New()
+	Router = web.New(ConfigPath)
 	handler := Router.Handler
 	ln := fasthttputil.NewInmemoryListener()
 
@@ -105,13 +118,13 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	return e
 }
 
-func RunTestMigrations() error {
-	sqlBytes, err := os.ReadFile("../../internal/db/sqlite/migrations/001_create_users.up.sql")
+func RunTestMigrations(database *sql.DB) error {
+	sqlBytes, err := os.ReadFile("../../internal/db/migrations/001_create_users.up.sql")
 	if err != nil {
 		return fmt.Errorf("failed to read migration: %w", err)
 	}
 
-	_, err = db.DB.Exec(string(sqlBytes))
+	_, err = database.Exec(string(sqlBytes))
 	if err != nil {
 		return fmt.Errorf("failed to execute migration: %w", err)
 	}

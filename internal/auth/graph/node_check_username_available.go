@@ -13,12 +13,12 @@ var CheckUsernameAvailableNode = &NodeDefinition{
 	Run:             RunCheckUsernameAvailableNode,
 }
 
-func RunCheckUsernameAvailableNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunCheckUsernameAvailableNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 	username := state.Context["username"]
 	ctx := context.Background()
 
 	// Load use Repository
-	userRepo := Services.UserRepo
+	userRepo := services.UserRepo
 	if userRepo == nil {
 		return NewNodeResultWithTextError("UserRepo not initialized")
 	}

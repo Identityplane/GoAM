@@ -13,9 +13,10 @@ import (
 const sessionCookieName = "session_id"
 
 type GraphHandler struct {
-	Flow   *graph.FlowDefinition
-	Tenant string
-	Realm  string
+	Flow     *graph.FlowDefinition
+	Tenant   string
+	Realm    string
+	Services *graph.ServiceRegistry
 }
 
 func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
@@ -23,6 +24,13 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 	path := ctx.UserValue("path").(string)
+
+	loadedRealm, ok := realms.GetRealm(tenant + "/" + realm)
+	if !ok {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		ctx.SetBodyString("realm not found")
+		return
+	}
 
 	flow, err := realms.LookupFlow(tenant, realm, path)
 	if err != nil {
@@ -32,13 +40,21 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	handler := NewGraphHandler(tenant, realm, flow.Flow)
+	// Check if service registry is initialized
+	services := loadedRealm.Services
+	if services == nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		ctx.SetBodyString("service registry not initialized")
+		return
+	}
+
+	handler := NewGraphHandler(tenant, realm, flow.Flow, services)
 
 	// Execute the actual handler
 	handler.Handle(ctx)
 }
 
-func NewGraphHandler(tenant string, realm string, flow *graph.FlowDefinition) *GraphHandler {
+func NewGraphHandler(tenant string, realm string, flow *graph.FlowDefinition, services *graph.ServiceRegistry) *GraphHandler {
 
 	// check if tenant, realm and flow are valid
 	if tenant == "" || realm == "" || flow == nil {
@@ -51,7 +67,7 @@ func NewGraphHandler(tenant string, realm string, flow *graph.FlowDefinition) *G
 		log.Fatalf("Failed to load templates: %v", err)
 	}
 
-	return &GraphHandler{Flow: flow, Tenant: tenant, Realm: realm}
+	return &GraphHandler{Flow: flow, Tenant: tenant, Realm: realm, Services: services}
 }
 
 func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
@@ -78,7 +94,7 @@ func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 
 	//TODO Adapt to new interface
 	// Run the flow engine with the current state and input
-	state, err := graph.Run(h.Flow, state, input)
+	state, err := graph.Run(h.Flow, state, input, h.Services)
 	if err != nil {
 		log.Printf("flow resulted in error: %v", err)
 		RenderError(ctx, err.Error())

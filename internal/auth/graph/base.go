@@ -18,13 +18,13 @@ const (
 )
 
 type NodeDefinition struct {
-	Name            string                                                                                `json:"name"`       // e.g. "askUsername"
-	Type            NodeType                                                                              `json:"type"`       // query, logic, etc.
-	RequiredContext []string                                                                              `json:"inputs"`     // field that the node requires from the flow context
-	OutputContext   []string                                                                              `json:"outputs"`    // fields that the node will set in the flow context
-	Prompts         map[string]string                                                                     `json:"prompts"`    // key: label/type shown to user, will be returned via the user input argument
-	Conditions      []string                                                                              `json:"conditions"` // e.g. ["success", "fail"]
-	Run             func(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) // Run function for logic nodes, must either return a condition or a set of prompts
+	Name            string                                                                                                           `json:"name"`       // e.g. "askUsername"
+	Type            NodeType                                                                                                         `json:"type"`       // query, logic, etc.
+	RequiredContext []string                                                                                                         `json:"inputs"`     // field that the node requires from the flow context
+	OutputContext   []string                                                                                                         `json:"outputs"`    // fields that the node will set in the flow context
+	Prompts         map[string]string                                                                                                `json:"prompts"`    // key: label/type shown to user, will be returned via the user input argument
+	Conditions      []string                                                                                                         `json:"conditions"` // e.g. ["success", "fail"]
+	Run             func(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) // Run function for logic nodes, must either return a condition or a set of prompts
 }
 
 type NodeResult struct {
@@ -71,8 +71,6 @@ type FlowResult struct {
 	AuthLevel     AuthLevel `json:"auth_level"`
 	FlowName      string    `json:"flow_name,omitempty"`
 }
-
-var Services = &ServiceRegistry{}
 
 type ServiceRegistry struct {
 	UserRepo repository.UserRepository

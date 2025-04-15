@@ -36,9 +36,10 @@ type FlowWithRoute struct {
 
 // LoadedRealm wraps a RealmConfig with metadata for tracking its source.
 type LoadedRealm struct {
-	Config  *RealmConfig // parsed realm config
-	RealmID string       // composite ID like "acme/customers"
-	Path    string       // original file path, useful for debugging/reloads
+	Config   *RealmConfig           // parsed realm config
+	RealmID  string                 // composite ID like "acme/customers"
+	Path     string                 // original file path, useful for debugging/reloads
+	Services *graph.ServiceRegistry // services for this realm
 }
 
 var (

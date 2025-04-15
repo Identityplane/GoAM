@@ -38,7 +38,7 @@ func InitFlow(flow *FlowDefinition) *FlowState {
 // Run processes one step of the flow and returns either
 // - flow state when graph is requesting prompt or is finished
 // - error if any internal error occurred
-func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string) (*FlowState, error) {
+func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string, services *ServiceRegistry) (*FlowState, error) {
 
 	// Check if state is present and valid
 	if state == nil || state.Current == "" {
@@ -63,19 +63,19 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string) (*Flo
 	// Process node by type
 	switch def.Type {
 	case NodeTypeInit:
-		nodeResult, err = ProcessInitTypeNode(state, node, def, inputs)
+		nodeResult, err = ProcessInitTypeNode(state, node, def, inputs, services)
 
 	case NodeTypeLogic:
-		nodeResult, err = ProcessLogicTypeNode(state, node, def, inputs)
+		nodeResult, err = ProcessLogicTypeNode(state, node, def, inputs, services)
 
 	case NodeTypeQuery:
-		nodeResult, err = ProcessQueryTypeNode(state, node, def, inputs)
+		nodeResult, err = ProcessQueryTypeNode(state, node, def, inputs, services)
 
 	case NodeTypeResult:
-		nodeResult, err = ProcessResultTypeNode(state, node, def, inputs)
+		nodeResult, err = ProcessResultTypeNode(state, node, def, inputs, services)
 
 	case NodeTypeQueryWithLogic:
-		nodeResult, err = ProcessQueryWithLogicTypeNode(state, node, def, inputs)
+		nodeResult, err = ProcessQueryWithLogicTypeNode(state, node, def, inputs, services)
 
 	default:
 		return nil, fmt.Errorf("unsupported node type: %s", def.Type)
@@ -143,7 +143,7 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string) (*Flo
 		inputs = nil
 
 		// recursively call run with the new state
-		return Run(flow, state, inputs)
+		return Run(flow, state, inputs, services)
 	}
 
 	// throw an error if no condition or prompts are present
@@ -152,7 +152,7 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string) (*Flo
 
 // ProcessQueryTypeNode processes a query node
 // and returns the next state and any prompts to be shown to the user
-func ProcessQueryTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
+func ProcessQueryTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	// If no inputs are present send prompts to user
 	if inputs == nil {
@@ -167,7 +167,7 @@ func ProcessQueryTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition
 	return &NodeResult{Prompts: nil, Condition: "submitted"}, nil
 }
 
-func ProcessResultTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
+func ProcessResultTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	// we expect no inputs for a result node
 	if inputs != nil {
@@ -180,7 +180,7 @@ func ProcessResultTypeNode(state *FlowState, node *GraphNode, def *NodeDefinitio
 		return nil, fmt.Errorf("result node '%s' has no run function", node.Name)
 	}
 
-	result, err := def.Run(state, node, nil)
+	result, err := def.Run(state, node, nil, services)
 
 	// we expect the result to have no prompts and no condition as this is a terminal node
 	if err != nil {
@@ -206,10 +206,10 @@ func ProcessResultTypeNode(state *FlowState, node *GraphNode, def *NodeDefinitio
 
 // ProcessInitTypeNode processes an init node
 // and returns the next state and any prompts to be shown to the user
-func ProcessInitTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
+func ProcessInitTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	// Run init node logic
-	result, err := def.Run(state, node, inputs)
+	result, err := def.Run(state, node, inputs, services)
 
 	if err != nil {
 		return nil, err
@@ -225,10 +225,10 @@ func ProcessInitTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition,
 
 // ProcessLogicTypeNode processes a logic node
 // and returns the next state
-func ProcessLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
+func ProcessLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	// Run node logic
-	result, err := def.Run(state, node, inputs)
+	result, err := def.Run(state, node, inputs, services)
 	if err != nil {
 		return nil, err
 	}
@@ -242,10 +242,10 @@ func ProcessLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition
 
 // Process NodeTypeQueryWithLogic node
 // and returns the next state and any prompts to be shown to the user
-func ProcessQueryWithLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string) (*NodeResult, error) {
+func ProcessQueryWithLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	// Run node logic
-	result, err := def.Run(state, node, inputs)
+	result, err := def.Run(state, node, inputs, services)
 
 	if err != nil {
 		return nil, err

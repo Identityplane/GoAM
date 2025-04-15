@@ -18,7 +18,7 @@ var SuccessResultNode = &NodeDefinition{
 	Run:             RunAuthSuccessNode,
 }
 
-func RunAuthSuccessNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunAuthSuccessNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	state.Result = &FlowResult{
 		UserID:        state.Context["user_id"],
@@ -41,7 +41,7 @@ var FailureResultNode = &NodeDefinition{
 	Run:             RunAuthFailureNode,
 }
 
-func RunAuthFailureNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunAuthFailureNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 	state.Result = &FlowResult{
 		UserID:        "",
 		Username:      "",
@@ -84,12 +84,12 @@ var SetVariableNode = &NodeDefinition{
 	Run:             RunSetVariableNode,
 }
 
-func RunInitNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunInitNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	return NewNodeResultWithCondition("start")
 }
 
-func RunSetVariableNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunSetVariableNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 
 	key := node.CustomConfig["key"]
 	value := node.CustomConfig["value"]

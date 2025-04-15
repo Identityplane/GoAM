@@ -9,7 +9,7 @@ all: vet sec staticcheck test build
 vet:            ; go vet ./...
 sec:            ; gosec -exclude-dir=test ./...
 #staticcheck:    ; staticcheck -config=.staticcheck.conf ./...
-test:           ; go test ./test/...
+test:           ; go test ./...
 build:          ; go build -o bin/goiam ./cmd
 
 podman-build:
@@ -33,7 +33,7 @@ docker-build: k8s-env
 	docker build -t $(IMAGE_NAME):$(TAG) .
 
 # Apply K8S resources (forces recreation of pods)
-k8s-deploy: docker-build
+k8s-deploy: k8s-clean docker-build
 	kubectl delete pod -l app=goiam
 	kubectl apply -f k8s/
 

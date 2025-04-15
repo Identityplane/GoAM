@@ -2,7 +2,6 @@ package web
 
 import (
 	"encoding/json"
-	"goiam/internal/auth/graph"
 	"goiam/internal/realms"
 	"runtime"
 	"strconv"
@@ -23,13 +22,6 @@ func handleLiveness(ctx *fasthttp.RequestCtx) {
 func handleReadiness(ctx *fasthttp.RequestCtx) {
 	ready := map[string]string{}
 	isReady := true
-
-	if graph.Services.UserRepo == nil {
-		ready["UserRepo"] = "not ready"
-		isReady = false
-	} else {
-		ready["UserRepo"] = "ready"
-	}
 
 	if len(realms.GetAllRealms()) == 0 {
 		ready["Realms"] = "not ready"

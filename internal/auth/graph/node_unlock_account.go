@@ -15,24 +15,24 @@ var UnlockAccountNode = &NodeDefinition{
 	Run:             RunUnlockAccountNode,
 }
 
-func RunUnlockAccountNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunUnlockAccountNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 	username := state.Context["username"]
 
 	ctx := context.Background()
-	user, err := Services.UserRepo.GetByUsername(ctx, username)
+	user, err := services.UserRepo.GetByUsername(ctx, username)
 	if err != nil || user == nil {
 		return NewNodeResultWithCondition("fail")
 	}
 
-	if !user.AccountLocked {
+	if !user.PasswordLocked {
 		return NewNodeResultWithCondition("success")
 	}
 
-	user.AccountLocked = false
-	user.FailedLoginAttempts = 0
+	user.PasswordLocked = false
+	user.FailedLoginAttemptsPassword = 0
 	user.UpdatedAt = time.Now()
 
-	if err := Services.UserRepo.Update(ctx, user); err != nil {
+	if err := services.UserRepo.Update(ctx, user); err != nil {
 		return NewNodeResultWithCondition("fail")
 	}
 

@@ -16,34 +16,34 @@ var ValidateUsernamePasswordNode = &NodeDefinition{
 	Run:             RunValidateUsernamePasswordNode,
 }
 
-func RunValidateUsernamePasswordNode(state *FlowState, node *GraphNode, input map[string]string) (*NodeResult, error) {
+func RunValidateUsernamePasswordNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
 	username := state.Context["username"]
 	password := state.Context["password"]
 
 	ctx := context.Background()
-	user, err := Services.UserRepo.GetByUsername(ctx, username)
+	user, err := services.UserRepo.GetByUsername(ctx, username)
 	if err != nil || user == nil {
 		return NewNodeResultWithCondition("fail")
 	}
 
-	if user.FailedLoginAttempts >= 3 || user.AccountLocked {
+	if user.FailedLoginAttemptsPassword >= 3 || user.PasswordLocked {
 		return NewNodeResultWithCondition("locked")
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordCredential), []byte(password))
 	if err != nil {
-		user.FailedLoginAttempts++
-		if user.FailedLoginAttempts >= 3 {
-			user.AccountLocked = true
+		user.FailedLoginAttemptsPassword++
+		if user.FailedLoginAttemptsPassword >= 3 {
+			user.PasswordLocked = true
 		}
-		_ = Services.UserRepo.Update(ctx, user)
+		_ = services.UserRepo.Update(ctx, user)
 		return NewNodeResultWithCondition("fail")
 	}
 
-	user.FailedLoginAttempts = 0
-	user.AccountLocked = false
+	user.FailedLoginAttemptsPassword = 0
+	user.PasswordLocked = false
 	user.LastLoginAt = ptr(time.Now())
-	_ = Services.UserRepo.Update(ctx, user)
+	_ = services.UserRepo.Update(ctx, user)
 
 	state.User = user
 	state.Context["auth_result"] = "success"

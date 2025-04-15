@@ -6,8 +6,12 @@ import (
 	"github.com/fasthttp/router"
 )
 
-func New() *router.Router {
+var configPath string
+
+func New(confPath string) *router.Router {
 	r := router.New()
+
+	configPath = confPath
 
 	// Main authentication routes
 	r.ANY("/{tenant}/{realm}/auth/{path}", WrapMiddleware(HandleAuthRequest))
