@@ -42,6 +42,8 @@ This flow includes:
 
 - Go 1.20+
 - SQLite (for local development)
+- Podman/Docker (for containerized deployment)
+- Minikube (for Kubernetes deployment)
 
 ### Installation
 
@@ -56,10 +58,49 @@ This flow includes:
    go mod tidy
    ```
 
-3. Run the server:
-   ```bash
-   go run ./cmd/main.go
-   ```
+### Development
+
+The project includes a Makefile with various commands for development and deployment:
+
+#### Local Development
+```bash
+
+make all      # Run all checks and build
+make test     # Run tests
+make build    # Build the binary
+
+# Containerized development with Podman
+make podman-build  # Build the container image
+make podman-run   # Run the container locally
+```
+
+#### Kubernetes Deployment
+```bash
+# Start Minikube cluster
+make k8s-start
+
+# Set up environment for Minikube (run this manually)
+eval $(minikube docker-env)
+
+# Build and deploy to Kubernetes
+make docker-build  # Build image in K8S cluster
+make k8s-deploy   # Apply K8S resources
+
+# Access the service
+make k8s-open     # Open service in browser
+make k8s-logs     # View logs
+make k8s-shell    # Access container shell
+
+# Clean up
+make k8s-clean    # Remove all K8S resources
+```
+
+### Manual Server Start
+
+Alternatively, you can run the server directly:
+```bash
+go run ./cmd/main.go
+```
 
 ---
 
