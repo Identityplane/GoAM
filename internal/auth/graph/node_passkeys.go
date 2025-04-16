@@ -213,7 +213,7 @@ func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[str
 	}
 
 	userModel, err := services.UserRepo.GetByUsername(ctx, username)
-	if err != nil || user == nil {
+	if err == nil || user == nil {
 		return "fail", errors.New("could not load user")
 	}
 
