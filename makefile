@@ -33,7 +33,7 @@ docker-build: k8s-env
 	docker build -t $(IMAGE_NAME):$(TAG) .
 
 # Apply K8S resources (forces recreation of pods)
-k8s-deploy: k8s-clean docker-build
+k8s-deploy: k8s-env docker-build
 	kubectl delete pod -l app=goiam
 	kubectl apply -f k8s/
 
@@ -50,3 +50,6 @@ k8s-logs:
 
 k8s-shell:
 	kubectl exec -it deployment/goiam -c goiam -- /bin/sh
+
+k8s-forward-db:
+	kubectl port-forward svc/postgres 5432:5432

@@ -1,21 +1,24 @@
 package internal
 
 import (
+	"database/sql"
 	"goiam/internal/auth/graph"
-	"goiam/internal/db/model"
+	"goiam/internal/auth/repository"
+	"goiam/internal/config"
+	"goiam/internal/db/postgres_adapter"
 	"goiam/internal/db/sqlite_adapter"
 	"goiam/internal/realms"
 	"goiam/internal/web"
 	"log"
-	"os"
+	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/valyala/fasthttp"
 )
 
 var (
 	// All loaded realm configurations, indexed by "tenant/realm"
 	LoadedRealms = map[string]*realms.LoadedRealm{}
-	ConfigPath   = getConfigPath()
 )
 
 // Initialize loads all tenant/realm configurations at startup.
@@ -23,8 +26,8 @@ var (
 func Initialize() {
 
 	// Prinout config path
-	log.Printf("Using config path: %s", ConfigPath)
-	if err := realms.InitRealms(ConfigPath); err != nil {
+	log.Printf("Using config path: %s", config.ConfigPath)
+	if err := realms.InitRealms(config.ConfigPath); err != nil {
 		log.Fatalf("failed to initialize realms: %v", err)
 	}
 
@@ -39,10 +42,25 @@ func Initialize() {
 
 	// Init Database
 	// Currenlty we only support sqlite but later we need to load this from the config
-	db, err := sqlite_adapter.Init(sqlite_adapter.Config{
-		Driver: "sqlite",
-		DSN:    "goiam.db?_foreign_keys=on",
-	})
+	var db any
+	var err error
+	if strings.HasPrefix(config.DBConnString, "postgres://") {
+
+		db, err = postgres_adapter.Init(postgres_adapter.Config{
+			Driver: "postgres",
+			DSN:    config.DBConnString,
+		})
+
+		log.Printf("Initializing postgres database")
+	} else {
+		db, err = sqlite_adapter.Init(sqlite_adapter.Config{
+			Driver: "sqlite",
+			DSN:    config.DBConnString,
+		})
+
+		log.Printf("Initializing sqlite database")
+	}
+
 	if err != nil {
 		log.Fatalf("DB init failed: %v", err)
 		return
@@ -52,9 +70,30 @@ func Initialize() {
 	// Currently each realm has a unique key, so we can just use that
 	for _, realm := range LoadedRealms {
 
-		// Init user repository
-		var userDb model.UserDB = sqlite_adapter.NewSQLiteUserDB(db)
-		userRepo := sqlite_adapter.NewUserRepository(realm.Config.Tenant, realm.Config.Realm, userDb)
+		var userRepo repository.UserRepository
+
+		// case for sqllite and postgres
+		switch dbTyped := db.(type) {
+		case *sql.DB: // sqlite
+			userDb, err := sqlite_adapter.NewSQLiteUserDB(dbTyped)
+
+			if err != nil {
+				log.Panicf("Failed to create sqlite user db: %v", err)
+			}
+
+			config.SqliteUserDB = userDb
+			userRepo = sqlite_adapter.NewUserRepository(realm.Config.Tenant, realm.Config.Realm, userDb)
+
+		case *pgx.Conn:
+			userDb, err := postgres_adapter.NewPostgresUserDB(dbTyped)
+			if err != nil {
+				log.Panicf("Failed to create postgres user db: %v", err)
+			}
+
+			config.PostgresUserDB = userDb
+			userRepo = postgres_adapter.NewUserRepository(realm.Config.Tenant, realm.Config.Realm, userDb)
+		}
+
 		log.Printf("Initialized user repository for realm %s/%s", realm.Config.Tenant, realm.Config.Realm)
 
 		// Init the service registry for this realm
@@ -65,19 +104,10 @@ func Initialize() {
 	}
 
 	// Init web adapter
-	r := web.New(ConfigPath)
+	r := web.New()
 
 	log.Println("Server running on http://localhost:8080")
 	if err := fasthttp.ListenAndServe(":8080", r.Handler); err != nil {
 		log.Fatalf("Error: %s", err)
 	}
-}
-
-func getConfigPath() string {
-	path := os.Getenv("GOIAM_CONFIG_PATH")
-	if path == "" {
-		path = "../config" // fallback for local dev
-	}
-	log.Printf("Using config path: %s", path)
-	return path
 }

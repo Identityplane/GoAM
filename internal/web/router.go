@@ -6,15 +6,16 @@ import (
 	"github.com/fasthttp/router"
 )
 
-var configPath string
-
-func New(confPath string) *router.Router {
+func New() *router.Router {
 	r := router.New()
 
-	configPath = confPath
+	// Create admin handler
 
 	// Main authentication routes
 	r.ANY("/{tenant}/{realm}/auth/{path}", WrapMiddleware(HandleAuthRequest))
+
+	// Admin routes
+	r.GET("/{tenant}/{realm}/admin/users", WrapMiddleware(handleListUsers))
 
 	// Debug routes
 	r.GET("/debug/flows/all", WrapMiddleware(debug.HandleListAllFlows))

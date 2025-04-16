@@ -1,8 +1,7 @@
-package sqlite_adapter
+package postgres_adapter
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"testing"
@@ -10,41 +9,68 @@ import (
 
 	"goiam/internal/db/model"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-var testDB *sql.DB
+var testDB *pgx.Conn
 
-func Open(dsn string) (*sql.DB, error) {
-	return sql.Open("sqlite", dsn)
-}
-
-func Migrate(db *sql.DB) error {
-	migrationSQL, err := os.ReadFile("migrations/001_create_users.up.sql")
-	if err != nil {
-		return err
+func setupTestDB(t *testing.T) (*pgx.Conn, error) {
+	ctx := context.Background()
+	req := testcontainers.ContainerRequest{
+		Image:        "postgres:15",
+		ExposedPorts: []string{"5432/tcp"},
+		Env: map[string]string{
+			"POSTGRES_USER":     "goiam",
+			"POSTGRES_PASSWORD": "secret123",
+			"POSTGRES_DB":       "goiamdb",
+		},
+		WaitingFor: wait.ForLog("database system is ready to accept connections"),
 	}
 
-	_, err = db.Exec(string(migrationSQL))
-	return err
+	postgresContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	require.NoError(t, err)
+
+	// Get the container's host and port
+	host, err := postgresContainer.Host(ctx)
+	require.NoError(t, err)
+	port, err := postgresContainer.MappedPort(ctx, "5432")
+	require.NoError(t, err)
+
+	// Create the connection string
+	dsn := fmt.Sprintf("postgres://goiam:secret123@%s:%s/goiamdb?sslmode=disable", host, port.Port())
+
+	// Wait here for 1 sec to ensure the database is ready
+	time.Sleep(1 * time.Second)
+
+	// Connect to the database
+	conn, err := pgx.Connect(ctx, dsn)
+	require.NoError(t, err)
+
+	// Run migrations
+	migrationSQL, err := os.ReadFile("migrations/001_create_users.up.sql")
+	require.NoError(t, err)
+
+	_, err = conn.Exec(ctx, string(migrationSQL))
+	require.NoError(t, err)
+
+	return conn, nil
 }
 
 func TestUserCRUD(t *testing.T) {
-	// print current pwd for debugging
-	pwd, err := os.Getwd()
-	fmt.Println("Current working directory:", pwd)
-
 	// Setup test database
-	db, err := Open(":memory:?_foreign_keys=on")
+	conn, err := setupTestDB(t)
 	require.NoError(t, err)
-	defer db.Close()
-
-	err = Migrate(db)
-	require.NoError(t, err)
+	defer conn.Close(context.Background())
 
 	// Create user DB with test tenant and realm
-	userDB, err := NewSQLiteUserDB(db)
+	userDB, err := NewPostgresUserDB(conn)
 	require.NoError(t, err)
 
 	testTenant := "test-tenant"

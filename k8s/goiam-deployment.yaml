@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goiam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goiam
+  template:
+    metadata:
+      labels:
+        app: goiam
+    spec:
+      containers:
+        - name: goiam
+          image: goiam:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GOIAM_DB_CONN_STRING
+              value: postgres://goiam:secret123@postgres:5432/goiamdb?sslmode=disable

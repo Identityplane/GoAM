@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"goiam/internal/db/model"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,9 +17,23 @@ type SQLiteUserDB struct {
 	db *sql.DB
 }
 
+// ListUsers implements model.UserDB.
+func (s *SQLiteUserDB) ListUsers(ctx context.Context, tenant string, realm string) ([]model.User, error) {
+	panic("unimplemented")
+}
+
 // NewSQLiteUserDB creates a new SQLiteUserDB instance
-func NewSQLiteUserDB(db *sql.DB) *SQLiteUserDB {
-	return &SQLiteUserDB{db: db}
+func NewSQLiteUserDB(db *sql.DB) (*SQLiteUserDB, error) {
+
+	// Check if the connection works and users table exists by executing a query
+	_, err := db.Exec(`
+		SELECT 1 FROM users LIMIT 1
+	`)
+	if err != nil {
+		log.Printf("Warning: failed to check if users table exists: %v", err)
+	}
+
+	return &SQLiteUserDB{db: db}, nil
 }
 
 func (s *SQLiteUserDB) CreateUser(ctx context.Context, user model.User) error {

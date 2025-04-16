@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS users (
     -- Additional contact information
     email TEXT,
     phone TEXT,
-    email_verified INTEGER DEFAULT 0,
-    phone_verified INTEGER DEFAULT 0,
+    email_verified BOOLEAN DEFAULT FALSE,
+    phone_verified BOOLEAN DEFAULT FALSE,
 
     -- Locale
     locale TEXT,
@@ -33,9 +33,9 @@ CREATE TABLE IF NOT EXISTS users (
     mfa_credential TEXT,
 
     -- Credential lock status
-    password_locked INTEGER DEFAULT 0,
-    webauthn_locked INTEGER DEFAULT 0,
-    mfa_locked INTEGER DEFAULT 0,
+    password_locked BOOLEAN DEFAULT FALSE,
+    webauthn_locked BOOLEAN DEFAULT FALSE,
+    mfa_locked BOOLEAN DEFAULT FALSE,
 
     -- Failed login attempts
     failed_login_attempts_password INTEGER DEFAULT 0,

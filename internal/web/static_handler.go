@@ -1,6 +1,7 @@
 package web
 
 import (
+	"goiam/internal/config"
 	"os"
 	"path/filepath"
 
@@ -16,7 +17,7 @@ func StaticHandler(ctx *fasthttp.RequestCtx) {
 	filename := ctx.UserValue("filename").(string)
 
 	// Construct the file path
-	filePath := filepath.Join(configPath, "tenants", tenant, realm, "static", filepath.Clean(filename))
+	filePath := filepath.Join(config.ConfigPath, "tenants", tenant, realm, "static", filepath.Clean(filename))
 
 	// Check if the file exists
 	if !fileExists(filePath) {

@@ -78,7 +78,10 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	}
 
 	// Create user repo object
-	userDb := sqlite_adapter.NewSQLiteUserDB(database)
+	userDb, err := sqlite_adapter.NewSQLiteUserDB(database)
+	if err != nil {
+		t.Fatalf("failed to create sqlite user db: %v", err)
+	}
 	userRepo := sqlite_adapter.NewUserRepository(DefaultTenant, DefaultRealm, userDb)
 
 	// get the loaded realm and init the service registry
@@ -88,7 +91,7 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	}
 
 	// Setup Http
-	Router = web.New(ConfigPath)
+	Router = web.New()
 	handler := Router.Handler
 	ln := fasthttputil.NewInmemoryListener()
 
@@ -119,7 +122,7 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 }
 
 func RunTestMigrations(database *sql.DB) error {
-	sqlBytes, err := os.ReadFile("../../internal/db/migrations/001_create_users.up.sql")
+	sqlBytes, err := os.ReadFile("../../internal/db/sqlite_adapter/migrations/001_create_users.up.sql")
 	if err != nil {
 		return fmt.Errorf("failed to read migration: %w", err)
 	}

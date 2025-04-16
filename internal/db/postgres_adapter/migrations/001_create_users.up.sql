@@ -1,5 +1,8 @@
--- Create users table
+
+-- migrations/001_create_users.sql
+
 CREATE TABLE IF NOT EXISTS users (
+
     -- Unique UUID for the user
     id TEXT PRIMARY KEY,
 
@@ -19,8 +22,8 @@ CREATE TABLE IF NOT EXISTS users (
     -- Additional contact information
     email TEXT,
     phone TEXT,
-    email_verified INTEGER DEFAULT 0,
-    phone_verified INTEGER DEFAULT 0,
+    email_verified BOOLEAN DEFAULT false,
+    phone_verified BOOLEAN DEFAULT false,
 
     -- Locale
     locale TEXT,
@@ -31,9 +34,9 @@ CREATE TABLE IF NOT EXISTS users (
     mfa_credential TEXT,
 
     -- Credential lock status
-    password_locked INTEGER DEFAULT 0,
-    webauthn_locked INTEGER DEFAULT 0,
-    mfa_locked INTEGER DEFAULT 0,
+    password_locked BOOLEAN DEFAULT false,
+    webauthn_locked BOOLEAN DEFAULT false,
+    mfa_locked BOOLEAN DEFAULT false,
 
     -- Failed login attempts
     failed_login_attempts_password INTEGER DEFAULT 0,
@@ -61,8 +64,6 @@ CREATE TABLE IF NOT EXISTS users (
 
     -- Constraints
     CONSTRAINT unique_username_per_tenant_realm UNIQUE (tenant, realm, username),
-    CONSTRAINT unique_email_per_tenant_realm UNIQUE (tenant, realm, email),
-    CONSTRAINT unique_phone_per_tenant_realm UNIQUE (tenant, realm, phone),
     CONSTRAINT unique_federated_id_per_idp UNIQUE (federated_idp, federated_id)
 );
 
@@ -71,5 +72,5 @@ CREATE INDEX IF NOT EXISTS idx_users_tenant_realm ON users(tenant, realm);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
-CREATE INDEX IF NOT EXISTS idx_users_federated_idp ON users(federated_idp);
 CREATE INDEX IF NOT EXISTS idx_users_federated_id ON users(federated_id);
+

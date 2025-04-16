@@ -10,6 +10,7 @@ type UserDB interface {
 	CreateUser(ctx context.Context, user User) error
 	GetUserByUsername(ctx context.Context, tenant, realm, username string) (*User, error)
 	UpdateUser(ctx context.Context, user *User) error
+	ListUsers(ctx context.Context, tenant, realm string) ([]User, error)
 }
 
 type User struct {

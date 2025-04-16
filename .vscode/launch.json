@@ -3,13 +3,23 @@
     "configurations": [
 
       {
-        "name": "Run goiam server",
+        "name": "Goiam SQLite",
         "type": "go",
         "request": "launch",
         "mode": "auto",
         "program": "${workspaceFolder}/cmd/main.go",
         "env": {},
         "args": [],
+        "showLog": true
+      },
+      {
+        "name": "Goiam Postgres",
+        "type": "go",
+        "request": "launch",
+        "mode": "auto",
+        "program": "${workspaceFolder}/cmd/main.go",
+        "env": {},
+        "args": ["--db", "postgres://goiam:secret123@localhost:5432/goiamdb"],
         "showLog": true
       }
     ]
