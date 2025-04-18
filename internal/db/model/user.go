@@ -11,6 +11,10 @@ type UserDB interface {
 	GetUserByUsername(ctx context.Context, tenant, realm, username string) (*User, error)
 	UpdateUser(ctx context.Context, user *User) error
 	ListUsers(ctx context.Context, tenant, realm string) ([]User, error)
+	ListUsersWithPagination(ctx context.Context, tenant, realm string, offset, limit int) ([]User, error)
+	CountUsers(ctx context.Context, tenant, realm string) (int64, error)
+	GetUserStats(ctx context.Context, tenant, realm string) (*UserStats, error)
+	DeleteUser(ctx context.Context, tenant, realm, username string) error
 }
 
 type User struct {
@@ -71,4 +75,17 @@ type User struct {
 
 	// Devices
 	TrustedDevices string `json:"trusted_devices,omitempty"`
+}
+
+// UserStats represents user statistics
+type UserStats struct {
+	TotalUsers      int64 `json:"total_users"`
+	ActiveUsers     int64 `json:"active_users"`
+	InactiveUsers   int64 `json:"inactive_users"`
+	LockedUsers     int64 `json:"locked_users"`
+	EmailVerified   int64 `json:"email_verified"`
+	PhoneVerified   int64 `json:"phone_verified"`
+	WebAuthnEnabled int64 `json:"webauthn_enabled"`
+	MFAEnabled      int64 `json:"mfa_enabled"`
+	FederatedUsers  int64 `json:"federated_users"`
 }

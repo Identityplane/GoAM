@@ -18,6 +18,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
 
+	"goiam/internal/db/service"
 	"goiam/internal/db/sqlite_adapter"    // lint:ignore ST1019 (This should be fixed, but is not a priority)
 	db "goiam/internal/db/sqlite_adapter" // lint:ignore
 )
@@ -90,8 +91,11 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 		UserRepo: userRepo,
 	}
 
+	// Setup UserAdminService
+	UserAdminService := service.NewUserService(userDb)
+
 	// Setup Http
-	Router = web.New()
+	Router = web.New(UserAdminService)
 	handler := Router.Handler
 	ln := fasthttputil.NewInmemoryListener()
 

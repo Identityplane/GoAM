@@ -1,20 +1,14 @@
 package sqlite_adapter
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
+	"goiam/internal/db/model"
 	"os"
 	"testing"
-	"time"
 
-	"goiam/internal/db/model"
-
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var testDB *sql.DB
 
 func Open(dsn string) (*sql.DB, error) {
 	return sql.Open("sqlite", dsn)
@@ -30,7 +24,7 @@ func Migrate(db *sql.DB) error {
 	return err
 }
 
-func TestUserCRUD(t *testing.T) {
+func setupTestDB(t *testing.T) *SQLiteUserDB {
 	// print current pwd for debugging
 	pwd, err := os.Getwd()
 	fmt.Println("Current working directory:", pwd)
@@ -38,7 +32,7 @@ func TestUserCRUD(t *testing.T) {
 	// Setup test database
 	db, err := Open(":memory:?_foreign_keys=on")
 	require.NoError(t, err)
-	defer db.Close()
+	t.Cleanup(func() { db.Close() })
 
 	err = Migrate(db)
 	require.NoError(t, err)
@@ -47,52 +41,26 @@ func TestUserCRUD(t *testing.T) {
 	userDB, err := NewSQLiteUserDB(db)
 	require.NoError(t, err)
 
-	testTenant := "test-tenant"
-	testRealm := "test-realm"
+	return userDB
+}
 
-	// Create test user
-	testUser := model.User{
-		Tenant:    testTenant,
-		Realm:     testRealm,
-		Username:  "testuser",
-		Status:    "active",
-		Email:     "test@example.com",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
+func TestListUsersWithPagination(t *testing.T) {
+	userDB := setupTestDB(t)
+	model.TemplateTestUserCRUD(t, userDB)
+}
 
-	ctx := context.Background()
+func TestGetUserStats(t *testing.T) {
+	userDB := setupTestDB(t)
+	model.TemplateTestGetUserStats(t, userDB)
+}
 
-	t.Run("CreateUser", func(t *testing.T) {
-		err := userDB.CreateUser(ctx, testUser)
-		assert.NoError(t, err)
-	})
+func TestUserCRUD(t *testing.T) {
+	userDB := setupTestDB(t)
+	model.TemplateTestUserCRUD(t, userDB)
+}
 
-	t.Run("GetUserByUsername", func(t *testing.T) {
-		user, err := userDB.GetUserByUsername(ctx, testTenant, testRealm, testUser.Username)
-		assert.NoError(t, err)
-		assert.NotNil(t, user)
-		assert.Equal(t, testUser.Username, user.Username)
-		assert.Equal(t, testUser.Email, user.Email)
-	})
+func TestSQLiteUserDB_DeleteUser(t *testing.T) {
 
-	t.Run("UpdateUser", func(t *testing.T) {
-		user, err := userDB.GetUserByUsername(ctx, testTenant, testRealm, testUser.Username)
-		require.NoError(t, err)
-		require.NotNil(t, user)
-
-		user.Email = "updated@example.com"
-		err = userDB.UpdateUser(ctx, user)
-		assert.NoError(t, err)
-
-		updatedUser, err := userDB.GetUserByUsername(ctx, testTenant, testRealm, testUser.Username)
-		assert.NoError(t, err)
-		assert.Equal(t, "updated@example.com", updatedUser.Email)
-	})
-
-	t.Run("GetNonExistentUser", func(t *testing.T) {
-		user, err := userDB.GetUserByUsername(ctx, "nonexistent", "nonexistent", "nonexistent")
-		assert.NoError(t, err)
-		assert.Nil(t, user)
-	})
+	db := setupTestDB(t)
+	model.TemplateTestDeleteUser(t, db)
 }

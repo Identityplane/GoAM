@@ -10,7 +10,6 @@ import (
 	"goiam/internal/db/model"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -63,6 +62,16 @@ func setupTestDB(t *testing.T) (*pgx.Conn, error) {
 	return conn, nil
 }
 
+func TestListUsersWithPagination(t *testing.T) {
+	conn, err := setupTestDB(t)
+	require.NoError(t, err)
+	defer conn.Close(context.Background())
+
+	userDB, err := NewPostgresUserDB(conn)
+	require.NoError(t, err)
+	model.TemplateTestListUsersWithPagination(t, userDB)
+}
+
 func TestUserCRUD(t *testing.T) {
 	// Setup test database
 	conn, err := setupTestDB(t)
@@ -73,52 +82,31 @@ func TestUserCRUD(t *testing.T) {
 	userDB, err := NewPostgresUserDB(conn)
 	require.NoError(t, err)
 
-	testTenant := "test-tenant"
-	testRealm := "test-realm"
+	// Run the CRUD tests
+	model.TemplateTestUserCRUD(t, userDB)
+}
 
-	// Create test user
-	testUser := model.User{
-		Tenant:    testTenant,
-		Realm:     testRealm,
-		Username:  "testuser",
-		Status:    "active",
-		Email:     "test@example.com",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
+func TestGetUserStats(t *testing.T) {
+	// Setup test database
+	conn, err := setupTestDB(t)
+	require.NoError(t, err)
+	defer conn.Close(context.Background())
 
-	ctx := context.Background()
+	// Create user DB with test tenant and realm
+	userDB, err := NewPostgresUserDB(conn)
+	require.NoError(t, err)
 
-	t.Run("CreateUser", func(t *testing.T) {
-		err := userDB.CreateUser(ctx, testUser)
-		assert.NoError(t, err)
-	})
+	// Run the stats test
+	model.TemplateTestGetUserStats(t, userDB)
+}
 
-	t.Run("GetUserByUsername", func(t *testing.T) {
-		user, err := userDB.GetUserByUsername(ctx, testTenant, testRealm, testUser.Username)
-		assert.NoError(t, err)
-		assert.NotNil(t, user)
-		assert.Equal(t, testUser.Username, user.Username)
-		assert.Equal(t, testUser.Email, user.Email)
-	})
+func TestPostgresUserDB_DeleteUser(t *testing.T) {
+	conn, err := setupTestDB(t)
+	require.NoError(t, err)
+	defer conn.Close(context.Background())
 
-	t.Run("UpdateUser", func(t *testing.T) {
-		user, err := userDB.GetUserByUsername(ctx, testTenant, testRealm, testUser.Username)
-		require.NoError(t, err)
-		require.NotNil(t, user)
+	userDB, err := NewPostgresUserDB(conn)
+	require.NoError(t, err)
 
-		user.Email = "updated@example.com"
-		err = userDB.UpdateUser(ctx, user)
-		assert.NoError(t, err)
-
-		updatedUser, err := userDB.GetUserByUsername(ctx, testTenant, testRealm, testUser.Username)
-		assert.NoError(t, err)
-		assert.Equal(t, "updated@example.com", updatedUser.Email)
-	})
-
-	t.Run("GetNonExistentUser", func(t *testing.T) {
-		user, err := userDB.GetUserByUsername(ctx, "nonexistent", "nonexistent", "nonexistent")
-		assert.NoError(t, err)
-		assert.Nil(t, user)
-	})
+	model.TemplateTestDeleteUser(t, userDB)
 }

@@ -6,6 +6,7 @@ import (
 	"goiam/internal/auth/repository"
 	"goiam/internal/config"
 	"goiam/internal/db/postgres_adapter"
+	"goiam/internal/db/service"
 	"goiam/internal/db/sqlite_adapter"
 	"goiam/internal/realms"
 	"goiam/internal/web"
@@ -18,7 +19,8 @@ import (
 
 var (
 	// All loaded realm configurations, indexed by "tenant/realm"
-	LoadedRealms = map[string]*realms.LoadedRealm{}
+	LoadedRealms     = map[string]*realms.LoadedRealm{}
+	UserAdminService service.UserAdminService
 )
 
 // Initialize loads all tenant/realm configurations at startup.
@@ -100,11 +102,21 @@ func Initialize() {
 		realm.Services = &graph.ServiceRegistry{
 			UserRepo: userRepo,
 		}
+	}
 
+	// Init user service for admin api
+	dbDriverName := config.GetDbDriverName()
+	switch dbDriverName {
+	case "postgres":
+		UserAdminService = service.NewUserService(config.PostgresUserDB)
+	case "sqlite":
+		UserAdminService = service.NewUserService(config.SqliteUserDB)
+	default:
+		log.Fatalf("Unsupported database driver: %s", dbDriverName)
 	}
 
 	// Init web adapter
-	r := web.New()
+	r := web.New(UserAdminService)
 
 	log.Println("Server running on http://localhost:8080")
 	if err := fasthttp.ListenAndServe(":8080", r.Handler); err != nil {

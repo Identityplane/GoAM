@@ -5,6 +5,7 @@ import (
 	"goiam/internal/db/sqlite_adapter"
 	"log"
 	"os"
+	"strings"
 )
 
 // Manages global configuration for the whole server
@@ -12,6 +13,14 @@ var ConfigPath = getConfigPath()
 var DBConnString = getDBConnString()
 var PostgresUserDB *postgres_adapter.PostgresUserDB
 var SqliteUserDB *sqlite_adapter.SQLiteUserDB
+
+func GetDbDriverName() string {
+
+	if strings.HasPrefix(DBConnString, "postgres://") {
+		return "postgres"
+	}
+	return "sqlite"
+}
 
 // Reads database connection string from command line args, env var, or returns default
 func getDBConnString() string {
