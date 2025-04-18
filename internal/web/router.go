@@ -1,18 +1,24 @@
 package web
 
 import (
+	"encoding/json"
 	"goiam/internal/db/service"
 	"goiam/internal/web/admin_api"
 	"goiam/internal/web/debug"
 
 	"github.com/fasthttp/router"
+	"github.com/valyala/fasthttp"
 )
 
 func New(userAdminService service.UserAdminService) *router.Router {
 	r := router.New()
 
+	// Set the NotFound handler
+	r.NotFound = WrapMiddleware(handleNotFound)
+
 	// Main authentication routes
-	r.ANY("/{tenant}/{realm}/auth/{path}", WrapMiddleware(HandleAuthRequest))
+	r.GET("/{tenant}/{realm}/auth/{path}", WrapMiddleware(HandleAuthRequest))
+	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(HandleAuthRequest))
 
 	// Admin routes
 	adminHandler := admin_api.New(userAdminService)
@@ -42,4 +48,14 @@ func New(userAdminService service.UserAdminService) *router.Router {
 	r.GET("/swagger/{*path}", WrapMiddleware(HandleSwaggerUI))
 
 	return r
+}
+
+// handleNotFound is the fallback handler for unmatched routes
+func handleNotFound(ctx *fasthttp.RequestCtx) {
+	ctx.SetStatusCode(fasthttp.StatusNotFound)
+	ctx.SetContentType("application/json")
+	_ = json.NewEncoder(ctx).Encode(map[string]string{
+		"error": "not found",
+		"path":  string(ctx.Path()),
+	})
 }

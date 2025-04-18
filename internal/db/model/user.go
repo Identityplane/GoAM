@@ -2,6 +2,8 @@ package model
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -90,4 +92,51 @@ type UserStats struct {
 	WebAuthnEnabled int64 `json:"webauthn_enabled" example:"30"`
 	MFAEnabled      int64 `json:"mfa_enabled" example:"40"`
 	FederatedUsers  int64 `json:"federated_users" example:"20"`
+}
+
+func (u *User) UnmarshalJSON(data []byte) error {
+	// Make a mirror struct where time fields are strings
+	type Alias User
+	aux := &struct {
+		CreatedAt   *string `json:"created_at"`
+		UpdatedAt   *string `json:"updated_at"`
+		LastLoginAt *string `json:"last_login_at"`
+		*Alias
+	}{
+		Alias: (*Alias)(u),
+	}
+
+	// First, unmarshal into aux
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// Now manually parse each timestamp
+	parseTime := func(s *string) (*time.Time, error) {
+		if s == nil || *s == "" {
+			return nil, nil
+		}
+		t, err := time.Parse(time.RFC3339, *s)
+		if err != nil {
+			return nil, err
+		}
+		return &t, nil
+	}
+
+	var err error
+	if t, err := parseTime(aux.CreatedAt); err != nil {
+		return fmt.Errorf("invalid created_at: %w", err)
+	} else if t != nil {
+		u.CreatedAt = *t
+	}
+	if t, err := parseTime(aux.UpdatedAt); err != nil {
+		return fmt.Errorf("invalid updated_at: %w", err)
+	} else if t != nil {
+		u.UpdatedAt = *t
+	}
+	if u.LastLoginAt, err = parseTime(aux.LastLoginAt); err != nil {
+		return fmt.Errorf("invalid last_login_at: %w", err)
+	}
+
+	return nil
 }

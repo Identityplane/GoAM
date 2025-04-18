@@ -119,7 +119,7 @@ func Initialize() {
 	r := web.New(UserAdminService)
 
 	log.Println("Server running on http://localhost:8080")
-	if err := fasthttp.ListenAndServe(":8080", r.Handler); err != nil {
+	if err := fasthttp.ListenAndServe(":8080", web.TopLevelMiddleware(r.Handler)); err != nil {
 		log.Fatalf("Error: %s", err)
 	}
 }

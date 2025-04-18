@@ -201,7 +201,7 @@ func (h *Handler) HandleCreateUser(ctx *fasthttp.RequestCtx) {
 
 	// Parse request body
 	var createUser model.User
-	if err := json.Unmarshal(ctx.PostBody(), &createUser); err != nil {
+	if err := (&createUser).UnmarshalJSON(ctx.PostBody()); err != nil {
 		ctx.SetStatusCode(http.StatusBadRequest)
 		ctx.SetBodyString("Invalid JSON: " + err.Error())
 		return
