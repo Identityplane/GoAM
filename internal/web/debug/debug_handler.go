@@ -12,6 +12,12 @@ import (
 )
 
 // HandleListAllFlows returns a list of all flows across all tenants/realms.
+// @Summary List all flows across all tenants/realms
+// @Description Returns a plain text list of all authentication flows across all tenants and realms
+// @Tags Debug
+// @Produce text/plain
+// @Success 200 {string} string "List of flows in plain text format"
+// @Router /debug/flows/all [get]
 func HandleListAllFlows(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("text/plain; charset=utf-8")
 
@@ -27,6 +33,15 @@ func HandleListAllFlows(ctx *fasthttp.RequestCtx) {
 }
 
 // HandleListFlows responds with a list of available flow names and routes
+// @Summary List flows for a specific tenant and realm
+// @Description Returns a JSON list of available authentication flows for the specified tenant and realm
+// @Tags Debug
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Success 200 {array} object "List of flows with name and route"
+// @Failure 500 {string} string "Internal server error"
+// @Router /{tenant}/{realm}/debug/flows [get]
 func HandleListFlows(ctx *fasthttp.RequestCtx) {
 	var flowList []map[string]string
 
@@ -66,7 +81,18 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 }
 
 // HandleFlowGraphPNG generates and serves a PNG image of the requested flow graph.
-// Usage: GET /debug/flow/graph.png?flow=flow_name
+// @Summary Generate PNG graph of a flow
+// @Description Generates and returns a PNG image visualization of the specified authentication flow
+// @Tags Debug
+// @Produce image/png
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param flow path string true "Flow name"
+// @Success 200 {file} binary "PNG image of the flow graph"
+// @Failure 400 {string} string "Bad request - missing flow parameter"
+// @Failure 404 {string} string "Flow not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /{tenant}/{realm}/debug/{flow}/graph.png [get]
 func HandleFlowGraphPNG(ctx *fasthttp.RequestCtx) {
 
 	tenant := ctx.UserValue("tenant").(string)
@@ -116,6 +142,18 @@ func HandleFlowGraphPNG(ctx *fasthttp.RequestCtx) {
 }
 
 // HandleFlowGraphSVG generates and serves an SVG image of the requested flow graph.
+// @Summary Generate SVG graph of a flow
+// @Description Generates and returns an SVG image visualization of the specified authentication flow
+// @Tags Debug
+// @Produce image/svg+xml
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param flow path string true "Flow name"
+// @Success 200 {file} binary "SVG image of the flow graph"
+// @Failure 400 {string} string "Bad request - missing flow parameter"
+// @Failure 404 {string} string "Flow not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /{tenant}/{realm}/debug/{flow}/graph.svg [get]
 func HandleFlowGraphSVG(ctx *fasthttp.RequestCtx) {
 
 	tenant := ctx.UserValue("tenant").(string)

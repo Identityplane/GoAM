@@ -6,8 +6,12 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Install swag tool
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
 COPY . .
 
+RUN swag init --generalInfo internal/web/admin_api/swagger_info.go --dir ./ --output ./internal/web/swagger-ui
 RUN CGO_ENABLED=0 GOOS=linux go build -o goiam ./cmd
 
 # Final image

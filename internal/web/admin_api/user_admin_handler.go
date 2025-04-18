@@ -37,7 +37,20 @@ func New(userService service.UserAdminService) *Handler {
 	}
 }
 
-// HandleListUsers handles the GET /admin/users endpoint
+// @Summary List users
+// @Description Get a paginated list of users
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Page size" default(100)
+// @Success 200 {object} PagedResponse
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /{tenant}/{realm}/admin/users [get]
 func (h *Handler) HandleListUsers(ctx *fasthttp.RequestCtx) {
 	// Get tenant and realm from path parameters
 	tenant := ctx.UserValue("tenant").(string)
@@ -105,7 +118,19 @@ func (h *Handler) HandleListUsers(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody(jsonData)
 }
 
-// HandleGetUser handles the GET /admin/users/{username} endpoint
+// @Summary Get user
+// @Description Get a specific user by username
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param username path string true "Username"
+// @Success 200 {object} model.User
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /{tenant}/{realm}/admin/users/{username} [get]
 func (h *Handler) HandleGetUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
@@ -147,7 +172,19 @@ func (h *Handler) HandleGetUser(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody(jsonData)
 }
 
-// HandleCreateUser handles the POST /admin/users/{username} endpoint
+// @Summary Create user
+// @Description Create a new user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param username path string true "Username"
+// @Param user body model.User true "User object"
+// @Success 201 {object} model.User
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /{tenant}/{realm}/admin/users/{username} [post]
 func (h *Handler) HandleCreateUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
@@ -199,7 +236,20 @@ func (h *Handler) HandleCreateUser(ctx *fasthttp.RequestCtx) {
 	ctx.SetStatusCode(http.StatusCreated)
 }
 
-// HandleUpdateUser handles the PUT /admin/users/{username} endpoint
+// @Summary Update user
+// @Description Update an existing user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param username path string true "Username"
+// @Param user body model.User true "User object"
+// @Success 200 {object} model.User
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /{tenant}/{realm}/admin/users/{username} [put]
 func (h *Handler) HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
@@ -249,7 +299,19 @@ func (h *Handler) HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody(jsonData)
 }
 
-// HandleDeleteUser handles the DELETE /admin/users/{username} endpoint
+// @Summary Delete user
+// @Description Delete a user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param username path string true "Username"
+// @Success 204 "No Content"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /{tenant}/{realm}/admin/users/{username} [delete]
 func (h *Handler) HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
@@ -275,7 +337,18 @@ func (h *Handler) HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 	ctx.SetStatusCode(http.StatusNoContent)
 }
 
-// HandleGetUserStats handles the GET /admin/users/stats endpoint
+// @Summary Get user statistics
+// @Description Get user statistics for the realm
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Success 200 {object} model.UserStats
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /{tenant}/{realm}/admin/users/stats [get]
 func (h *Handler) HandleGetUserStats(ctx *fasthttp.RequestCtx) {
 	// Get tenant and realm from path parameters
 	tenant := ctx.UserValue("tenant").(string)

@@ -9,6 +9,13 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// handleLiveness checks if the service is alive
+// @Summary Check service liveness
+// @Description Returns a simple status indicating if the service is alive
+// @Tags Health
+// @Produce json
+// @Success 200 {object} object "Service status"
+// @Router /healthz [get]
 func handleLiveness(ctx *fasthttp.RequestCtx) {
 	resp := map[string]string{"status": "alive"}
 
@@ -19,6 +26,14 @@ func handleLiveness(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody(jsonData)
 }
 
+// handleReadiness checks if the service is ready to handle requests
+// @Summary Check service readiness
+// @Description Returns the readiness status of the service and its components
+// @Tags Health
+// @Produce json
+// @Success 200 {object} object "Service and components readiness status"
+// @Failure 503 {object} object "Service is not ready"
+// @Router /readyz [get]
 func handleReadiness(ctx *fasthttp.RequestCtx) {
 	ready := map[string]string{}
 	isReady := true
@@ -43,6 +58,13 @@ func handleReadiness(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody(jsonData)
 }
 
+// handleInfo returns basic service information
+// @Summary Get service information
+// @Description Returns basic information about the service including version
+// @Tags Health
+// @Produce json
+// @Success 200 {object} object "Service information"
+// @Router /info [get]
 func handleInfo(ctx *fasthttp.RequestCtx) {
 	info := map[string]string{
 		"name":       "GoIAM",

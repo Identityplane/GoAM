@@ -37,5 +37,9 @@ func New(userAdminService service.UserAdminService) *router.Router {
 	r.GET("/readyz", WrapMiddleware(handleReadiness))
 	r.GET("/info", WrapMiddleware(handleInfo))
 
+	// Swagger UI
+	r.GET("/swagger/", WrapMiddleware(HandleSwaggerUI))
+	r.GET("/swagger/{*path}", WrapMiddleware(HandleSwaggerUI))
+
 	return r
 }

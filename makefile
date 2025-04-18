@@ -1,10 +1,10 @@
-.PHONY: all vet sec staticcheck test build
+.PHONY: all vet sec staticcheck test build swagger
 
 IMAGE_NAME=goiam
 TAG=latest
 PORT=8080
 
-all: vet sec staticcheck test build
+all: swagger vet sec staticcheck test build
 
 vet:            ; go vet ./...
 sec:            ; gosec -exclude-dir=test ./...
@@ -39,7 +39,7 @@ k8s-deploy: k8s-env docker-build
 
 # Open NodePort service in browser
 k8s-open:
-	minikube service goiam-service
+	minikube service goiam
 
 # Tear down all resources
 k8s-clean:
@@ -53,3 +53,7 @@ k8s-shell:
 
 k8s-forward-db:
 	kubectl port-forward svc/postgres 5432:5432
+
+swagger:
+	# Generate the swagger documentation
+	swag init --generalInfo internal/web/admin_api/swagger_info.go --dir ./ --output ./internal/web/swagger-ui

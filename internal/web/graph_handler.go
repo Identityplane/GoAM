@@ -19,6 +19,23 @@ type GraphHandler struct {
 	Services *graph.ServiceRegistry
 }
 
+// HandleAuthRequest processes authentication requests and manages the authentication flow
+// @Summary Process authentication request
+// @Description Handles authentication requests by executing the specified flow. Returns either a prompt for user input or a final result. Supports debug mode for additional information.
+// @Tags Authentication
+// @Accept application/x-www-form-urlencoded
+// @Produce text/html
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param path path string true "Flow path/name"
+// @Param debug query boolean false "Enable debug mode"
+// @Param step formData string false "Current step in the flow"
+// @Param {prompt_key} formData string false "User input for the current step's prompts"
+// @Success 200 {string} string "HTML response containing either a prompt form or the final result"
+// @Failure 404 {string} string "Realm or flow not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /{tenant}/{realm}/auth/{path} [get]
+// @Router /{tenant}/{realm}/auth/{path} [post]
 func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	tenant := ctx.UserValue("tenant").(string)
