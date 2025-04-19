@@ -94,6 +94,11 @@ func (h *Handler) HandleListUsers(ctx *fasthttp.RequestCtx) {
 	// Calculate total pages
 	totalPages := (int(total) + pageSize - 1) / pageSize
 
+	// If users is empty, return an empty array
+	if len(users) == 0 {
+		users = []model.User{}
+	}
+
 	// Create response
 	response := PagedResponse{
 		Data: users,
