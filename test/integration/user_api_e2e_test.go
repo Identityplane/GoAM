@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestAdminAPI_E2E performs a complete end-to-end test of the admin API user management functionality.
+// This test performs a complete end-to-end test of the admin API user management functionality.
 // It tests the following user operations in sequence:
 // 1. Creating a new user with all required fields
 // 2. Retrieving user statistics
@@ -15,7 +15,7 @@ import (
 // 6. Deleting a user and verifying deletion
 // The test uses a test tenant "acme" and realm "customers" for all operations.
 
-func TestAdminAPI_E2E(t *testing.T) {
+func TestUserAPI_E2E(t *testing.T) {
 	e := SetupIntegrationTest(t, "")
 
 	// Test user data

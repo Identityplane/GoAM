@@ -545,7 +545,7 @@ func (p *PostgresUserDB) GetUserStats(ctx context.Context, tenant, realm string)
 			COUNT(*) as total_users,
 			COUNT(CASE WHEN status = 'active' THEN 1 END) as active_users,
 			COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_users,
-			COUNT(CASE WHEN password_locked = true OR webauthn_locked = true OR mfa_locked = true THEN 1 END) as locked_users,
+			COUNT(CASE WHEN status = 'locked' THEN 1 END) as locked_users,
 			COUNT(CASE WHEN email_verified = true THEN 1 END) as email_verified,
 			COUNT(CASE WHEN phone_verified = true THEN 1 END) as phone_verified,
 			COUNT(CASE WHEN webauthn_credential IS NOT NULL AND webauthn_credential != '' THEN 1 END) as webauthn_enabled,

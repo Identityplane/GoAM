@@ -1,5 +1,19 @@
 basePath: /
 definitions:
+  admin_api.DashboardResponse:
+    properties:
+      flows:
+        $ref: '#/definitions/admin_api.FlowInfo'
+      user_stats:
+        $ref: '#/definitions/model.UserStats'
+    type: object
+  admin_api.FlowInfo:
+    properties:
+      active_flows:
+        type: integer
+      total_flows:
+        type: integer
+    type: object
   admin_api.PagedResponse:
     properties:
       data: {}
@@ -16,6 +30,24 @@ definitions:
         type: integer
       total_pages:
         type: integer
+    type: object
+  admin_api.RealmInfo:
+    properties:
+      label:
+        type: string
+      value:
+        type: string
+    type: object
+  admin_api.TenantInfo:
+    properties:
+      label:
+        type: string
+      realms:
+        items:
+          $ref: '#/definitions/admin_api.RealmInfo'
+        type: array
+      value:
+        type: string
     type: object
   model.User:
     description: User information and attributes
@@ -172,6 +204,44 @@ info:
   title: GoIAM Admin API
   version: "1.0"
 paths:
+  /{tenant}/{realm}/admin/dashboard:
+    get:
+      consumes:
+      - application/json
+      description: Returns combined user stats and flow information for a tenant/realm
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenant
+        required: true
+        type: string
+      - description: Realm ID
+        in: path
+        name: realm
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/admin_api.DashboardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get dashboard data
+      tags:
+      - dashboard
   /{tenant}/{realm}/admin/users:
     get:
       consumes:
@@ -689,6 +759,27 @@ paths:
       summary: Serve static files
       tags:
       - Static
+  /admin/realms:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of all available tenant/realm combinations
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/admin_api.TenantInfo'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List all tenant/realm combinations
+      tags:
+      - tenants
   /debug/flows/all:
     get:
       description: Returns a plain text list of all authentication flows across all

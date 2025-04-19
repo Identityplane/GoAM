@@ -302,7 +302,7 @@ func (s *SQLiteUserDB) GetUserStats(ctx context.Context, tenant, realm string) (
 			COUNT(*) as total_users,
 			COUNT(CASE WHEN status = 'active' THEN 1 END) as active_users,
 			COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_users,
-			COUNT(CASE WHEN password_locked = 1 OR webauthn_locked = 1 OR mfa_locked = 1 THEN 1 END) as locked_users,
+			COUNT(CASE WHEN status = 'locked' THEN 1 END) as locked_users,
 			COUNT(CASE WHEN email_verified = 1 THEN 1 END) as email_verified,
 			COUNT(CASE WHEN phone_verified = 1 THEN 1 END) as phone_verified,
 			COUNT(CASE WHEN webauthn_credential IS NOT NULL AND webauthn_credential != '' THEN 1 END) as webauthn_enabled,

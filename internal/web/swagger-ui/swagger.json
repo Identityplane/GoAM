@@ -21,6 +21,38 @@
     },
     "basePath": "/",
     "paths": {
+        "/admin/realms": {
+            "get": {
+                "description": "Returns a list of all available tenant/realm combinations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "List all tenant/realm combinations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/admin_api.TenantInfo"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/debug/flows/all": {
             "get": {
                 "description": "Returns a plain text list of all authentication flows across all tenants and realms",
@@ -102,6 +134,63 @@
                         "description": "Service is not ready",
                         "schema": {
                             "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/{tenant}/{realm}/admin/dashboard": {
+            "get": {
+                "description": "Returns combined user stats and flow information for a tenant/realm",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "Get dashboard data",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "tenant",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Realm ID",
+                        "name": "realm",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/admin_api.DashboardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -862,6 +951,28 @@
         }
     },
     "definitions": {
+        "admin_api.DashboardResponse": {
+            "type": "object",
+            "properties": {
+                "flows": {
+                    "$ref": "#/definitions/admin_api.FlowInfo"
+                },
+                "user_stats": {
+                    "$ref": "#/definitions/model.UserStats"
+                }
+            }
+        },
+        "admin_api.FlowInfo": {
+            "type": "object",
+            "properties": {
+                "active_flows": {
+                    "type": "integer"
+                },
+                "total_flows": {
+                    "type": "integer"
+                }
+            }
+        },
         "admin_api.PagedResponse": {
             "type": "object",
             "properties": {
@@ -885,6 +996,34 @@
                 },
                 "total_pages": {
                     "type": "integer"
+                }
+            }
+        },
+        "admin_api.RealmInfo": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "admin_api.TenantInfo": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "realms": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/admin_api.RealmInfo"
+                    }
+                },
+                "value": {
+                    "type": "string"
                 }
             }
         },

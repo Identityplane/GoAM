@@ -28,6 +28,8 @@ func New(userAdminService service.UserAdminService) *router.Router {
 	r.POST("/{tenant}/{realm}/admin/users/{username}", WrapMiddleware(adminHandler.HandleCreateUser))
 	r.PUT("/{tenant}/{realm}/admin/users/{username}", WrapMiddleware(adminHandler.HandleUpdateUser))
 	r.DELETE("/{tenant}/{realm}/admin/users/{username}", WrapMiddleware(adminHandler.HandleDeleteUser))
+	r.GET("/{tenant}/{realm}/admin/dashboard", WrapMiddleware(adminHandler.HandleDashboard))
+	r.GET("/admin/realms", WrapMiddleware(adminHandler.HandleListRealms))
 
 	// Debug routes
 	r.GET("/debug/flows/all", WrapMiddleware(debug.HandleListAllFlows))

@@ -102,6 +102,15 @@ func TemplateTestGetUserStats(t *testing.T, db UserDB) {
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
+		{
+			Tenant:    testTenant,
+			Realm:     testRealm,
+			Username:  "locked",
+			Status:    "locked",
+			Email:     "locked@example.com",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
 	}
 
 	// Create users
@@ -115,10 +124,10 @@ func TemplateTestGetUserStats(t *testing.T, db UserDB) {
 	require.NoError(t, err)
 
 	// Verify stats
-	assert.Equal(t, int64(3), stats.TotalUsers)
+	assert.Equal(t, int64(4), stats.TotalUsers)
 	assert.Equal(t, int64(2), stats.ActiveUsers)
 	assert.Equal(t, int64(1), stats.InactiveUsers)
-	assert.Equal(t, int64(0), stats.LockedUsers)
+	assert.Equal(t, int64(1), stats.LockedUsers)
 }
 
 // TemplateTestUserCRUD is a parameterized test for basic CRUD operations
