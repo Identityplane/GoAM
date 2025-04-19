@@ -63,8 +63,7 @@ CREATE TABLE IF NOT EXISTS users (
     trusted_devices TEXT,
 
     -- Constraints
-    CONSTRAINT unique_username_per_tenant_realm UNIQUE (tenant, realm, username),
-    CONSTRAINT unique_federated_id_per_idp UNIQUE (federated_idp, federated_id)
+    CONSTRAINT unique_username_per_tenant_realm UNIQUE (tenant, realm, username)
 );
 
 -- Create indexes
