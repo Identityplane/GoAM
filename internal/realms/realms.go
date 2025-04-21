@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"goiam/internal/auth/graph"
+	"goiam/internal/logger"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,7 +55,7 @@ func InitRealms(configRoot string) error {
 	newRealms := make(map[string]*LoadedRealm)
 
 	tenantsPath := filepath.Join(configRoot, "tenants")
-	log.Printf("Walking config dir: %s", tenantsPath)
+	logger.DebugNoContext("Walking config dir: %s", tenantsPath)
 	err := filepath.WalkDir(tenantsPath, func(path string, d fs.DirEntry, err error) error {
 
 		if err != nil || d.IsDir() || filepath.Ext(path) != ".yaml" {
@@ -63,7 +63,7 @@ func InitRealms(configRoot string) error {
 			return nil // Ignore non-yaml files
 		}
 
-		log.Printf("Loading realm config: %s\n", path)
+		logger.DebugNoContext("Loading realm config: %s\n", path)
 
 		cfg, err := loadRealmConfig(path)
 		if err != nil {

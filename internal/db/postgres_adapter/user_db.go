@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"goiam/internal/db/model"
-	"log"
+	"goiam/internal/logger"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,7 +27,7 @@ func NewPostgresUserDB(db *pgx.Conn) (*PostgresUserDB, error) {
 	`)
 	if err != nil {
 
-		log.Printf("Warning: failed to check if users table exists: %v", err)
+		logger.DebugNoContext("Warning: failed to check if users table exists: %v", err)
 	}
 
 	return &PostgresUserDB{db: db}, nil

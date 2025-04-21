@@ -25,6 +25,8 @@ k8s-start:
 	minikube start --driver=docker
 
 # Sets shell to use Minikube's Docker daemon
+# run manually with
+# eval $(minikube -p minikube docker-env) 
 k8s-env:
 	eval $$(minikube -p minikube docker-env)
 

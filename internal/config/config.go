@@ -3,7 +3,7 @@ package config
 import (
 	"goiam/internal/db/postgres_adapter"
 	"goiam/internal/db/sqlite_adapter"
-	"log"
+	"goiam/internal/logger"
 	"os"
 	"strings"
 )
@@ -29,7 +29,7 @@ func getDBConnString() string {
 	for i := 0; i < len(args)-1; i++ {
 		if args[i] == "--db" || args[i] == "-d" {
 			connString := args[i+1]
-			log.Printf("Using DB connection string from command line: %s", connString)
+			logger.DebugNoContext("Using DB connection string from command line: %s", connString)
 			return connString
 		}
 	}
@@ -37,13 +37,13 @@ func getDBConnString() string {
 	// Check environment variable second
 	connString := os.Getenv("GOIAM_DB_CONN_STRING")
 	if connString != "" {
-		log.Printf("Using DB connection string from environment: %s", connString)
+		logger.DebugNoContext("Using DB connection string from environment: %s", connString)
 		return connString
 	}
 
 	// Use default as last resort
 	connString = "goiam.db?_foreign_keys=on"
-	log.Printf("Using default DB connection string: %s", connString)
+	logger.DebugNoContext("Using default DB connection string: %s", connString)
 	return connString
 }
 
@@ -53,7 +53,7 @@ func getConfigPath() string {
 	for i := 0; i < len(args)-1; i++ {
 		if args[i] == "--config" || args[i] == "-c" {
 			path := args[i+1]
-			log.Printf("Using config path from command line: %s", path)
+			logger.DebugNoContext("Using config path from command line: %s", path)
 			return path
 		}
 	}
@@ -61,12 +61,12 @@ func getConfigPath() string {
 	// Check environment variable second
 	path := os.Getenv("GOIAM_CONFIG_PATH")
 	if path != "" {
-		log.Printf("Using config path from environment: %s", path)
+		logger.DebugNoContext("Using config path from environment: %s", path)
 		return path
 	}
 
 	// Use default as last resort
 	path = "../config" // fallback for local dev
-	log.Printf("Using default config path: %s", path)
+	logger.DebugNoContext("Using default config path: %s", path)
 	return path
 }

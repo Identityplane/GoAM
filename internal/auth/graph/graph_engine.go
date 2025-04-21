@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"goiam/internal/logger"
 
 	"github.com/google/uuid"
 )
@@ -83,7 +83,7 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string, servi
 
 	// Return error if present
 	if err != nil {
-		log.Printf("Error processing node '%s': %v", node.Name, err)
+		logger.DebugNoContext("Error processing node '%s': %v", node.Name, err)
 		return nil, err
 	}
 
@@ -99,12 +99,12 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string, servi
 		// turn the nodeResult.Prompts into a strong for logging
 		promptsString, err := json.Marshal(nodeResult.Prompts)
 		if err != nil {
-			log.Printf("Error marshalling prompts: %v", err)
+			logger.DebugNoContext("Error marshalling prompts: %v", err)
 			return nil, err
 		}
 
 		// log the node name, type and prompts
-		log.Printf("Node %s of type %s resulted in prompts %s", node.Name, def.Type, promptsString)
+		logger.DebugNoContext("Node %s of type %s resulted in prompts %s", node.Name, def.Type, promptsString)
 		state.History = append(state.History, fmt.Sprintf("%s:prompted:%s", node.Name, promptsString))
 
 		// Update prompts in string and return

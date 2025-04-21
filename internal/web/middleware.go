@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"goiam/internal/logger"
 	"runtime/debug"
 
 	"github.com/google/uuid"
@@ -43,8 +44,19 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 		next(ctx)
 
-		// Also log the response status code
-		fmt.Printf("[RES] %d %s %s | trace_id=%s", ctx.Response.StatusCode(), method, path, traceID)
+		// Log response details
+		logger.InfoWithFields(traceID, "HTTP Response", map[string]interface{}{
+			"status":      ctx.Response.StatusCode(),
+			"method":      method,
+			"path":        path,
+			"ip":          ctx.RemoteIP().String(),
+			"user_agent":  string(ctx.UserAgent()),
+			"referer":     string(ctx.Referer()),
+			"host":        string(ctx.Host()),
+			"duration_ms": ctx.Time().Sub(ctx.ConnTime()).Milliseconds(),
+			"size_bytes":  len(ctx.Response.Body()),
+			"protocol":    string(ctx.Request.URI().Scheme()),
+		})
 	}
 }
 
@@ -107,24 +119,4 @@ func WrapMiddleware(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 			),
 		),
 	)
-}
-
-// jsonHandler is a middleware-style JSON handler
-func jsonHandler(f func(*fasthttp.RequestCtx) any) fasthttp.RequestHandler {
-	return func(ctx *fasthttp.RequestCtx) {
-		ctx.SetContentType("application/json")
-		result := f(ctx)
-
-		switch v := result.(type) {
-		case error:
-			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-			_ = json.NewEncoder(ctx).Encode(map[string]string{"error": v.Error()})
-		case map[string]any, map[string]string:
-			ctx.SetStatusCode(fasthttp.StatusOK)
-			_ = json.NewEncoder(ctx).Encode(v)
-		default:
-			ctx.SetStatusCode(fasthttp.StatusOK)
-			_ = json.NewEncoder(ctx).Encode(map[string]any{"data": v})
-		}
-	}
 }

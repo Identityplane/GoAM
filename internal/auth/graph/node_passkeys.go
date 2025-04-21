@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"goiam/internal/logger"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -236,7 +236,7 @@ func ProcessPasskeyRegistration(state *FlowState, node *GraphNode, input map[str
 	}
 	state.Context["user"] = string(userBytes)
 
-	log.Printf("Successfully registered credential ID: %s", cred.ID)
+	logger.DebugNoContext("Successfully registered credential ID: %s", cred.ID)
 
 	return "success", nil
 }
@@ -353,7 +353,7 @@ func ProcessPasskeyLogin(state *FlowState, node *GraphNode, input map[string]str
 	}
 	state.Context["user"] = string(userBytes)
 
-	log.Printf("User %s successfully verified via passkey", username)
+	logger.DebugNoContext("User %s successfully verified via passkey", username)
 	return "success", nil
 }
 

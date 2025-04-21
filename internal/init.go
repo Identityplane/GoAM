@@ -8,9 +8,9 @@ import (
 	"goiam/internal/db/postgres_adapter"
 	"goiam/internal/db/service"
 	"goiam/internal/db/sqlite_adapter"
+	"goiam/internal/logger"
 	"goiam/internal/realms"
 	"goiam/internal/web"
-	"log"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -28,9 +28,9 @@ var (
 func Initialize() {
 
 	// Prinout config path
-	log.Printf("Using config path: %s", config.ConfigPath)
+	logger.DebugNoContext("Using config path: %s", config.ConfigPath)
 	if err := realms.InitRealms(config.ConfigPath); err != nil {
-		log.Fatalf("failed to initialize realms: %v", err)
+		logger.PanicNoContext("failed to initialize realms: %v", err)
 	}
 
 	// Cache all loaded realms locally if needed
@@ -40,7 +40,7 @@ func Initialize() {
 	}
 
 	LoadedRealms = allRealms
-	log.Printf("Loaded %d realms\n", len(LoadedRealms))
+	logger.DebugNoContext("Loaded %d realms\n", len(LoadedRealms))
 
 	// Init Database
 	// Currenlty we only support sqlite but later we need to load this from the config
@@ -53,18 +53,18 @@ func Initialize() {
 			DSN:    config.DBConnString,
 		})
 
-		log.Printf("Initializing postgres database")
+		logger.DebugNoContext("Initializing postgres database")
 	} else {
 		db, err = sqlite_adapter.Init(sqlite_adapter.Config{
 			Driver: "sqlite",
 			DSN:    config.DBConnString,
 		})
 
-		log.Printf("Initializing sqlite database")
+		logger.DebugNoContext("Initializing sqlite database")
 	}
 
 	if err != nil {
-		log.Fatalf("DB init failed: %v", err)
+		logger.PanicNoContext("DB init failed: %v", err)
 		return
 	}
 
@@ -80,7 +80,7 @@ func Initialize() {
 			userDb, err := sqlite_adapter.NewSQLiteUserDB(dbTyped)
 
 			if err != nil {
-				log.Panicf("Failed to create sqlite user db: %v", err)
+				logger.PanicNoContext("Failed to create sqlite user db: %v", err)
 			}
 
 			config.SqliteUserDB = userDb
@@ -89,14 +89,14 @@ func Initialize() {
 		case *pgx.Conn:
 			userDb, err := postgres_adapter.NewPostgresUserDB(dbTyped)
 			if err != nil {
-				log.Panicf("Failed to create postgres user db: %v", err)
+				logger.PanicNoContext("Failed to create postgres user db: %v", err)
 			}
 
 			config.PostgresUserDB = userDb
 			userRepo = postgres_adapter.NewUserRepository(realm.Config.Tenant, realm.Config.Realm, userDb)
 		}
 
-		log.Printf("Initialized user repository for realm %s/%s", realm.Config.Tenant, realm.Config.Realm)
+		logger.DebugNoContext("Initialized user repository for realm %s/%s", realm.Config.Tenant, realm.Config.Realm)
 
 		// Init the service registry for this realm
 		realm.Services = &graph.ServiceRegistry{
@@ -112,14 +112,14 @@ func Initialize() {
 	case "sqlite":
 		UserAdminService = service.NewUserService(config.SqliteUserDB)
 	default:
-		log.Fatalf("Unsupported database driver: %s", dbDriverName)
+		logger.PanicNoContext("Unsupported database driver: %s", dbDriverName)
 	}
 
 	// Init web adapter
 	r := web.New(UserAdminService)
 
-	log.Println("Server running on http://localhost:8080")
+	logger.DebugNoContext("Server running on http://localhost:8080")
 	if err := fasthttp.ListenAndServe(":8080", web.TopLevelMiddleware(r.Handler)); err != nil {
-		log.Fatalf("Error: %s", err)
+		logger.PanicNoContext("Error: %s", err)
 	}
 }

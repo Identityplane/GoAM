@@ -17,14 +17,14 @@ GoIAM is a modern, high-performance Identity and Access Management system writte
 - **Graph-Based Flows**: Define login and registration flows as graphs, allowing for complex, multi-step processes.
 - **Customizable Nodes**: Each step in the graph is a node, which can be customized to handle specific logic, prompts, or conditions.
 - **Performance**: Built with Go and `fasthttp` for maximum performance and low latency. Login journies can be optimized to enable thousands of logins per second.
+- **Multitenancy**: Support for multiple tenants with isolated realms per tenant. Each tenant can have multiple realms for different user populations (e.g. customers, staff).
 - **Extensibility**: Easily add custom nodes, flows, and integrations to meet your specific requirements.
 - **Customization**: Serve static assets like CSS and JavaScript for theming and customization.
 
 ---
 
 ## Example Login Flow
-
-Below is an example of a **username-password authentication flow** represented as a graph:
+Below is an example of a **username-password authentication flow** represented as a graph. The graph structure allows endless possibilities - from simple password login to complex flows combining multiple auth methods (OIDC, LDAP, Social, MFA), risk scoring, consent collection, and audit logging. New authentication methods and business logic can be easily added as custom nodes.
 
 ![Example Login Graph](./docs/images/example_graph.png)
 

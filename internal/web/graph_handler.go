@@ -2,9 +2,9 @@ package web
 
 import (
 	"goiam/internal/auth/graph"
+	"goiam/internal/logger"
 	"goiam/internal/realms"
 	"goiam/internal/web/session"
-	"log"
 
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
@@ -75,13 +75,13 @@ func NewGraphHandler(tenant string, realm string, flow *graph.FlowDefinition, se
 
 	// check if tenant, realm and flow are valid
 	if tenant == "" || realm == "" || flow == nil {
-		log.Fatalf("Invalid parameters: tenant=%s, realm=%s, flow=%v", tenant, realm, flow)
+		logger.PanicNoContext("Invalid parameters: tenant=%s, realm=%s, flow=%v", tenant, realm, flow)
 	}
 
 	// load templates for rendering
 	// currently we reload this with every request, this should be improved
 	if err := InitTemplates(); err != nil {
-		log.Fatalf("Failed to load templates: %v", err)
+		logger.PanicNoContext("Failed to load templates: %v", err)
 	}
 
 	return &GraphHandler{Flow: flow, Tenant: tenant, Realm: realm, Services: services}
@@ -113,7 +113,7 @@ func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 	// Run the flow engine with the current state and input
 	state, err := graph.Run(h.Flow, state, input, h.Services)
 	if err != nil {
-		log.Printf("flow resulted in error: %v", err)
+		logger.DebugNoContext("flow resulted in error: %v", err)
 		RenderError(ctx, err.Error())
 		return
 	}
@@ -126,14 +126,14 @@ func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 	if state.Result != nil {
 		resultNode = h.Flow.Nodes[state.Current]
 		if resultNode == nil {
-			log.Printf("result node not found: %s", state.Current)
+			logger.DebugNoContext("result node not found: %s", state.Current)
 			RenderError(ctx, "Result node not found")
 			return
 		}
 	}
 
 	if err != nil {
-		log.Printf("flow error: %v", err)
+		logger.DebugNoContext("flow error: %v", err)
 		RenderError(ctx, err.Error())
 		return
 	}

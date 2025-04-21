@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"goiam/internal/db/model"
-	"log"
+	"goiam/internal/logger"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,7 +31,7 @@ func NewSQLiteUserDB(db *sql.DB) (*SQLiteUserDB, error) {
 		SELECT 1 FROM users LIMIT 1
 	`)
 	if err != nil {
-		log.Printf("Warning: failed to check if users table exists: %v", err)
+		logger.DebugNoContext("Warning: failed to check if users table exists: %v", err)
 	}
 
 	return &SQLiteUserDB{db: db}, nil

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"goiam/internal/auth/graph"
+	"goiam/internal/logger"
 	"goiam/internal/realms"
 	"goiam/internal/web"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -68,7 +68,7 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 
 	// Check db
 	if err != nil {
-		log.Fatalf("DB init failed: %v", err)
+		logger.PanicNoContext("DB init failed: %v", err)
 		t.Fail()
 	}
 
