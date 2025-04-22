@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"goiam/internal/auth/graph"
+	"goiam/internal/auth/repository"
 	"goiam/internal/logger"
 	"goiam/internal/realms"
 	"goiam/internal/web"
@@ -87,7 +87,7 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 
 	// get the loaded realm and init the service registry
 	realm, _ := realms.GetRealm(DefaultTenant + "/" + DefaultRealm)
-	realm.Services = &graph.ServiceRegistry{
+	realm.Services = &repository.ServiceRegistry{
 		UserRepo: userRepo,
 	}
 

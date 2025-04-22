@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 	"goiam/internal/auth/repository"
+	"goiam/internal/db"
 	"goiam/internal/model"
 )
 
 type SQLiteUserRepository struct {
 	tenant string
 	realm  string
-	db     model.UserDB
+	db     db.UserDB
 }
 
-func NewUserRepository(tenant, realm string, db model.UserDB) repository.UserRepository {
+func NewUserRepository(tenant, realm string, db db.UserDB) repository.UserRepository {
 	return &SQLiteUserRepository{tenant: tenant, realm: realm, db: db}
 }
 

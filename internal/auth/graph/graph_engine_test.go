@@ -3,15 +3,17 @@ package graph
 import (
 	"testing"
 
+	"goiam/internal/model"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRun_SimpleInitToSuccess(t *testing.T) {
 	// Build a super simple flow: init -> successResult
-	flow := &FlowDefinition{
+	flow := &model.FlowDefinition{
 		Name:  "simple_flow",
 		Start: "init",
-		Nodes: map[string]*GraphNode{
+		Nodes: map[string]*model.GraphNode{
 			"init": {
 				Name: "init",
 				Use:  "init",
@@ -39,10 +41,10 @@ func TestRun_SimpleInitToSuccess(t *testing.T) {
 }
 
 func TestRun_InitQueryToSuccess(t *testing.T) {
-	flow := &FlowDefinition{
+	flow := &model.FlowDefinition{
 		Name:  "query_flow",
 		Start: "init",
-		Nodes: map[string]*GraphNode{
+		Nodes: map[string]*model.GraphNode{
 			"init": {
 				Name: "init",
 				Use:  "init",

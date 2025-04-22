@@ -3,12 +3,13 @@ package visual
 import (
 	"fmt"
 	"goiam/internal/auth/graph"
+	"goiam/internal/model"
 	"log"
 	"strings"
 )
 
 // RenderDOTGraph generates a Graphviz DOT representation of a flow.
-func RenderDOTGraph(flow *graph.FlowDefinition) string {
+func RenderDOTGraph(flow *model.FlowDefinition) string {
 	var b strings.Builder
 	b.WriteString("digraph Flow {\n")
 	b.WriteString(`  rankdir=LR;` + "\n")
@@ -23,13 +24,13 @@ func RenderDOTGraph(flow *graph.FlowDefinition) string {
 		}
 
 		switch def.Type {
-		case graph.NodeTypeInit:
+		case model.NodeTypeInit:
 			style = `shape=diamond, style=filled, fillcolor=lightgreen`
-		case graph.NodeTypeLogic:
+		case model.NodeTypeLogic:
 			style = `shape=ellipse, style=filled, fillcolor=lightyellow`
-		case graph.NodeTypeQuery:
+		case model.NodeTypeQuery:
 			style = `shape=rect, style=filled, fillcolor=lightblue`
-		case graph.NodeTypeResult:
+		case model.NodeTypeResult:
 			style = `shape=doublecircle, style=filled, fillcolor=lightgray`
 		}
 

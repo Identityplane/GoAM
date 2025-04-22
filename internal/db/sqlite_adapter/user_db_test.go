@@ -3,9 +3,10 @@ package sqlite_adapter
 import (
 	"database/sql"
 	"fmt"
-	"goiam/internal/model"
 	"os"
 	"testing"
+
+	"goiam/internal/db"
 
 	"github.com/stretchr/testify/require"
 )
@@ -46,21 +47,20 @@ func setupTestDB(t *testing.T) *SQLiteUserDB {
 
 func TestListUsersWithPagination(t *testing.T) {
 	userDB := setupTestDB(t)
-	model.TemplateTestUserCRUD(t, userDB)
+	db.TemplateTestListUsersWithPagination(t, userDB)
 }
 
 func TestGetUserStats(t *testing.T) {
 	userDB := setupTestDB(t)
-	model.TemplateTestGetUserStats(t, userDB)
+	db.TemplateTestGetUserStats(t, userDB)
 }
 
 func TestUserCRUD(t *testing.T) {
 	userDB := setupTestDB(t)
-	model.TemplateTestUserCRUD(t, userDB)
+	db.TemplateTestUserCRUD(t, userDB)
 }
 
 func TestSQLiteUserDB_DeleteUser(t *testing.T) {
-
-	db := setupTestDB(t)
-	model.TemplateTestDeleteUser(t, db)
+	userDB := setupTestDB(t)
+	db.TemplateTestDeleteUser(t, userDB)
 }

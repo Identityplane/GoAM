@@ -1,24 +1,24 @@
 package session
 
 import (
-	"goiam/internal/auth/graph"
+	"goiam/internal/model"
 	"sync"
 )
 
 var sessions = struct {
 	sync.RWMutex
-	store map[string]*graph.FlowState
+	store map[string]*model.FlowState
 }{
-	store: make(map[string]*graph.FlowState),
+	store: make(map[string]*model.FlowState),
 }
 
-func Save(sessionID string, state *graph.FlowState) {
+func Save(sessionID string, state *model.FlowState) {
 	sessions.Lock()
 	defer sessions.Unlock()
 	sessions.store[sessionID] = state
 }
 
-func Load(sessionID string) *graph.FlowState {
+func Load(sessionID string) *model.FlowState {
 	sessions.RLock()
 	defer sessions.RUnlock()
 	return sessions.store[sessionID]

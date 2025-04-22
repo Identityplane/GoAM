@@ -3,6 +3,7 @@ package graph
 import (
 	"errors"
 	"fmt"
+	"goiam/internal/model"
 )
 
 // validate checks for basic structural integrity of the flow
@@ -28,14 +29,14 @@ func (e *Engine) validate() error {
 
 	// Check non-terminal nodes have a Next map
 	for name, node := range def.Nodes {
-		nodeType := NodeTypeInit
+		nodeType := model.NodeTypeInit
 		if def := getNodeDefinitionByName(node.Use); def != nil {
 			nodeType = def.Type
 		} else if node.Use == "successResult" || node.Use == "failureResult" {
-			nodeType = NodeTypeResult
+			nodeType = model.NodeTypeResult
 		}
 
-		if nodeType != NodeTypeResult && node.Next == nil {
+		if nodeType != model.NodeTypeResult && node.Next == nil {
 			return fmt.Errorf("node '%s' must define a 'Next' map", name)
 		}
 	}

@@ -2,7 +2,7 @@ package realms
 
 import (
 	"fmt"
-	"goiam/internal/auth/graph"
+	"goiam/internal/model"
 	"os"
 	"path/filepath"
 
@@ -23,10 +23,10 @@ type yamlFlow struct {
 }
 
 // Converts parsed yamlFlow into a graph.FlowWithRoute
-func convertToFlowWithRoute(yf *yamlFlow) *FlowWithRoute {
-	nodes := make(map[string]*graph.GraphNode, len(yf.Nodes))
+func convertToFlowWithRoute(yf *yamlFlow) *model.FlowWithRoute {
+	nodes := make(map[string]*model.GraphNode, len(yf.Nodes))
 	for name, yn := range yf.Nodes {
-		nodes[name] = &graph.GraphNode{
+		nodes[name] = &model.GraphNode{
 			Name:         name,
 			Use:          yn.Use,
 			Next:         yn.Next,
@@ -34,9 +34,9 @@ func convertToFlowWithRoute(yf *yamlFlow) *FlowWithRoute {
 		}
 	}
 
-	return &FlowWithRoute{
+	return &model.FlowWithRoute{
 		Route: yf.Route,
-		Flow: &graph.FlowDefinition{
+		Flow: &model.FlowDefinition{
 			Name:  yf.Name,
 			Start: yf.Start,
 			Nodes: nodes,
@@ -44,7 +44,7 @@ func convertToFlowWithRoute(yf *yamlFlow) *FlowWithRoute {
 	}
 }
 
-func LoadFlowFromYAMLString(content string) (*FlowWithRoute, error) {
+func LoadFlowFromYAMLString(content string) (*model.FlowWithRoute, error) {
 	var yflow yamlFlow
 	if err := yaml.Unmarshal([]byte(content), &yflow); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML content: %w", err)
@@ -52,7 +52,7 @@ func LoadFlowFromYAMLString(content string) (*FlowWithRoute, error) {
 	return convertToFlowWithRoute(&yflow), nil
 }
 
-func LoadFlowFromYAML(path string) (*graph.FlowDefinition, error) {
+func LoadFlowFromYAML(path string) (*model.FlowWithRoute, error) {
 	data, err := os.ReadFile(path) // #nosec G304 (the path is trusted as it is not meant to be used with user input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read YAML file %s: %w", path, err)
@@ -64,16 +64,16 @@ func LoadFlowFromYAML(path string) (*graph.FlowDefinition, error) {
 	}
 
 	flowWithRoute := convertToFlowWithRoute(&yflow)
-	return flowWithRoute.Flow, nil
+	return flowWithRoute, nil
 }
 
-func LoadFlowsFromDir(dir string) ([]FlowWithRoute, error) {
+func LoadFlowsFromDir(dir string) ([]*model.FlowWithRoute, error) {
 	files, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read flows directory %s: %w", dir, err)
 	}
 
-	var flows []FlowWithRoute
+	var flows []*model.FlowWithRoute
 
 	for _, file := range files {
 		data, err := os.ReadFile(file) // #nosec G304 (the dir load is trusted as it is not mean to used with user input)
@@ -86,7 +86,7 @@ func LoadFlowsFromDir(dir string) ([]FlowWithRoute, error) {
 			return nil, fmt.Errorf("invalid YAML in flow file %s: %w", file, err)
 		}
 
-		flows = append(flows, *convertToFlowWithRoute(&y))
+		flows = append(flows, convertToFlowWithRoute(&y))
 	}
 
 	return flows, nil

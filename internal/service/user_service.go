@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+
+	"goiam/internal/db"
 	"goiam/internal/model"
 )
 
@@ -26,11 +28,11 @@ type UserAdminService interface {
 
 // userServiceImpl implements UserService
 type userServiceImpl struct {
-	userDB model.UserDB
+	userDB db.UserDB
 }
 
 // NewUserService creates a new UserService instance
-func NewUserService(userDB model.UserDB) UserAdminService {
+func NewUserService(userDB db.UserDB) UserAdminService {
 	return &userServiceImpl{
 		userDB: userDB,
 	}

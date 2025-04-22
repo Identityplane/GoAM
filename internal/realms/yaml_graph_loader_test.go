@@ -45,12 +45,12 @@ nodes:
 	assert.NoError(t, err)
 	assert.NotNil(t, flow)
 
-	assert.Equal(t, "test_login_flow", flow.Name)
-	assert.Equal(t, "init", flow.Start)
-	assert.Contains(t, flow.Nodes, "askPassword")
-	assert.Equal(t, "askPassword", flow.Nodes["askPassword"].Name)
-	assert.Equal(t, "done", flow.Nodes["askPassword"].Next["submitted"])
-	assert.Equal(t, "Login complete.", flow.Nodes["done"].CustomConfig["message"])
+	assert.Equal(t, "test_login_flow", flow.Flow.Name)
+	assert.Equal(t, "init", flow.Flow.Start)
+	assert.Contains(t, flow.Flow.Nodes, "askPassword")
+	assert.Equal(t, "askPassword", flow.Flow.Nodes["askPassword"].Name)
+	assert.Equal(t, "done", flow.Flow.Nodes["askPassword"].Next["submitted"])
+	assert.Equal(t, "Login complete.", flow.Flow.Nodes["done"].CustomConfig["message"])
 }
 
 func TestLoadFlowsFromDir(t *testing.T) {

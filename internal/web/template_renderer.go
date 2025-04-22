@@ -5,7 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"goiam/internal/auth/graph"
+	"goiam/internal/model"
 	"html/template"
 	"path/filepath"
 
@@ -57,7 +57,7 @@ func InitTemplates() error {
 }
 
 // Render is the single public entry point
-func Render(ctx *fasthttp.RequestCtx, flow *graph.FlowDefinition, state *graph.FlowState, resultNode *graph.GraphNode, prompts map[string]string) {
+func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.FlowState, resultNode *model.GraphNode, prompts map[string]string) {
 	var templateFile string
 	var customMessage string
 
@@ -146,7 +146,7 @@ func isDebugMode(ctx *fasthttp.RequestCtx) bool {
 	return debugParam != nil
 }
 
-func resolveErrorMessage(state *graph.FlowState) string {
+func resolveErrorMessage(state *model.FlowState) string {
 	if state.Error != nil {
 		return *state.Error
 	}

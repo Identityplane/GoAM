@@ -1,9 +1,11 @@
-package model
+package db
 
 import (
 	"context"
 	"testing"
 	"time"
+
+	"goiam/internal/model"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +18,7 @@ func TemplateTestListUsersWithPagination(t *testing.T, db UserDB) {
 	testRealm := "test-realm"
 
 	// Create test users
-	users := []User{
+	users := []model.User{
 		{
 			Tenant:    testTenant,
 			Realm:     testRealm,
@@ -74,7 +76,7 @@ func TemplateTestGetUserStats(t *testing.T, db UserDB) {
 	testRealm := "test-realm"
 
 	// Create test users with different statuses
-	users := []User{
+	users := []model.User{
 		{
 			Tenant:    testTenant,
 			Realm:     testRealm,
@@ -137,7 +139,7 @@ func TemplateTestUserCRUD(t *testing.T, db UserDB) {
 	testRealm := "test-realm"
 
 	// Create test user
-	testUser := User{
+	testUser := model.User{
 		Tenant:    testTenant,
 		Realm:     testRealm,
 		Username:  "testuser",
@@ -188,7 +190,7 @@ func TemplateTestDeleteUser(t *testing.T, db UserDB) {
 	testRealm := "test-realm"
 
 	// Create test user
-	testUser := User{
+	testUser := model.User{
 		Tenant:    testTenant,
 		Realm:     testRealm,
 		Username:  "testuser",

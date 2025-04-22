@@ -4,17 +4,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"goiam/internal/auth/repository"
 	"goiam/internal/logger"
+	"goiam/internal/model"
 
 	"github.com/google/uuid"
 )
 
+type NodeDefinition struct {
+	Name            string                                                                                                                                        `json:"name"`       // e.g. "askUsername"
+	Type            model.NodeType                                                                                                                                `json:"type"`       // query, logic, etc.
+	RequiredContext []string                                                                                                                                      `json:"inputs"`     // field that the node requires from the flow context
+	OutputContext   []string                                                                                                                                      `json:"outputs"`    // fields that the node will set in the flow context
+	Prompts         map[string]string                                                                                                                             `json:"prompts"`    // key: label/type shown to user, will be returned via the user input argument
+	Conditions      []string                                                                                                                                      `json:"conditions"` // e.g. ["success", "fail"]
+	Run             func(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) // Run function for logic nodes, must either return a condition or a set of prompts
+}
+
 type Engine struct {
-	Flow *FlowDefinition
+	Flow *model.FlowDefinition
 }
 
 // NewEngine constructs and validates a flow
-func NewEngine(def *FlowDefinition) (*Engine, error) {
+func NewEngine(def *model.FlowDefinition) (*Engine, error) {
 	engine := &Engine{
 		Flow: def,
 	}
@@ -26,8 +38,8 @@ func NewEngine(def *FlowDefinition) (*Engine, error) {
 }
 
 // InitFlow creates a new FlowState for a given flow
-func InitFlow(flow *FlowDefinition) *FlowState {
-	return &FlowState{
+func InitFlow(flow *model.FlowDefinition) *model.FlowState {
+	return &model.FlowState{
 		RunID:   uuid.NewString(),
 		Current: flow.Start,
 		Context: make(map[string]string),
@@ -38,7 +50,7 @@ func InitFlow(flow *FlowDefinition) *FlowState {
 // Run processes one step of the flow and returns either
 // - flow state when graph is requesting prompt or is finished
 // - error if any internal error occurred
-func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string, services *ServiceRegistry) (*FlowState, error) {
+func Run(flow *model.FlowDefinition, state *model.FlowState, inputs map[string]string, services *repository.ServiceRegistry) (*model.FlowState, error) {
 
 	// Check if state is present and valid
 	if state == nil || state.Current == "" {
@@ -57,24 +69,24 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string, servi
 		return nil, fmt.Errorf("node definition for '%s' not found", node.Use)
 	}
 
-	var nodeResult *NodeResult
+	var nodeResult *model.NodeResult
 	var err error
 
 	// Process node by type
 	switch def.Type {
-	case NodeTypeInit:
+	case model.NodeTypeInit:
 		nodeResult, err = ProcessInitTypeNode(state, node, def, inputs, services)
 
-	case NodeTypeLogic:
+	case model.NodeTypeLogic:
 		nodeResult, err = ProcessLogicTypeNode(state, node, def, inputs, services)
 
-	case NodeTypeQuery:
+	case model.NodeTypeQuery:
 		nodeResult, err = ProcessQueryTypeNode(state, node, def, inputs, services)
 
-	case NodeTypeResult:
+	case model.NodeTypeResult:
 		nodeResult, err = ProcessResultTypeNode(state, node, def, inputs, services)
 
-	case NodeTypeQueryWithLogic:
+	case model.NodeTypeQueryWithLogic:
 		nodeResult, err = ProcessQueryWithLogicTypeNode(state, node, def, inputs, services)
 
 	default:
@@ -88,7 +100,7 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string, servi
 	}
 
 	// End the graph if the node is a result node
-	if def.Type == NodeTypeResult {
+	if def.Type == model.NodeTypeResult {
 
 		return state, nil
 	}
@@ -152,22 +164,22 @@ func Run(flow *FlowDefinition, state *FlowState, inputs map[string]string, servi
 
 // ProcessQueryTypeNode processes a query node
 // and returns the next state and any prompts to be shown to the user
-func ProcessQueryTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
+func ProcessQueryTypeNode(state *model.FlowState, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
 
 	// If no inputs are present send prompts to user
 	if inputs == nil {
 
-		return &NodeResult{Prompts: def.Prompts, Condition: ""}, nil
+		return &model.NodeResult{Prompts: def.Prompts, Condition: ""}, nil
 	}
 
 	// Else if we have inputs to context and return submitted
 	for k, v := range inputs {
 		state.Context[k] = v
 	}
-	return &NodeResult{Prompts: nil, Condition: "submitted"}, nil
+	return &model.NodeResult{Prompts: nil, Condition: "submitted"}, nil
 }
 
-func ProcessResultTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
+func ProcessResultTypeNode(state *model.FlowState, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
 
 	// we expect no inputs for a result node
 	if inputs != nil {
@@ -206,7 +218,7 @@ func ProcessResultTypeNode(state *FlowState, node *GraphNode, def *NodeDefinitio
 
 // ProcessInitTypeNode processes an init node
 // and returns the next state and any prompts to be shown to the user
-func ProcessInitTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
+func ProcessInitTypeNode(state *model.FlowState, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
 
 	// Run init node logic
 	result, err := def.Run(state, node, inputs, services)
@@ -225,7 +237,7 @@ func ProcessInitTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition,
 
 // ProcessLogicTypeNode processes a logic node
 // and returns the next state
-func ProcessLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
+func ProcessLogicTypeNode(state *model.FlowState, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
 
 	// Run node logic
 	result, err := def.Run(state, node, inputs, services)
@@ -242,7 +254,7 @@ func ProcessLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition
 
 // Process NodeTypeQueryWithLogic node
 // and returns the next state and any prompts to be shown to the user
-func ProcessQueryWithLogicTypeNode(state *FlowState, node *GraphNode, def *NodeDefinition, inputs map[string]string, services *ServiceRegistry) (*NodeResult, error) {
+func ProcessQueryWithLogicTypeNode(state *model.FlowState, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
 
 	// Run node logic
 	result, err := def.Run(state, node, inputs, services)

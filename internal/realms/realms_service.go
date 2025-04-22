@@ -3,8 +3,9 @@ package realms
 import (
 	"errors"
 	"fmt"
-	"goiam/internal/auth/graph"
+	"goiam/internal/auth/repository"
 	"goiam/internal/logger"
+	"goiam/internal/model"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,32 +15,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// RealmConfig represents the static configuration of a realm, typically loaded from YAML files.
-// It includes the realm + tenant identifiers and a multiple FlowWithRoute (for now).
-type RealmConfig struct {
-	Realm  string          `yaml:"realm"`  // e.g. "customers"
-	Tenant string          `yaml:"tenant"` // e.g. "acme"
-	Flows  []FlowWithRoute `yaml:"flows"`  // now supports multiple flows
-}
-
 // Intermediate used for deserialization
 type flowWithConfigPath struct {
 	Route string `yaml:"route"`
 	File  string `yaml:"file"`
 }
 
-// FlowWithRoute ties a graph flow definition to a public HTTP route.
-type FlowWithRoute struct {
-	Route string                // e.g. "/login"
-	Flow  *graph.FlowDefinition // pre-loaded flow definition
-}
-
 // LoadedRealm wraps a RealmConfig with metadata for tracking its source.
 type LoadedRealm struct {
-	Config   *RealmConfig           // parsed realm config
-	RealmID  string                 // composite ID like "acme/customers"
-	Path     string                 // original file path, useful for debugging/reloads
-	Services *graph.ServiceRegistry // services for this realm
+	Config   *model.RealmConfig          // parsed realm config
+	RealmID  string                      // composite ID like "acme/customers"
+	Path     string                      // original file path, useful for debugging/reloads
+	Services *repository.ServiceRegistry // services for this realm
 }
 
 var (
@@ -91,7 +78,7 @@ func InitRealms(configRoot string) error {
 
 	return nil // All good
 }
-func loadRealmConfig(path string) (*RealmConfig, error) {
+func loadRealmConfig(path string) (*model.RealmConfig, error) {
 	data, err := os.ReadFile(path) // #nosec G304 (the path is trusted as it is not meant to be used with user input)
 	if err != nil {
 		return nil, fmt.Errorf("read failed: %w", err)
@@ -129,7 +116,7 @@ func loadRealmConfig(path string) (*RealmConfig, error) {
 	tenant := segments[tenantIdx]
 
 	// Load flow files
-	var loadedFlows []FlowWithRoute
+	var loadedFlows []model.FlowWithRoute
 	for _, entry := range raw.Flows {
 		if entry.Route == "" || entry.File == "" {
 			return nil, fmt.Errorf("invalid flow entry in %s: route and file required", path)
@@ -141,13 +128,13 @@ func loadRealmConfig(path string) (*RealmConfig, error) {
 			return nil, fmt.Errorf("failed to load flow %q: %w", flowPath, err)
 		}
 
-		loadedFlows = append(loadedFlows, FlowWithRoute{
+		loadedFlows = append(loadedFlows, model.FlowWithRoute{
 			Route: entry.Route,
-			Flow:  flow,
+			Flow:  flow.Flow,
 		})
 	}
 
-	return &RealmConfig{
+	return &model.RealmConfig{
 		Realm:  raw.Realm,
 		Tenant: tenant,
 		Flows:  loadedFlows,
@@ -161,7 +148,7 @@ func GetRealm(id string) (*LoadedRealm, bool) {
 	r, ok := loadedRealms[id]
 	return r, ok
 }
-func LookupFlow(tenant, realm, path string) (*FlowWithRoute, error) {
+func LookupFlow(tenant, realm, path string) (*model.FlowWithRoute, error) {
 	realmID := fmt.Sprintf("%s/%s", tenant, realm)
 	loaded, ok := GetRealm(realmID)
 	if !ok {
@@ -180,7 +167,7 @@ func LookupFlow(tenant, realm, path string) (*FlowWithRoute, error) {
 }
 
 // ListFlowsPerRealm returns all flows defined for a given tenant + realm.
-func ListFlowsPerRealm(tenant, realm string) ([]FlowWithRoute, error) {
+func ListFlowsPerRealm(tenant, realm string) ([]model.FlowWithRoute, error) {
 	realmID := fmt.Sprintf("%s/%s", tenant, realm)
 	loaded, ok := GetRealm(realmID)
 	if !ok {
@@ -190,7 +177,7 @@ func ListFlowsPerRealm(tenant, realm string) ([]FlowWithRoute, error) {
 }
 
 // LookupFlowByName finds a flow by its internal name (not route).
-func LookupFlowByName(tenant, realm, name string) (*FlowWithRoute, error) {
+func LookupFlowByName(tenant, realm, name string) (*model.FlowWithRoute, error) {
 	flows, err := ListFlowsPerRealm(tenant, realm)
 	if err != nil {
 		return nil, err

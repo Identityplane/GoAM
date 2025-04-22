@@ -2,7 +2,6 @@ package internal
 
 import (
 	"database/sql"
-	"goiam/internal/auth/graph"
 	"goiam/internal/auth/repository"
 	"goiam/internal/config"
 	"goiam/internal/db/postgres_adapter"
@@ -99,7 +98,7 @@ func Initialize() {
 		logger.DebugNoContext("Initialized user repository for realm %s/%s", realm.Config.Tenant, realm.Config.Realm)
 
 		// Init the service registry for this realm
-		realm.Services = &graph.ServiceRegistry{
+		realm.Services = &repository.ServiceRegistry{
 			UserRepo: userRepo,
 		}
 	}

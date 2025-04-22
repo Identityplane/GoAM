@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"goiam/internal/model"
+	"goiam/internal/db"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/require"
@@ -69,7 +69,7 @@ func TestListUsersWithPagination(t *testing.T) {
 
 	userDB, err := NewPostgresUserDB(conn)
 	require.NoError(t, err)
-	model.TemplateTestListUsersWithPagination(t, userDB)
+	db.TemplateTestListUsersWithPagination(t, userDB)
 }
 
 func TestUserCRUD(t *testing.T) {
@@ -83,7 +83,7 @@ func TestUserCRUD(t *testing.T) {
 	require.NoError(t, err)
 
 	// Run the CRUD tests
-	model.TemplateTestUserCRUD(t, userDB)
+	db.TemplateTestUserCRUD(t, userDB)
 }
 
 func TestGetUserStats(t *testing.T) {
@@ -97,7 +97,7 @@ func TestGetUserStats(t *testing.T) {
 	require.NoError(t, err)
 
 	// Run the stats test
-	model.TemplateTestGetUserStats(t, userDB)
+	db.TemplateTestGetUserStats(t, userDB)
 }
 
 func TestPostgresUserDB_DeleteUser(t *testing.T) {
@@ -108,5 +108,5 @@ func TestPostgresUserDB_DeleteUser(t *testing.T) {
 	userDB, err := NewPostgresUserDB(conn)
 	require.NoError(t, err)
 
-	model.TemplateTestDeleteUser(t, userDB)
+	db.TemplateTestDeleteUser(t, userDB)
 }

@@ -1,9 +1,7 @@
-package graph
+package model
 
 import (
 	"errors"
-	"goiam/internal/auth/repository"
-	"goiam/internal/model"
 )
 
 // Enum of node types
@@ -16,16 +14,6 @@ const (
 	NodeTypeLogic          NodeType = "logic"
 	NodeTypeResult         NodeType = "result"
 )
-
-type NodeDefinition struct {
-	Name            string                                                                                                           `json:"name"`       // e.g. "askUsername"
-	Type            NodeType                                                                                                         `json:"type"`       // query, logic, etc.
-	RequiredContext []string                                                                                                         `json:"inputs"`     // field that the node requires from the flow context
-	OutputContext   []string                                                                                                         `json:"outputs"`    // fields that the node will set in the flow context
-	Prompts         map[string]string                                                                                                `json:"prompts"`    // key: label/type shown to user, will be returned via the user input argument
-	Conditions      []string                                                                                                         `json:"conditions"` // e.g. ["success", "fail"]
-	Run             func(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) // Run function for logic nodes, must either return a condition or a set of prompts
-}
 
 type NodeResult struct {
 	Prompts   map[string]string // Prompts to be shown to the user, if applicable
@@ -52,7 +40,7 @@ type FlowState struct {
 	History []string          `json:"history"` // executed node names
 	Error   *string           `json:"error,omitempty"`
 	Result  *FlowResult       `json:"result,omitempty"`
-	User    *model.User       `json:"user,omitempty"`
+	User    *User             `json:"user,omitempty"`
 	Prompts map[string]string `json:"prompts,omitempty"` // Prompts to be shown to the user, if applicable
 }
 
@@ -70,10 +58,6 @@ type FlowResult struct {
 	Authenticated bool      `json:"authenticated"`
 	AuthLevel     AuthLevel `json:"auth_level"`
 	FlowName      string    `json:"flow_name,omitempty"`
-}
-
-type ServiceRegistry struct {
-	UserRepo repository.UserRepository
 }
 
 // Create NodeResult with state

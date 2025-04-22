@@ -2,7 +2,9 @@ package web
 
 import (
 	"goiam/internal/auth/graph"
+	"goiam/internal/auth/repository"
 	"goiam/internal/logger"
+	"goiam/internal/model"
 	"goiam/internal/realms"
 	"goiam/internal/web/session"
 
@@ -13,10 +15,10 @@ import (
 const sessionCookieName = "session_id"
 
 type GraphHandler struct {
-	Flow     *graph.FlowDefinition
+	Flow     *model.FlowDefinition
 	Tenant   string
 	Realm    string
-	Services *graph.ServiceRegistry
+	Services *repository.ServiceRegistry
 }
 
 // HandleAuthRequest processes authentication requests and manages the authentication flow
@@ -71,7 +73,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	handler.Handle(ctx)
 }
 
-func NewGraphHandler(tenant string, realm string, flow *graph.FlowDefinition, services *graph.ServiceRegistry) *GraphHandler {
+func NewGraphHandler(tenant string, realm string, flow *model.FlowDefinition, services *repository.ServiceRegistry) *GraphHandler {
 
 	// check if tenant, realm and flow are valid
 	if tenant == "" || realm == "" || flow == nil {
@@ -90,7 +92,7 @@ func NewGraphHandler(tenant string, realm string, flow *graph.FlowDefinition, se
 func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 	sessionID := h.getOrCreateSessionID(ctx)
 
-	var state *graph.FlowState
+	var state *model.FlowState
 
 	if ctx.IsGet() {
 		state = graph.InitFlow(h.Flow)
@@ -122,7 +124,7 @@ func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
 	session.Save(sessionID, state)
 
 	// This should be cleaned up in the future, its not beautiful to manually lookup the result node like this
-	var resultNode *graph.GraphNode
+	var resultNode *model.GraphNode
 	if state.Result != nil {
 		resultNode = h.Flow.Nodes[state.Current]
 		if resultNode == nil {
@@ -157,7 +159,7 @@ func (h *GraphHandler) getOrCreateSessionID(ctx *fasthttp.RequestCtx) string {
 	return sessionID
 }
 
-func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *graph.FlowDefinition, step string) map[string]string {
+func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, step string) map[string]string {
 	input := make(map[string]string)
 
 	node := flow.Nodes[step]

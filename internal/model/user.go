@@ -1,23 +1,10 @@
 package model
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 )
-
-// Interface for the user db
-type UserDB interface {
-	CreateUser(ctx context.Context, user User) error
-	GetUserByUsername(ctx context.Context, tenant, realm, username string) (*User, error)
-	UpdateUser(ctx context.Context, user *User) error
-	ListUsers(ctx context.Context, tenant, realm string) ([]User, error)
-	ListUsersWithPagination(ctx context.Context, tenant, realm string, offset, limit int) ([]User, error)
-	CountUsers(ctx context.Context, tenant, realm string) (int64, error)
-	GetUserStats(ctx context.Context, tenant, realm string) (*UserStats, error)
-	DeleteUser(ctx context.Context, tenant, realm, username string) error
-}
 
 // User represents a user in the system
 // @description User information and attributes

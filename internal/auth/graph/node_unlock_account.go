@@ -2,30 +2,32 @@ package graph
 
 import (
 	"context"
+	"goiam/internal/auth/repository"
+	"goiam/internal/model"
 	"time"
 )
 
 // Unlock account logic node
 var UnlockAccountNode = &NodeDefinition{
 	Name:            "unlockAccount",
-	Type:            NodeTypeLogic,
+	Type:            model.NodeTypeLogic,
 	RequiredContext: []string{"username"},
 	OutputContext:   []string{},
 	Conditions:      []string{"success", "fail"},
 	Run:             RunUnlockAccountNode,
 }
 
-func RunUnlockAccountNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
+func RunUnlockAccountNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
 	username := state.Context["username"]
 
 	ctx := context.Background()
 	user, err := services.UserRepo.GetByUsername(ctx, username)
 	if err != nil || user == nil {
-		return NewNodeResultWithCondition("fail")
+		return model.NewNodeResultWithCondition("fail")
 	}
 
 	if !user.PasswordLocked {
-		return NewNodeResultWithCondition("success")
+		return model.NewNodeResultWithCondition("success")
 	}
 
 	user.PasswordLocked = false
@@ -33,8 +35,8 @@ func RunUnlockAccountNode(state *FlowState, node *GraphNode, input map[string]st
 	user.UpdatedAt = time.Now()
 
 	if err := services.UserRepo.Update(ctx, user); err != nil {
-		return NewNodeResultWithCondition("fail")
+		return model.NewNodeResultWithCondition("fail")
 	}
 
-	return NewNodeResultWithCondition("success")
+	return model.NewNodeResultWithCondition("success")
 }

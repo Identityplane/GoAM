@@ -1,16 +1,17 @@
 package graph
 
 import (
+	"goiam/internal/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEngine_ValidMinimalFlow(t *testing.T) {
-	flow := &FlowDefinition{
+	flow := &model.FlowDefinition{
 		Name:  "simple_init_only",
 		Start: "init",
-		Nodes: map[string]*GraphNode{
+		Nodes: map[string]*model.GraphNode{
 			"init": {
 				Name: "init",
 				Use:  "init",
@@ -31,10 +32,10 @@ func TestEngine_ValidMinimalFlow(t *testing.T) {
 }
 
 func TestEngine_MissingStartNode(t *testing.T) {
-	flow := &FlowDefinition{
+	flow := &model.FlowDefinition{
 		Name:  "no_start",
 		Start: "init",
-		Nodes: map[string]*GraphNode{},
+		Nodes: map[string]*model.GraphNode{},
 	}
 
 	engine, err := NewEngine(flow)
@@ -44,10 +45,10 @@ func TestEngine_MissingStartNode(t *testing.T) {
 }
 
 func TestEngine_StartNotInit(t *testing.T) {
-	flow := &FlowDefinition{
+	flow := &model.FlowDefinition{
 		Name:  "bad_start_type",
 		Start: "askUsername",
-		Nodes: map[string]*GraphNode{
+		Nodes: map[string]*model.GraphNode{
 			"askUsername": {
 				Name: "askUsername",
 				Use:  "askUsername",
@@ -69,10 +70,10 @@ func TestEngine_StartNotInit(t *testing.T) {
 }
 
 func TestEngine_MissingNextOnLogicNode(t *testing.T) {
-	flow := &FlowDefinition{
+	flow := &model.FlowDefinition{
 		Name:  "missing_next",
 		Start: "init",
-		Nodes: map[string]*GraphNode{
+		Nodes: map[string]*model.GraphNode{
 			"init": {
 				Name: "init",
 				Use:  "init",

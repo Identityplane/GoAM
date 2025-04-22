@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"goiam/internal/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,14 +9,14 @@ import (
 
 func TestRunPasskeyRegisterNode_HappyPath(t *testing.T) {
 	// Setup flow state with a username
-	state := &FlowState{
+	state := &model.FlowState{
 		Context: map[string]string{
 			"username": "alice",
 		},
 	}
 
 	// Minimal graph node (not used in logic here, but required)
-	node := &GraphNode{
+	node := &model.GraphNode{
 		Name: "registerPasskey",
 		Use:  "registerPasskey",
 	}

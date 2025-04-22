@@ -1,8 +1,13 @@
 package graph
 
+import (
+	"goiam/internal/auth/repository"
+	"goiam/internal/model"
+)
+
 var InitNode = &NodeDefinition{
 	Name:            "init",
-	Type:            NodeTypeInit,
+	Type:            model.NodeTypeInit,
 	RequiredContext: []string{},
 	OutputContext:   []string{},
 	Conditions:      []string{"start"},
@@ -11,21 +16,21 @@ var InitNode = &NodeDefinition{
 
 var SuccessResultNode = &NodeDefinition{
 	Name:            "successResult",
-	Type:            NodeTypeResult,
+	Type:            model.NodeTypeResult,
 	RequiredContext: []string{"user_id", "username"}, // expected to be set by now
 	OutputContext:   []string{},
 	Conditions:      []string{}, // terminal node
 	Run:             RunAuthSuccessNode,
 }
 
-func RunAuthSuccessNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
+func RunAuthSuccessNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
 
-	state.Result = &FlowResult{
+	state.Result = &model.FlowResult{
 		UserID:        state.Context["user_id"],
 		Username:      state.Context["username"],
 		Authenticated: true}
 
-	return &NodeResult{
+	return &model.NodeResult{
 		Condition: "",
 		Prompts:   nil,
 	}, nil
@@ -34,20 +39,20 @@ func RunAuthSuccessNode(state *FlowState, node *GraphNode, input map[string]stri
 
 var FailureResultNode = &NodeDefinition{
 	Name:            "failureResult",
-	Type:            NodeTypeResult,
+	Type:            model.NodeTypeResult,
 	RequiredContext: []string{},
 	OutputContext:   []string{},
 	Conditions:      []string{}, // terminal node
 	Run:             RunAuthFailureNode,
 }
 
-func RunAuthFailureNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
-	state.Result = &FlowResult{
+func RunAuthFailureNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
+	state.Result = &model.FlowResult{
 		UserID:        "",
 		Username:      "",
 		Authenticated: false}
 
-	return &NodeResult{
+	return &model.NodeResult{
 		Condition: "",
 		Prompts:   nil,
 	}, nil
@@ -55,7 +60,7 @@ func RunAuthFailureNode(state *FlowState, node *GraphNode, input map[string]stri
 
 var AskUsernameNode = &NodeDefinition{
 	Name:            "askUsername",
-	Type:            NodeTypeQuery,
+	Type:            model.NodeTypeQuery,
 	RequiredContext: []string{},
 	OutputContext:   []string{"username"},
 	Prompts: map[string]string{
@@ -66,7 +71,7 @@ var AskUsernameNode = &NodeDefinition{
 
 var AskPasswordNode = &NodeDefinition{
 	Name:            "askPassword",
-	Type:            NodeTypeQuery,
+	Type:            model.NodeTypeQuery,
 	RequiredContext: []string{},
 	OutputContext:   []string{"password"},
 	Prompts: map[string]string{
@@ -77,26 +82,26 @@ var AskPasswordNode = &NodeDefinition{
 
 var SetVariableNode = &NodeDefinition{
 	Name:            "setVariable",
-	Type:            NodeTypeLogic,
+	Type:            model.NodeTypeLogic,
 	RequiredContext: []string{},
 	OutputContext:   []string{},
 	Conditions:      []string{"done"},
 	Run:             RunSetVariableNode,
 }
 
-func RunInitNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
+func RunInitNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
 
-	return NewNodeResultWithCondition("start")
+	return model.NewNodeResultWithCondition("start")
 }
 
-func RunSetVariableNode(state *FlowState, node *GraphNode, input map[string]string, services *ServiceRegistry) (*NodeResult, error) {
+func RunSetVariableNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
 
 	key := node.CustomConfig["key"]
 	value := node.CustomConfig["value"]
 
 	state.Context[key] = value
 
-	return NewNodeResultWithCondition("done")
+	return model.NewNodeResultWithCondition("done")
 }
 
 func ptr[T any](v T) *T {
