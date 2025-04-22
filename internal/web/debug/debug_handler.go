@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goiam/internal/auth/graph/visual"
-	"goiam/internal/realms"
+	"goiam/internal/service"
 	"os/exec"
 
 	"github.com/valyala/fasthttp"
@@ -21,7 +21,7 @@ import (
 func HandleListAllFlows(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("text/plain; charset=utf-8")
 
-	all := realms.GetAllRealms()
+	all := service.GetAllRealms()
 
 	for _, r := range all {
 		fmt.Fprintf(ctx, "Realm: %s/%s\n", r.Config.Tenant, r.Config.Realm)
@@ -49,7 +49,7 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 	realm := ctx.UserValue("realm").(string)
 
 	// Iterate over FlowRegistry to collect names and routes
-	flows, err := realms.ListFlowsPerRealm(tenant, realm)
+	flows, err := service.ListFlowsPerRealm(tenant, realm)
 
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
@@ -107,7 +107,7 @@ func HandleFlowGraphPNG(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Look up the flow in the registry
-	flowWithRoute, err := realms.LookupFlow(tenant, realm, flowPath)
+	flowWithRoute, err := service.LookupFlow(tenant, realm, flowPath)
 
 	if err != nil {
 		// Return 404 if flow is not found
@@ -168,7 +168,7 @@ func HandleFlowGraphSVG(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Look up the flow in the registry
-	flowWithRoute, err := realms.LookupFlow(tenant, realm, flowPath)
+	flowWithRoute, err := service.LookupFlow(tenant, realm, flowPath)
 
 	if err != nil {
 		// Return 404 if flow is not found

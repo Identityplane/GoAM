@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"goiam/internal/auth/repository"
 	"goiam/internal/logger"
-	"goiam/internal/realms"
 	"goiam/internal/web"
 	"net"
 	"net/http"
@@ -38,18 +37,18 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	fmt.Println("Current working directory:", pwd)
 
 	// Setup Realm
-	realms.InitRealms(ConfigPath) // #nosec
+	service.InitRealms(ConfigPath) // #nosec
 
 	// if present manually add the flow to the realm
 	if flowYaml != "" {
-		flow, err := realms.LoadFlowFromYAMLString(flowYaml)
+		flow, err := service.LoadFlowFromYAMLString(flowYaml)
 
 		if err != nil {
 			t.Fatalf("failed to load flow from YAML: %v", err)
 		}
 
 		// Add the flow to the realm
-		realm, _ := realms.GetRealm(DefaultTenant + "/" + DefaultRealm)
+		realm, _ := service.GetRealm(DefaultTenant + "/" + DefaultRealm)
 		if realm == nil {
 			t.Fatalf("failed to get realm %s/%s", DefaultTenant, DefaultRealm)
 		}
@@ -86,7 +85,7 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	userRepo := sqlite_adapter.NewUserRepository(DefaultTenant, DefaultRealm, userDb)
 
 	// get the loaded realm and init the service registry
-	realm, _ := realms.GetRealm(DefaultTenant + "/" + DefaultRealm)
+	realm, _ := service.GetRealm(DefaultTenant + "/" + DefaultRealm)
 	realm.Services = &repository.ServiceRegistry{
 		UserRepo: userRepo,
 	}

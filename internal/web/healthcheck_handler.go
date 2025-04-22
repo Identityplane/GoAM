@@ -2,7 +2,7 @@ package web
 
 import (
 	"encoding/json"
-	"goiam/internal/realms"
+	"goiam/internal/service"
 	"runtime"
 	"strconv"
 
@@ -38,7 +38,7 @@ func handleReadiness(ctx *fasthttp.RequestCtx) {
 	ready := map[string]string{}
 	isReady := true
 
-	if len(realms.GetAllRealms()) == 0 {
+	if len(service.GetAllRealms()) == 0 {
 		ready["Realms"] = "not ready"
 		isReady = false
 	} else {

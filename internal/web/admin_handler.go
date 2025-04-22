@@ -3,7 +3,6 @@ package web
 import (
 	"encoding/json"
 	"goiam/internal/model"
-	"goiam/internal/realms"
 	"goiam/internal/service"
 	"net/http"
 	"strconv"
@@ -44,7 +43,7 @@ func (h *AdminHandler) HandleListUsers(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Lookup the loaded realm
-	_, ok := realms.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -85,7 +84,7 @@ func (h *AdminHandler) HandleGetUser(ctx *fasthttp.RequestCtx) {
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := realms.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -127,7 +126,7 @@ func (h *AdminHandler) HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := realms.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -177,7 +176,7 @@ func (h *AdminHandler) HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := realms.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")

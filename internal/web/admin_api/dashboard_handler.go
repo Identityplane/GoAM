@@ -3,7 +3,7 @@ package admin_api
 import (
 	"encoding/json"
 	"goiam/internal/model"
-	"goiam/internal/realms"
+	"goiam/internal/service"
 	"net/http"
 
 	"github.com/valyala/fasthttp"
@@ -40,7 +40,7 @@ func (h *Handler) HandleDashboard(ctx *fasthttp.RequestCtx) {
 	realm := ctx.UserValue("realm").(string)
 
 	// Lookup the loaded realm
-	_, ok := realms.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -56,7 +56,7 @@ func (h *Handler) HandleDashboard(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Get flows
-	flows, err := realms.ListFlowsPerRealm(tenant, realm)
+	flows, err := service.ListFlowsPerRealm(tenant, realm)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to list flows: " + err.Error())

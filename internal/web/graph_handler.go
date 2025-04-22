@@ -5,7 +5,7 @@ import (
 	"goiam/internal/auth/repository"
 	"goiam/internal/logger"
 	"goiam/internal/model"
-	"goiam/internal/realms"
+	"goiam/internal/service"
 	"goiam/internal/web/session"
 
 	"github.com/google/uuid"
@@ -44,14 +44,14 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	realm := ctx.UserValue("realm").(string)
 	path := ctx.UserValue("path").(string)
 
-	loadedRealm, ok := realms.GetRealm(tenant + "/" + realm)
+	loadedRealm, ok := service.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		ctx.SetBodyString("realm not found")
 		return
 	}
 
-	flow, err := realms.LookupFlow(tenant, realm, path)
+	flow, err := service.LookupFlow(tenant, realm, path)
 	if err != nil {
 		// return 404
 		ctx.SetStatusCode(fasthttp.StatusNotFound)

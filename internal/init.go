@@ -7,7 +7,6 @@ import (
 	"goiam/internal/db/postgres_adapter"
 	"goiam/internal/db/sqlite_adapter"
 	"goiam/internal/logger"
-	"goiam/internal/realms"
 	"goiam/internal/service"
 	"goiam/internal/web"
 	"strings"
@@ -18,7 +17,7 @@ import (
 
 var (
 	// All loaded realm configurations, indexed by "tenant/realm"
-	LoadedRealms     = map[string]*realms.LoadedRealm{}
+	LoadedRealms     = map[string]*service.LoadedRealm{}
 	UserAdminService service.UserAdminService
 )
 
@@ -28,13 +27,13 @@ func Initialize() {
 
 	// Prinout config path
 	logger.DebugNoContext("Using config path: %s", config.ConfigPath)
-	if err := realms.InitRealms(config.ConfigPath); err != nil {
+	if err := service.InitRealms(config.ConfigPath); err != nil {
 		logger.PanicNoContext("failed to initialize realms: %v", err)
 	}
 
 	// Cache all loaded realms locally if needed
-	allRealms := make(map[string]*realms.LoadedRealm)
-	for id, realm := range realms.GetAllRealms() {
+	allRealms := make(map[string]*service.LoadedRealm)
+	for id, realm := range service.GetAllRealms() {
 		allRealms[id] = realm
 	}
 

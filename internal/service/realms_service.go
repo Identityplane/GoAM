@@ -1,4 +1,4 @@
-package realms
+package service
 
 import (
 	"errors"
@@ -14,6 +14,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
+
+// This service loads all realm configuration from disk and database and is responsible for providing the correct realm configuration
 
 // Intermediate used for deserialization
 type flowWithConfigPath struct {
