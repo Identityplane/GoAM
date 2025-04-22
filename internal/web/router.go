@@ -2,7 +2,7 @@ package web
 
 import (
 	"encoding/json"
-	"goiam/internal/db/service"
+	"goiam/internal/service"
 	"goiam/internal/web/admin_api"
 	"goiam/internal/web/debug"
 

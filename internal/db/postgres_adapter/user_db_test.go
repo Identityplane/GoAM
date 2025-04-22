@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"goiam/internal/db/model"
+	"goiam/internal/model"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/require"

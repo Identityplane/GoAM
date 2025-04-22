@@ -1,7 +1,6 @@
-package unit
+package realms
 
 import (
-	"goiam/internal/realms"
 	"os"
 	"path/filepath"
 	"testing"
@@ -42,7 +41,7 @@ nodes:
 	assert.NoError(t, err)
 	assert.NoError(t, tmpFile.Close())
 
-	flow, err := realms.LoadFlowFromYAML(tmpFile.Name())
+	flow, err := LoadFlowFromYAML(tmpFile.Name())
 	assert.NoError(t, err)
 	assert.NotNil(t, flow)
 
@@ -88,7 +87,7 @@ nodes:
 	assert.NoError(t, os.WriteFile(file1, []byte(flow1), 0644))
 	assert.NoError(t, os.WriteFile(file2, []byte(flow2), 0644))
 
-	flows, err := realms.LoadFlowsFromDir(dir)
+	flows, err := LoadFlowsFromDir(dir)
 	assert.NoError(t, err)
 	assert.Len(t, flows, 2)
 

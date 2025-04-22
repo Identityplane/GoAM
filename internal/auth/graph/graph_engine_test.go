@@ -1,7 +1,6 @@
-package unit
+package graph
 
 import (
-	"goiam/internal/auth/graph"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,10 +8,10 @@ import (
 
 func TestRun_SimpleInitToSuccess(t *testing.T) {
 	// Build a super simple flow: init -> successResult
-	flow := &graph.FlowDefinition{
+	flow := &FlowDefinition{
 		Name:  "simple_flow",
 		Start: "init",
-		Nodes: map[string]*graph.GraphNode{
+		Nodes: map[string]*GraphNode{
 			"init": {
 				Name: "init",
 				Use:  "init",
@@ -27,10 +26,10 @@ func TestRun_SimpleInitToSuccess(t *testing.T) {
 		},
 	}
 
-	state := graph.InitFlow(flow)
+	state := InitFlow(flow)
 	assert.Equal(t, "init", state.Current)
 
-	graphResult, err := graph.Run(flow, state, nil, nil)
+	graphResult, err := Run(flow, state, nil, nil)
 	assert.NoError(t, err)
 	assert.Nil(t, graphResult.Prompts)
 	assert.NotNil(t, graphResult.Result)
@@ -40,10 +39,10 @@ func TestRun_SimpleInitToSuccess(t *testing.T) {
 }
 
 func TestRun_InitQueryToSuccess(t *testing.T) {
-	flow := &graph.FlowDefinition{
+	flow := &FlowDefinition{
 		Name:  "query_flow",
 		Start: "init",
-		Nodes: map[string]*graph.GraphNode{
+		Nodes: map[string]*GraphNode{
 			"init": {
 				Name: "init",
 				Use:  "init",
@@ -65,17 +64,17 @@ func TestRun_InitQueryToSuccess(t *testing.T) {
 		},
 	}
 
-	state := graph.InitFlow(flow)
+	state := InitFlow(flow)
 
 	// Step 1: Init → askUsername
-	graphResult, err := graph.Run(flow, state, nil, nil)
+	graphResult, err := Run(flow, state, nil, nil)
 	assert.NoError(t, err)
 	assert.Nil(t, graphResult.Result)
 	assert.Equal(t, map[string]string{"username": "text"}, graphResult.Prompts)
 
 	// Step 2: Provide input to askUsername
 	inputs := map[string]string{"username": "alice"}
-	graphResult, err = graph.Run(flow, state, inputs, nil)
+	graphResult, err = Run(flow, state, inputs, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, graphResult.Result)
 	assert.Nil(t, graphResult.Prompts)

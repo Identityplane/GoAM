@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"goiam/internal/db/model"
+	"goiam/internal/model"
 )
 
 // PaginationParams represents pagination parameters

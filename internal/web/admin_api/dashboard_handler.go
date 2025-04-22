@@ -2,7 +2,7 @@ package admin_api
 
 import (
 	"encoding/json"
-	"goiam/internal/db/model"
+	"goiam/internal/model"
 	"goiam/internal/realms"
 	"net/http"
 

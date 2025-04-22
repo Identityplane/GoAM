@@ -1,7 +1,6 @@
-package unit
+package graph
 
 import (
-	"goiam/internal/auth/graph"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,20 +8,20 @@ import (
 
 func TestRunPasskeyRegisterNode_HappyPath(t *testing.T) {
 	// Setup flow state with a username
-	state := &graph.FlowState{
+	state := &FlowState{
 		Context: map[string]string{
 			"username": "alice",
 		},
 	}
 
 	// Minimal graph node (not used in logic here, but required)
-	node := &graph.GraphNode{
+	node := &GraphNode{
 		Name: "registerPasskey",
 		Use:  "registerPasskey",
 	}
 
 	// Run the node logic
-	prompts, err := graph.GeneratePasskeysOptions(state, node)
+	prompts, err := GeneratePasskeysOptions(state, node)
 
 	// Validate result
 	assert.NoError(t, err)

@@ -18,9 +18,9 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
 
-	"goiam/internal/db/service"
 	"goiam/internal/db/sqlite_adapter"    // lint:ignore ST1019 (This should be fixed, but is not a priority)
 	db "goiam/internal/db/sqlite_adapter" // lint:ignore
+	"goiam/internal/service"
 )
 
 var (

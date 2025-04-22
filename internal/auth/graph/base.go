@@ -3,7 +3,7 @@ package graph
 import (
 	"errors"
 	"goiam/internal/auth/repository"
-	"goiam/internal/db/model"
+	"goiam/internal/model"
 )
 
 // Enum of node types

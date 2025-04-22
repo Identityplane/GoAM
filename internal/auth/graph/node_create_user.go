@@ -3,7 +3,7 @@ package graph
 import (
 	"context"
 	"fmt"
-	"goiam/internal/db/model"
+	"goiam/internal/model"
 	"time"
 
 	"github.com/google/uuid"

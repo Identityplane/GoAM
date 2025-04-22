@@ -6,10 +6,10 @@ import (
 	"goiam/internal/auth/repository"
 	"goiam/internal/config"
 	"goiam/internal/db/postgres_adapter"
-	"goiam/internal/db/service"
 	"goiam/internal/db/sqlite_adapter"
 	"goiam/internal/logger"
 	"goiam/internal/realms"
+	"goiam/internal/service"
 	"goiam/internal/web"
 	"strings"
 

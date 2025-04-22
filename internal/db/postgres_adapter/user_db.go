@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"goiam/internal/db/model"
 	"goiam/internal/logger"
+	"goiam/internal/model"
 	"time"
 
 	"github.com/google/uuid"

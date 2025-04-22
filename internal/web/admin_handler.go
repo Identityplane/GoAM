@@ -2,9 +2,9 @@ package web
 
 import (
 	"encoding/json"
-	"goiam/internal/db/model"
-	"goiam/internal/db/service"
+	"goiam/internal/model"
 	"goiam/internal/realms"
+	"goiam/internal/service"
 	"net/http"
 	"strconv"
 

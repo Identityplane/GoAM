@@ -3,7 +3,7 @@ package sqlite_adapter
 import (
 	"database/sql"
 	"fmt"
-	"goiam/internal/db/model"
+	"goiam/internal/model"
 	"os"
 	"testing"
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"goiam/internal/auth/repository"
-	"goiam/internal/db/model"
+	"goiam/internal/model"
 )
 
 type SQLiteUserRepository struct {

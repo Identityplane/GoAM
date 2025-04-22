@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"goiam/internal/db/model"
+	"goiam/internal/model"
 )
 
 type UserRepository interface {

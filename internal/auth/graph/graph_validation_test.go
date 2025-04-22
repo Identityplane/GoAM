@@ -1,17 +1,16 @@
-package unit
+package graph
 
 import (
-	"goiam/internal/auth/graph"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEngine_ValidMinimalFlow(t *testing.T) {
-	flow := &graph.FlowDefinition{
+	flow := &FlowDefinition{
 		Name:  "simple_init_only",
 		Start: "init",
-		Nodes: map[string]*graph.GraphNode{
+		Nodes: map[string]*GraphNode{
 			"init": {
 				Name: "init",
 				Use:  "init",
@@ -26,29 +25,29 @@ func TestEngine_ValidMinimalFlow(t *testing.T) {
 		},
 	}
 
-	engine, err := graph.NewEngine(flow)
+	engine, err := NewEngine(flow)
 	assert.NoError(t, err)
 	assert.NotNil(t, engine)
 }
 
 func TestEngine_MissingStartNode(t *testing.T) {
-	flow := &graph.FlowDefinition{
+	flow := &FlowDefinition{
 		Name:  "no_start",
 		Start: "init",
-		Nodes: map[string]*graph.GraphNode{},
+		Nodes: map[string]*GraphNode{},
 	}
 
-	engine, err := graph.NewEngine(flow)
+	engine, err := NewEngine(flow)
 	assert.Nil(t, engine)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "start node")
 }
 
 func TestEngine_StartNotInit(t *testing.T) {
-	flow := &graph.FlowDefinition{
+	flow := &FlowDefinition{
 		Name:  "bad_start_type",
 		Start: "askUsername",
-		Nodes: map[string]*graph.GraphNode{
+		Nodes: map[string]*GraphNode{
 			"askUsername": {
 				Name: "askUsername",
 				Use:  "askUsername",
@@ -63,17 +62,17 @@ func TestEngine_StartNotInit(t *testing.T) {
 		},
 	}
 
-	engine, err := graph.NewEngine(flow)
+	engine, err := NewEngine(flow)
 	assert.Nil(t, engine)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "must be of type 'init'")
 }
 
 func TestEngine_MissingNextOnLogicNode(t *testing.T) {
-	flow := &graph.FlowDefinition{
+	flow := &FlowDefinition{
 		Name:  "missing_next",
 		Start: "init",
-		Nodes: map[string]*graph.GraphNode{
+		Nodes: map[string]*GraphNode{
 			"init": {
 				Name: "init",
 				Use:  "init",
@@ -89,7 +88,7 @@ func TestEngine_MissingNextOnLogicNode(t *testing.T) {
 		},
 	}
 
-	engine, err := graph.NewEngine(flow)
+	engine, err := NewEngine(flow)
 	assert.Nil(t, engine)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "must define a 'Next' map")
