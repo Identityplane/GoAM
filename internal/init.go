@@ -122,5 +122,10 @@ func initServices(dbConnections *DatabaseConnections) {
 		logger.PanicNoContext("Failed to initialize realms: %v", err)
 	}
 
+	// Initialize flows
+	if err := services.FlowService.InitFlows(); err != nil {
+		logger.PanicNoContext("Failed to initialize flows: %v", err)
+	}
+
 	logger.DebugNoContext("Initialized services and realms")
 }

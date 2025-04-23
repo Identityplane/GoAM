@@ -58,7 +58,7 @@ func (h *Handler) HandleDashboard(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Get flows
-	flows, err := services.RealmService.ListFlowsPerRealm(tenant, realm)
+	flows, err := services.FlowService.ListFlows(tenant, realm)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to list flows: " + err.Error())

@@ -67,6 +67,11 @@ func getConfigPath() string {
 
 	// Use default as last resort
 	path = "../config" // fallback for local dev
-	logger.DebugNoContext("Using default config path: %s", path)
+	pwd, err := os.Getwd()
+	if err != nil {
+		logger.ErrorNoContext("Failed to get current working directory: %s", err)
+	}
+
+	logger.DebugNoContext("Using default config path: %s, current working directory: %s", path, pwd)
 	return path
 }

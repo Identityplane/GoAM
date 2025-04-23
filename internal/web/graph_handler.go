@@ -41,9 +41,10 @@ type GraphHandler struct {
 func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
-	path := ctx.UserValue("path").(string)
+	flowPath := ctx.UserValue("path").(string)
 
 	svc := service.GetServices()
+
 	loadedRealm, ok := svc.RealmService.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
@@ -51,8 +52,8 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	flow, err := svc.RealmService.LookupFlow(tenant, realm, path)
-	if err != nil {
+	flow, ok := svc.FlowService.GetFlowByPath(tenant, realm, flowPath)
+	if !ok {
 		// return 404
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		ctx.SetBodyString("flow not found")

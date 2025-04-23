@@ -47,12 +47,8 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 			t.Fatalf("failed to load flow from YAML: %v", err)
 		}
 
-		// Add the flow to the realm
-		realm, _ := service.GetServices().RealmService.GetRealm(DefaultTenant + "/" + DefaultRealm)
-		if realm == nil {
-			t.Fatalf("failed to get realm %s/%s", DefaultTenant, DefaultRealm)
-		}
-		realm.Config.Flows = append(realm.Config.Flows, *flow)
+		// Add the flow to the loaded flows
+		service.GetServices().FlowService.CreateFlow(DefaultTenant, DefaultRealm, flow)
 	}
 
 	// Setup Http

@@ -13,6 +13,7 @@ type UserDB interface {
 type Services struct {
 	UserService  UserAdminService
 	RealmService RealmService
+	FlowService  FlowService
 }
 
 var (
@@ -25,6 +26,7 @@ func InitServices(userDB UserDB) *Services {
 	services = &Services{
 		UserService:  NewUserService(userDB),
 		RealmService: NewRealmService(),
+		FlowService:  NewFlowService(),
 	}
 	return services
 }

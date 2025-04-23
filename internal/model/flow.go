@@ -33,6 +33,11 @@ type FlowDefinition struct {
 	Nodes map[string]*GraphNode `json:"nodes"`
 }
 
+type FlowWithRoute struct {
+	Route string          // e.g. "/login"
+	Flow  *FlowDefinition // pre-loaded flow definition
+}
+
 type FlowState struct {
 	RunID   string            `json:"run_id"`
 	Current string            `json:"current"` // active node

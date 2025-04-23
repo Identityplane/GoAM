@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"goiam/internal/auth/repository"
 	"goiam/internal/db"
@@ -20,12 +19,6 @@ import (
 type RealmService interface {
 	// GetRealm returns a loaded realm configuration by its composite ID
 	GetRealm(id string) (*LoadedRealm, bool)
-	// LookupFlow finds a flow by tenant, realm and path
-	LookupFlow(tenant, realm, path string) (*model.FlowWithRoute, error)
-	// ListFlowsPerRealm returns all flows defined for a given tenant + realm
-	ListFlowsPerRealm(tenant, realm string) ([]model.FlowWithRoute, error)
-	// LookupFlowByName finds a flow by its internal name
-	LookupFlowByName(tenant, realm, name string) (*model.FlowWithRoute, error)
 	// InitRealms loads all static realm configurations from disk
 	InitRealms(configRoot string, userDb db.UserDB) error
 	// GetAllRealms returns all loaded realms
@@ -33,9 +26,8 @@ type RealmService interface {
 }
 
 // Intermediate used for deserialization
-type flowWithConfigPath struct {
-	Route string `yaml:"route"`
-	File  string `yaml:"file"`
+type flowRealmYaml struct {
+	Name string `yaml:"name"`
 }
 
 // LoadedRealm wraps a RealmConfig with metadata for tracking its source.
@@ -102,7 +94,7 @@ func loadRealmsFromConfigDir(configRoot string) (map[string]*LoadedRealm, error)
 
 		logger.DebugNoContext("Loading realm config: %s\n", path)
 
-		cfg, err := loadRealmConfig(path)
+		cfg, err := loadRealmConfigFromFilePath(path)
 		if err != nil {
 			return fmt.Errorf("error loading realm config at %s: %w", path, err)
 		}
@@ -131,48 +123,6 @@ func (s *realmServiceImpl) GetRealm(id string) (*LoadedRealm, bool) {
 	return r, ok
 }
 
-func (s *realmServiceImpl) LookupFlow(tenant, realm, path string) (*model.FlowWithRoute, error) {
-	realmID := fmt.Sprintf("%s/%s", tenant, realm)
-	loaded, ok := s.GetRealm(realmID)
-	if !ok {
-		return nil, errors.New("realm not found")
-	}
-
-	cleanPath := "/" + strings.TrimPrefix(path, "/")
-
-	for _, f := range loaded.Config.Flows {
-		if f.Route == cleanPath {
-			return &f, nil
-		}
-	}
-
-	return nil, errors.New("route not found in realm")
-}
-
-func (s *realmServiceImpl) ListFlowsPerRealm(tenant, realm string) ([]model.FlowWithRoute, error) {
-	realmID := fmt.Sprintf("%s/%s", tenant, realm)
-	loaded, ok := s.GetRealm(realmID)
-	if !ok {
-		return nil, fmt.Errorf("realm not found: %s", realmID)
-	}
-	return loaded.Config.Flows, nil
-}
-
-func (s *realmServiceImpl) LookupFlowByName(tenant, realm, name string) (*model.FlowWithRoute, error) {
-	flows, err := s.ListFlowsPerRealm(tenant, realm)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, f := range flows {
-		if f.Flow != nil && f.Flow.Name == name {
-			return &f, nil
-		}
-	}
-
-	return nil, errors.New("flow not found: " + name)
-}
-
 func (s *realmServiceImpl) GetAllRealms() map[string]*LoadedRealm {
 	s.loadedRealmsMu.RLock()
 	defer s.loadedRealmsMu.RUnlock()
@@ -186,25 +136,26 @@ func (s *realmServiceImpl) GetAllRealms() map[string]*LoadedRealm {
 }
 
 // Helper function to load realm config from file
-func loadRealmConfig(path string) (*model.RealmConfig, error) {
+// Does not load flows, only realm config as we have a seperate service for loading flows
+func loadRealmConfigFromFilePath(path string) (*model.RealmConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read failed: %w", err)
 	}
 
-	var raw struct {
-		Realm string               `yaml:"realm"`
-		Flows []flowWithConfigPath `yaml:"flows"`
+	var unmarshaledFlowYaml struct {
+		Realm string          `yaml:"realm"`
+		Flows []flowRealmYaml `yaml:"flows"`
 	}
 
-	if err := yaml.Unmarshal(data, &raw); err != nil {
+	if err := yaml.Unmarshal(data, &unmarshaledFlowYaml); err != nil {
 		return nil, fmt.Errorf("yaml unmarshal failed: %w", err)
 	}
 
-	if raw.Realm == "" {
+	if unmarshaledFlowYaml.Realm == "" {
 		return nil, fmt.Errorf("invalid config in %s: 'realm' is required", path)
 	}
-	if len(raw.Flows) == 0 {
+	if len(unmarshaledFlowYaml.Flows) == 0 {
 		return nil, fmt.Errorf("invalid config in %s: at least one flow is required", path)
 	}
 
@@ -221,27 +172,9 @@ func loadRealmConfig(path string) (*model.RealmConfig, error) {
 	}
 	tenant := segments[tenantIdx]
 
-	var loadedFlows []model.FlowWithRoute
-	for _, entry := range raw.Flows {
-		if entry.Route == "" || entry.File == "" {
-			return nil, fmt.Errorf("invalid flow entry in %s: route and file required", path)
-		}
-
-		flowPath := filepath.Join(filepath.Dir(path), "..", "..", "flows", entry.File)
-		flow, err := LoadFlowFromYAML(flowPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load flow %q: %w", flowPath, err)
-		}
-
-		loadedFlows = append(loadedFlows, model.FlowWithRoute{
-			Route: entry.Route,
-			Flow:  flow.Flow,
-		})
-	}
-
 	return &model.RealmConfig{
-		Realm:  raw.Realm,
-		Tenant: tenant,
-		Flows:  loadedFlows,
+		Realm:       unmarshaledFlowYaml.Realm,
+		Tenant:      tenant,
+		ActiveFlows: nil, //TODO fix
 	}, nil
 }
