@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"goiam/internal/auth/repository"
+	"goiam/internal/db"
 	"goiam/internal/logger"
 	"goiam/internal/model"
 	"io/fs"
@@ -15,7 +16,21 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// This service loads all realm configuration from disk and database and is responsible for providing the correct realm configuration
+// RealmService defines the business logic for realm operations
+type RealmService interface {
+	// GetRealm returns a loaded realm configuration by its composite ID
+	GetRealm(id string) (*LoadedRealm, bool)
+	// LookupFlow finds a flow by tenant, realm and path
+	LookupFlow(tenant, realm, path string) (*model.FlowWithRoute, error)
+	// ListFlowsPerRealm returns all flows defined for a given tenant + realm
+	ListFlowsPerRealm(tenant, realm string) ([]model.FlowWithRoute, error)
+	// LookupFlowByName finds a flow by its internal name
+	LookupFlowByName(tenant, realm, name string) (*model.FlowWithRoute, error)
+	// InitRealms loads all static realm configurations from disk
+	InitRealms(configRoot string, userDb db.UserDB) error
+	// GetAllRealms returns all loaded realms
+	GetAllRealms() map[string]*LoadedRealm
+}
 
 // Intermediate used for deserialization
 type flowWithConfigPath struct {
@@ -25,30 +40,63 @@ type flowWithConfigPath struct {
 
 // LoadedRealm wraps a RealmConfig with metadata for tracking its source.
 type LoadedRealm struct {
-	Config   *model.RealmConfig          // parsed realm config
-	RealmID  string                      // composite ID like "acme/customers"
-	Path     string                      // original file path, useful for debugging/reloads
-	Services *repository.ServiceRegistry // services for this realm
+	Config       *model.RealmConfig       // parsed realm config
+	RealmID      string                   // composite ID like "acme/customers"
+	Path         string                   // original file path, useful for debugging/reloads
+	Repositories *repository.Repositories // services for this realm
 }
 
-var (
-	// Internal registry of loaded realms (populated during InitRealms)
-	loadedRealms   = make(map[string]*LoadedRealm)
+// realmServiceImpl implements RealmService
+type realmServiceImpl struct {
+	loadedRealms   map[string]*LoadedRealm
 	loadedRealmsMu sync.RWMutex
-)
+}
 
-// InitRealms loads all static realm configurations from disk at startup.
-// It recursively walks the provided configRoot (e.g. "config/tenants") and
-// loads all files matching the pattern **/realms/*.yaml.
-func InitRealms(configRoot string) error {
+// NewRealmService creates a new RealmService instance
+func NewRealmService() RealmService {
+	return &realmServiceImpl{
+		loadedRealms: make(map[string]*LoadedRealm),
+	}
+}
+
+func (s *realmServiceImpl) InitRealms(configRoot string, userDb db.UserDB) error {
+
+	// Swap global registry
+	s.loadedRealmsMu.Lock()
+	defer s.loadedRealmsMu.Unlock()
+
+	// Load realms from config directory
+	newRealms, err := loadRealmsFromConfigDir(configRoot)
+	if err != nil {
+		return fmt.Errorf("failed to load realms from config directory %s: %w", configRoot, err)
+	}
+
+	// Init services for each realm
+	for _, realm := range newRealms {
+
+		// Init services for realm
+		realm.Repositories = &repository.Repositories{}
+
+		// Init user repository
+		realm.Repositories.UserRepo = db.NewUserRepository(realm.Config.Tenant, realm.Config.Realm, userDb)
+		logger.DebugNoContext("Initialized user repository for realm %s", realm.RealmID)
+	}
+
+	s.loadedRealms = newRealms
+
+	return nil
+}
+
+// loadRealmsFromConfigDir loads all realm configurations from the given config root directory
+func loadRealmsFromConfigDir(configRoot string) (map[string]*LoadedRealm, error) {
+
 	newRealms := make(map[string]*LoadedRealm)
 
 	tenantsPath := filepath.Join(configRoot, "tenants")
 	logger.DebugNoContext("Walking config dir: %s", tenantsPath)
+
 	err := filepath.WalkDir(tenantsPath, func(path string, d fs.DirEntry, err error) error {
-
 		if err != nil || d.IsDir() || filepath.Ext(path) != ".yaml" {
-
 			return nil // Ignore non-yaml files
 		}
 
@@ -69,24 +117,81 @@ func InitRealms(configRoot string) error {
 	})
 
 	if err != nil {
-
-		return fmt.Errorf("failed to walk realm config directory %s: %w", configRoot, err)
+		return nil, fmt.Errorf("failed to walk realm config directory %s: %w", configRoot, err)
 	}
 
-	// Swap global registry
-	loadedRealmsMu.Lock()
-	defer loadedRealmsMu.Unlock()
-	loadedRealms = newRealms
+	return newRealms, nil
 
-	return nil // All good
 }
+
+func (s *realmServiceImpl) GetRealm(id string) (*LoadedRealm, bool) {
+	s.loadedRealmsMu.RLock()
+	defer s.loadedRealmsMu.RUnlock()
+	r, ok := s.loadedRealms[id]
+	return r, ok
+}
+
+func (s *realmServiceImpl) LookupFlow(tenant, realm, path string) (*model.FlowWithRoute, error) {
+	realmID := fmt.Sprintf("%s/%s", tenant, realm)
+	loaded, ok := s.GetRealm(realmID)
+	if !ok {
+		return nil, errors.New("realm not found")
+	}
+
+	cleanPath := "/" + strings.TrimPrefix(path, "/")
+
+	for _, f := range loaded.Config.Flows {
+		if f.Route == cleanPath {
+			return &f, nil
+		}
+	}
+
+	return nil, errors.New("route not found in realm")
+}
+
+func (s *realmServiceImpl) ListFlowsPerRealm(tenant, realm string) ([]model.FlowWithRoute, error) {
+	realmID := fmt.Sprintf("%s/%s", tenant, realm)
+	loaded, ok := s.GetRealm(realmID)
+	if !ok {
+		return nil, fmt.Errorf("realm not found: %s", realmID)
+	}
+	return loaded.Config.Flows, nil
+}
+
+func (s *realmServiceImpl) LookupFlowByName(tenant, realm, name string) (*model.FlowWithRoute, error) {
+	flows, err := s.ListFlowsPerRealm(tenant, realm)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, f := range flows {
+		if f.Flow != nil && f.Flow.Name == name {
+			return &f, nil
+		}
+	}
+
+	return nil, errors.New("flow not found: " + name)
+}
+
+func (s *realmServiceImpl) GetAllRealms() map[string]*LoadedRealm {
+	s.loadedRealmsMu.RLock()
+	defer s.loadedRealmsMu.RUnlock()
+
+	// Shallow copy to prevent external mutation
+	copy := make(map[string]*LoadedRealm, len(s.loadedRealms))
+	for k, v := range s.loadedRealms {
+		copy[k] = v
+	}
+	return copy
+}
+
+// Helper function to load realm config from file
 func loadRealmConfig(path string) (*model.RealmConfig, error) {
-	data, err := os.ReadFile(path) // #nosec G304 (the path is trusted as it is not meant to be used with user input)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read failed: %w", err)
 	}
 
-	// Parse raw YAML with flow paths
 	var raw struct {
 		Realm string               `yaml:"realm"`
 		Flows []flowWithConfigPath `yaml:"flows"`
@@ -103,7 +208,6 @@ func loadRealmConfig(path string) (*model.RealmConfig, error) {
 		return nil, fmt.Errorf("invalid config in %s: at least one flow is required", path)
 	}
 
-	// Inject tenant from directory name: /tenants/{tenant}/realms/{realm}.yaml
 	segments := strings.Split(filepath.ToSlash(path), "/")
 	tenantIdx := -1
 	for i, segment := range segments {
@@ -117,7 +221,6 @@ func loadRealmConfig(path string) (*model.RealmConfig, error) {
 	}
 	tenant := segments[tenantIdx]
 
-	// Load flow files
 	var loadedFlows []model.FlowWithRoute
 	for _, entry := range raw.Flows {
 		if entry.Route == "" || entry.File == "" {
@@ -141,55 +244,4 @@ func loadRealmConfig(path string) (*model.RealmConfig, error) {
 		Tenant: tenant,
 		Flows:  loadedFlows,
 	}, nil
-}
-
-// GetRealm returns a loaded realm configuration by its composite ID (e.g. "acme/customers").
-func GetRealm(id string) (*LoadedRealm, bool) {
-	loadedRealmsMu.RLock()
-	defer loadedRealmsMu.RUnlock()
-	r, ok := loadedRealms[id]
-	return r, ok
-}
-func LookupFlow(tenant, realm, path string) (*model.FlowWithRoute, error) {
-	realmID := fmt.Sprintf("%s/%s", tenant, realm)
-	loaded, ok := GetRealm(realmID)
-	if !ok {
-		return nil, errors.New("realm not found")
-	}
-
-	cleanPath := "/" + strings.TrimPrefix(path, "/")
-
-	for _, f := range loaded.Config.Flows {
-		if f.Route == cleanPath {
-			return &f, nil
-		}
-	}
-
-	return nil, errors.New("route not found in realm")
-}
-
-// ListFlowsPerRealm returns all flows defined for a given tenant + realm.
-func ListFlowsPerRealm(tenant, realm string) ([]model.FlowWithRoute, error) {
-	realmID := fmt.Sprintf("%s/%s", tenant, realm)
-	loaded, ok := GetRealm(realmID)
-	if !ok {
-		return nil, fmt.Errorf("realm not found: %s", realmID)
-	}
-	return loaded.Config.Flows, nil
-}
-
-// LookupFlowByName finds a flow by its internal name (not route).
-func LookupFlowByName(tenant, realm, name string) (*model.FlowWithRoute, error) {
-	flows, err := ListFlowsPerRealm(tenant, realm)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, f := range flows {
-		if f.Flow != nil && f.Flow.Name == name {
-			return &f, nil
-		}
-	}
-
-	return nil, errors.New("flow not found: " + name)
 }

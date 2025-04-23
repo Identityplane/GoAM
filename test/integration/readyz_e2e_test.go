@@ -9,8 +9,7 @@ import (
 )
 
 func TestPingE2E(t *testing.T) {
-
-	e := *SetupIntegrationTest(t, "")
+	e := SetupIntegrationTest(t, "")
 
 	e.GET("/readyz").
 		Expect().
@@ -19,7 +18,7 @@ func TestPingE2E(t *testing.T) {
 }
 
 func TestCrashRecovery(t *testing.T) {
-	e := *SetupIntegrationTest(t, "")
+	e := SetupIntegrationTest(t, "")
 
 	// Simulate a crash by adding a new route that panics
 	Router.GET("/crash", web.WrapMiddleware(func(ctx *fasthttp.RequestCtx) {

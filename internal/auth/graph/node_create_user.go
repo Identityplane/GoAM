@@ -20,7 +20,7 @@ var CreateUserNode = &NodeDefinition{
 	Run:             RunCreateUserNode,
 }
 
-func RunCreateUserNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
+func RunCreateUserNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 	ctx := context.Background()
 	username := state.Context["username"]
 	password := state.Context["password"]

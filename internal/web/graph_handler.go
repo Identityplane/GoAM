@@ -18,7 +18,7 @@ type GraphHandler struct {
 	Flow     *model.FlowDefinition
 	Tenant   string
 	Realm    string
-	Services *repository.ServiceRegistry
+	Services *repository.Repositories
 }
 
 // HandleAuthRequest processes authentication requests and manages the authentication flow
@@ -39,19 +39,19 @@ type GraphHandler struct {
 // @Router /{tenant}/{realm}/auth/{path} [get]
 // @Router /{tenant}/{realm}/auth/{path} [post]
 func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
-
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 	path := ctx.UserValue("path").(string)
 
-	loadedRealm, ok := service.GetRealm(tenant + "/" + realm)
+	svc := service.GetServices()
+	loadedRealm, ok := svc.RealmService.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		ctx.SetBodyString("realm not found")
 		return
 	}
 
-	flow, err := service.LookupFlow(tenant, realm, path)
+	flow, err := svc.RealmService.LookupFlow(tenant, realm, path)
 	if err != nil {
 		// return 404
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
@@ -60,21 +60,20 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Check if service registry is initialized
-	services := loadedRealm.Services
-	if services == nil {
+	registry := loadedRealm.Repositories
+	if registry == nil {
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		ctx.SetBodyString("service registry not initialized")
 		return
 	}
 
-	handler := NewGraphHandler(tenant, realm, flow.Flow, services)
+	handler := NewGraphHandler(tenant, realm, flow.Flow, registry)
 
 	// Execute the actual handler
 	handler.Handle(ctx)
 }
 
-func NewGraphHandler(tenant string, realm string, flow *model.FlowDefinition, services *repository.ServiceRegistry) *GraphHandler {
-
+func NewGraphHandler(tenant string, realm string, flow *model.FlowDefinition, registry *repository.Repositories) *GraphHandler {
 	// check if tenant, realm and flow are valid
 	if tenant == "" || realm == "" || flow == nil {
 		logger.PanicNoContext("Invalid parameters: tenant=%s, realm=%s, flow=%v", tenant, realm, flow)
@@ -86,7 +85,7 @@ func NewGraphHandler(tenant string, realm string, flow *model.FlowDefinition, se
 		logger.PanicNoContext("Failed to load templates: %v", err)
 	}
 
-	return &GraphHandler{Flow: flow, Tenant: tenant, Realm: realm, Services: services}
+	return &GraphHandler{Flow: flow, Tenant: tenant, Realm: realm, Services: registry}
 }
 
 func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {

@@ -3,9 +3,13 @@ package main
 import (
 	"goiam/internal" // lint:ignore ST1019 (This should be fixed, but is not a priority)
 	"goiam/internal/logger"
+	"goiam/internal/web"
+
 	// lint:ignore ST1019
 
 	"os"
+
+	"github.com/valyala/fasthttp"
 )
 
 func main() {
@@ -16,4 +20,16 @@ func main() {
 
 	// Init Flows
 	internal.Initialize()
+
+	// Start web adapter
+	startWebAdapter()
+}
+
+// startWebAdapter initializes and starts the web server
+func startWebAdapter() {
+	r := web.New()
+	logger.DebugNoContext("Server running on http://localhost:8080")
+	if err := fasthttp.ListenAndServe(":8080", web.TopLevelMiddleware(r.Handler)); err != nil {
+		logger.PanicNoContext("Error: %s", err)
+	}
 }

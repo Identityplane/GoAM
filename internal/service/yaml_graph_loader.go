@@ -91,16 +91,3 @@ func LoadFlowsFromDir(dir string) ([]*model.FlowWithRoute, error) {
 
 	return flows, nil
 }
-
-// GetAllRealms returns a copy of the current loaded realms map.
-func GetAllRealms() map[string]*LoadedRealm {
-	loadedRealmsMu.RLock()
-	defer loadedRealmsMu.RUnlock()
-
-	// Shallow copy to prevent external mutation
-	copy := make(map[string]*LoadedRealm, len(loadedRealms))
-	for k, v := range loadedRealms {
-		copy[k] = v
-	}
-	return copy
-}

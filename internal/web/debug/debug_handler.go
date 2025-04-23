@@ -21,7 +21,8 @@ import (
 func HandleListAllFlows(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("text/plain; charset=utf-8")
 
-	all := service.GetAllRealms()
+	services := service.GetServices()
+	all := services.RealmService.GetAllRealms()
 
 	for _, r := range all {
 		fmt.Fprintf(ctx, "Realm: %s/%s\n", r.Config.Tenant, r.Config.Realm)
@@ -48,8 +49,8 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 
-	// Iterate over FlowRegistry to collect names and routes
-	flows, err := service.ListFlowsPerRealm(tenant, realm)
+	services := service.GetServices()
+	flows, err := services.RealmService.ListFlowsPerRealm(tenant, realm)
 
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
@@ -107,7 +108,7 @@ func HandleFlowGraphPNG(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Look up the flow in the registry
-	flowWithRoute, err := service.LookupFlow(tenant, realm, flowPath)
+	flowWithRoute, err := service.GetServices().RealmService.LookupFlow(tenant, realm, flowPath)
 
 	if err != nil {
 		// Return 404 if flow is not found
@@ -168,7 +169,7 @@ func HandleFlowGraphSVG(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Look up the flow in the registry
-	flowWithRoute, err := service.LookupFlow(tenant, realm, flowPath)
+	flowWithRoute, err := service.GetServices().RealmService.LookupFlow(tenant, realm, flowPath)
 
 	if err != nil {
 		// Return 404 if flow is not found

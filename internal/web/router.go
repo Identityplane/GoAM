@@ -10,8 +10,11 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func New(userAdminService service.UserAdminService) *router.Router {
+func New() *router.Router {
 	r := router.New()
+
+	// Get services
+	services := service.GetServices()
 
 	// Set the NotFound handler
 	r.NotFound = WrapMiddleware(handleNotFound)
@@ -21,7 +24,7 @@ func New(userAdminService service.UserAdminService) *router.Router {
 	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(HandleAuthRequest))
 
 	// Admin routes
-	adminHandler := admin_api.New(userAdminService)
+	adminHandler := admin_api.New(services.UserService)
 	r.GET("/{tenant}/{realm}/admin/users", WrapMiddleware(adminHandler.HandleListUsers))
 	r.GET("/{tenant}/{realm}/admin/users/stats", WrapMiddleware(adminHandler.HandleGetUserStats))
 	r.GET("/{tenant}/{realm}/admin/users/{username}", WrapMiddleware(adminHandler.HandleGetUser))

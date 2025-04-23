@@ -5,7 +5,7 @@ import (
 	"goiam/internal/model"
 )
 
-type ServiceRegistry struct {
+type Repositories struct {
 	UserRepo UserRepository
 }
 

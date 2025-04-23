@@ -15,7 +15,7 @@ var CheckUsernameAvailableNode = &NodeDefinition{
 	Run:             RunCheckUsernameAvailableNode,
 }
 
-func RunCheckUsernameAvailableNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.ServiceRegistry) (*model.NodeResult, error) {
+func RunCheckUsernameAvailableNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 	username := state.Context["username"]
 	ctx := context.Background()
 

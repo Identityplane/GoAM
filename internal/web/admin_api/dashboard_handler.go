@@ -9,13 +9,13 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// DashboardResponse represents the combined dashboard data
+// DashboardResponse represents the response structure for the dashboard endpoint
 type DashboardResponse struct {
 	UserStats *model.UserStats `json:"user_stats"`
 	Flows     FlowInfo         `json:"flows"`
 }
 
-// FlowInfo represents information about a flow
+// FlowInfo represents flow statistics in the dashboard
 type FlowInfo struct {
 	TotalFlows  int `json:"total_flows"`
 	ActiveFlows int `json:"active_flows"`
@@ -39,8 +39,10 @@ func (h *Handler) HandleDashboard(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 
+	services := service.GetServices()
+
 	// Lookup the loaded realm
-	_, ok := service.GetRealm(tenant + "/" + realm)
+	_, ok := services.RealmService.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -56,7 +58,7 @@ func (h *Handler) HandleDashboard(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Get flows
-	flows, err := service.ListFlowsPerRealm(tenant, realm)
+	flows, err := services.RealmService.ListFlowsPerRealm(tenant, realm)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to list flows: " + err.Error())

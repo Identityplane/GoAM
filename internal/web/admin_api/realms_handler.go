@@ -2,20 +2,21 @@ package admin_api
 
 import (
 	"encoding/json"
-	"goiam/internal/service"
 	"net/http"
+
+	"goiam/internal/service"
 
 	"github.com/valyala/fasthttp"
 )
 
-// TenantInfo represents information about a tenant and its realms
+// TenantInfo represents a tenant and its realms in the admin API
 type TenantInfo struct {
 	Label  string      `json:"label"`
 	Value  string      `json:"value"`
 	Realms []RealmInfo `json:"realms"`
 }
 
-// RealmInfo represents information about a realm
+// RealmInfo represents a realm in the admin API
 type RealmInfo struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
@@ -32,7 +33,8 @@ type RealmInfo struct {
 // @Router /admin/realms [get]
 func (h *Handler) HandleListRealms(ctx *fasthttp.RequestCtx) {
 	// Get all loaded realms
-	allRealms := service.GetAllRealms()
+	services := service.GetServices()
+	allRealms := services.RealmService.GetAllRealms()
 
 	// Group realms by tenant
 	tenants := make(map[string]*TenantInfo)

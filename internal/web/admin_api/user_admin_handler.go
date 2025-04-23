@@ -56,7 +56,7 @@ func (h *Handler) HandleListUsers(ctx *fasthttp.RequestCtx) {
 	realm := ctx.UserValue("realm").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -142,7 +142,7 @@ func (h *Handler) HandleGetUser(ctx *fasthttp.RequestCtx) {
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -196,7 +196,7 @@ func (h *Handler) HandleCreateUser(ctx *fasthttp.RequestCtx) {
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -261,7 +261,7 @@ func (h *Handler) HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -323,7 +323,7 @@ func (h *Handler) HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -359,7 +359,7 @@ func (h *Handler) HandleGetUserStats(ctx *fasthttp.RequestCtx) {
 	realm := ctx.UserValue("realm").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")

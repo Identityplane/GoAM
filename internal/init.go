@@ -2,17 +2,14 @@ package internal
 
 import (
 	"database/sql"
-	"goiam/internal/auth/repository"
 	"goiam/internal/config"
 	"goiam/internal/db/postgres_adapter"
 	"goiam/internal/db/sqlite_adapter"
 	"goiam/internal/logger"
 	"goiam/internal/service"
-	"goiam/internal/web"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/valyala/fasthttp"
 )
 
 var (
@@ -21,103 +18,109 @@ var (
 	UserAdminService service.UserAdminService
 )
 
+// DatabaseConnections holds all database connections
+type DatabaseConnections struct {
+	UserDB service.UserDB
+	// Add more database connections here as needed
+}
+
 // Initialize loads all tenant/realm configurations at startup.
 // Each realm must include its own flow configuration.
 func Initialize() {
-
-	// Prinout config path
+	// Print config path
 	logger.DebugNoContext("Using config path: %s", config.ConfigPath)
-	if err := service.InitRealms(config.ConfigPath); err != nil {
-		logger.PanicNoContext("failed to initialize realms: %v", err)
-	}
 
-	// Cache all loaded realms locally if needed
-	allRealms := make(map[string]*service.LoadedRealm)
-	for id, realm := range service.GetAllRealms() {
-		allRealms[id] = realm
-	}
+	// Step 1: Initialize database connections
+	dbConnections := initDatabase()
 
-	LoadedRealms = allRealms
-	logger.DebugNoContext("Loaded %d realms\n", len(LoadedRealms))
+	// Step 2: Initialize services and realms
+	initServices(dbConnections)
+}
 
-	// Init Database
-	// Currenlty we only support sqlite but later we need to load this from the config
-	var db any
+// initDatabase initializes all database connections based on the connection strings
+func initDatabase() *DatabaseConnections {
+	connections := &DatabaseConnections{}
 	var err error
+
 	if strings.HasPrefix(config.DBConnString, "postgres://") {
 
-		db, err = postgres_adapter.Init(postgres_adapter.Config{
-			Driver: "postgres",
-			DSN:    config.DBConnString,
-		})
+		// Init database connection
+		postgresdb, err := initPostgresDB()
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize postgres database: %v", err)
+		}
 
-		logger.DebugNoContext("Initializing postgres database")
+		// Init user db
+		connections.UserDB, err = postgres_adapter.NewPostgresUserDB(postgresdb)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize postgres user db: %v", err)
+		}
+
 	} else {
-		db, err = sqlite_adapter.Init(sqlite_adapter.Config{
-			Driver: "sqlite",
-			DSN:    config.DBConnString,
-		})
 
-		logger.DebugNoContext("Initializing sqlite database")
+		// init database connection
+		sqliteDB, err := initSQLiteDB()
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize sqlite database: %v", err)
+		}
+
+		// Migrate database, currently we only do this for sqlite
+		err = sqlite_adapter.RunMigrations(sqliteDB)
+		if err != nil {
+			logger.PanicNoContext("Failed to migrate sqlite database: %v", err)
+		}
+
+		// init user db
+		connections.UserDB, err = sqlite_adapter.NewSQLiteUserDB(sqliteDB)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize sqlite user db: %v", err)
+		}
 	}
 
 	if err != nil {
-		logger.PanicNoContext("DB init failed: %v", err)
-		return
+		logger.PanicNoContext("Failed to initialize database: %v", err)
 	}
 
-	// Iterate over all tenants and realms and initialize a user repository
-	// Currently each realm has a unique key, so we can just use that
-	for _, realm := range LoadedRealms {
+	return connections
+}
 
-		var userRepo repository.UserRepository
-
-		// case for sqllite and postgres
-		switch dbTyped := db.(type) {
-		case *sql.DB: // sqlite
-			userDb, err := sqlite_adapter.NewSQLiteUserDB(dbTyped)
-
-			if err != nil {
-				logger.PanicNoContext("Failed to create sqlite user db: %v", err)
-			}
-
-			config.SqliteUserDB = userDb
-			userRepo = sqlite_adapter.NewUserRepository(realm.Config.Tenant, realm.Config.Realm, userDb)
-
-		case *pgx.Conn:
-			userDb, err := postgres_adapter.NewPostgresUserDB(dbTyped)
-			if err != nil {
-				logger.PanicNoContext("Failed to create postgres user db: %v", err)
-			}
-
-			config.PostgresUserDB = userDb
-			userRepo = postgres_adapter.NewUserRepository(realm.Config.Tenant, realm.Config.Realm, userDb)
-		}
-
-		logger.DebugNoContext("Initialized user repository for realm %s/%s", realm.Config.Tenant, realm.Config.Realm)
-
-		// Init the service registry for this realm
-		realm.Services = &repository.ServiceRegistry{
-			UserRepo: userRepo,
-		}
+// initPostgresDB initializes a PostgreSQL database connection
+func initPostgresDB() (*pgx.Conn, error) {
+	logger.DebugNoContext("Initializing postgres database")
+	db, err := postgres_adapter.Init(postgres_adapter.Config{
+		Driver: "postgres",
+		DSN:    config.DBConnString,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	// Init user service for admin api
-	dbDriverName := config.GetDbDriverName()
-	switch dbDriverName {
-	case "postgres":
-		UserAdminService = service.NewUserService(config.PostgresUserDB)
-	case "sqlite":
-		UserAdminService = service.NewUserService(config.SqliteUserDB)
-	default:
-		logger.PanicNoContext("Unsupported database driver: %s", dbDriverName)
+	return db, nil
+}
+
+// initSQLiteDB initializes a SQLite database connection
+func initSQLiteDB() (*sql.DB, error) {
+	logger.DebugNoContext("Initializing sqlite database")
+	db, err := sqlite_adapter.Init(sqlite_adapter.Config{
+		Driver: "sqlite",
+		DSN:    config.DBConnString,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	// Init web adapter
-	r := web.New(UserAdminService)
+	return db, nil
+}
 
-	logger.DebugNoContext("Server running on http://localhost:8080")
-	if err := fasthttp.ListenAndServe(":8080", web.TopLevelMiddleware(r.Handler)); err != nil {
-		logger.PanicNoContext("Error: %s", err)
+// initServices initializes all services and loads realm configurations
+func initServices(dbConnections *DatabaseConnections) {
+	// Initialize services
+	services := service.InitServices(dbConnections.UserDB)
+
+	// Initialize realms
+	if err := services.RealmService.InitRealms(config.ConfigPath, dbConnections.UserDB); err != nil {
+		logger.PanicNoContext("Failed to initialize realms: %v", err)
 	}
+
+	logger.DebugNoContext("Initialized services and realms")
 }

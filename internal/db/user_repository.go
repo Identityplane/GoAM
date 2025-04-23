@@ -1,28 +1,31 @@
-package postgres_adapter
+package db
 
 import (
 	"context"
 	"fmt"
 	"goiam/internal/auth/repository"
-	"goiam/internal/db"
 	"goiam/internal/model"
 )
 
-type PostgresUserRepository struct {
+// The user repository is a simplified interface for the user database, to be used by the auth service
+// It porivides additional abstractions over the database, such as tenant and realm aware operations
+type UserRepository struct {
 	tenant string
 	realm  string
-	db     db.UserDB
+	db     UserDB
 }
 
-func NewUserRepository(tenant, realm string, db db.UserDB) repository.UserRepository {
-	return &PostgresUserRepository{tenant: tenant, realm: realm, db: db}
+func NewUserRepository(tenant, realm string, db UserDB) repository.UserRepository {
+	return &UserRepository{tenant: tenant, realm: realm, db: db}
 }
 
-func (r *PostgresUserRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {
+func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {
+
 	return r.db.GetUserByUsername(ctx, r.tenant, r.realm, username)
 }
 
-func (r *PostgresUserRepository) Create(ctx context.Context, user *model.User) error {
+func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
+
 	// panic if the tenant or realm is set to a different value except ""
 	if user.Tenant != "" && user.Tenant != r.tenant {
 		return fmt.Errorf("tenant is set to a different value")
@@ -38,7 +41,8 @@ func (r *PostgresUserRepository) Create(ctx context.Context, user *model.User) e
 	return r.db.CreateUser(ctx, *user)
 }
 
-func (r *PostgresUserRepository) Update(ctx context.Context, user *model.User) error {
+func (r *UserRepository) Update(ctx context.Context, user *model.User) error {
+
 	// panic if the tenant or realm is set to a different value except ""
 	if user.Tenant != "" && user.Tenant != r.tenant {
 		return fmt.Errorf("tenant is set to a different value")
