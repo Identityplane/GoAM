@@ -5,6 +5,4 @@ package model
 type RealmConfig struct {
 	Realm  string // e.g. "customers"
 	Tenant string // e.g. "acme"
-	//Flows  []FlowWithRoute `yaml:"flows"`  // now supports multiple flows
-	ActiveFlows []string // list of flow names
 }

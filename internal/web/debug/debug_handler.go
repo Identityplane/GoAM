@@ -88,9 +88,9 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 // @Description Generates and returns a PNG image visualization of the specified authentication flow
 // @Tags Debug
 // @Produce image/png
-// @Param tenant path string true "Tenant ID"
-// @Param realm path string true "Realm ID"
-// @Param flow path string true "Flow name"
+// @Param tenant path string true "Tenant"
+// @Param realm path string true "Realm"
+// @Param flow path string true "Flow Route"
 // @Success 200 {file} binary "PNG image of the flow graph"
 // @Failure 400 {string} string "Bad request - missing flow parameter"
 // @Failure 404 {string} string "Flow not found"
@@ -112,7 +112,7 @@ func HandleFlowGraphPNG(ctx *fasthttp.RequestCtx) {
 	// Look up the flow in the registry
 	flowWithRoute, err := service.GetServices().FlowService.GetFlowByPath(tenant, realm, flowPath)
 
-	if err {
+	if !err {
 		// Return 404 if flow is not found
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		ctx.SetBodyString(fmt.Sprintf("Flow not found: %q", flowPath))

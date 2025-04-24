@@ -1,5 +1,5 @@
 name: unlock_account
-route: /unlockAccount
+route: unlockAccount
 start: init
 nodes:
   init:

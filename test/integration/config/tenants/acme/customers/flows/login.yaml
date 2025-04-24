@@ -1,5 +1,5 @@
 name: login_auth
-route: /login
+route: login
 start: init
 nodes:
   init:

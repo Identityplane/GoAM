@@ -12,13 +12,8 @@ import (
 
 func TestFlowService_Integration(t *testing.T) {
 	// Create a new flow service
-	svc := service.NewFlowService()
 
-	config.ConfigPath = "./config"
-
-	// Test initialization with real config files
-	err := svc.InitFlows()
-	assert.NoError(t, err)
+	SetupIntegrationTest(t, "")
 
 	// Test getting existing flows
 	expectedFlows := []string{
@@ -31,19 +26,19 @@ func TestFlowService_Integration(t *testing.T) {
 	}
 
 	for _, flowName := range expectedFlows {
-		flow, exists := svc.GetFlowById("acme", "customers", flowName)
+		flow, exists := service.GetServices().FlowService.GetFlowById("acme", "customers", flowName)
 		assert.True(t, exists, "Flow %s should exist", flowName)
 		assert.NotNil(t, flow, "Flow %s should not be nil", flowName)
 		assert.Equal(t, flowName, flow.Flow.Name, "Flow name should match")
 	}
 
 	// Test getting a non-existent flow
-	flow, exists := svc.GetFlowById("acme", "customers", "non_existent_flow")
+	flow, exists := service.GetServices().FlowService.GetFlowById("acme", "customers", "non_existent_flow")
 	assert.False(t, exists)
 	assert.Nil(t, flow)
 
 	// Test listing all flows
-	flows, err := svc.ListFlows("acme", "customers")
+	flows, err := service.GetServices().FlowService.ListFlows("acme", "customers")
 	assert.NoError(t, err)
 	assert.Len(t, flows, len(expectedFlows), "Should list all flows")
 
@@ -59,17 +54,13 @@ func TestFlowService_Integration(t *testing.T) {
 
 func TestFlowService_InvalidConfig(t *testing.T) {
 	// Create a new flow service
-	svc := service.NewFlowService()
+	SetupIntegrationTest(t, "")
 
-	// Temporarily change the config path to a non-existent directory
-	originalConfigPath := config.ConfigPath
+	// Change the config path to a non-existent directory
 	config.ConfigPath = filepath.Join(config.ConfigPath, "non_existent")
-	defer func() {
-		config.ConfigPath = originalConfigPath
-	}()
 
 	// Test initialization with invalid config path
-	err := svc.InitFlows()
+	err := service.GetServices().FlowService.InitFlows()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to init flows from config dir")
 }

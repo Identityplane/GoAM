@@ -1,7 +1,1 @@
 realm: customers
-
-flows:
-  - name: login_auth
-  - name: user_register
-  - name: test_passkeys_registration
-

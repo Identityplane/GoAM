@@ -7,6 +7,7 @@ import (
 	"goiam/internal/model"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -62,12 +63,14 @@ func (s *flowServiceImpl) GetFlowById(tenant, realm, id string) (*model.FlowWith
 	s.flowsMu.RLock()
 	defer s.flowsMu.RUnlock()
 
-	flow, ok := s.flows[id]
-	if !ok {
-		return nil, false
+	// For now we just go over all flows and return the first one that matches the id and realm
+	for _, flow := range s.flows {
+		if flow.Realm == realm && flow.Tenant == tenant && flow.Flow.Name == id {
+			return flow, true
+		}
 	}
 
-	return flow, true
+	return nil, false
 }
 
 func (s *flowServiceImpl) GetFlowByPath(tenant, realm, path string) (*model.FlowWithRoute, bool) {
@@ -78,13 +81,12 @@ func (s *flowServiceImpl) GetFlowByPath(tenant, realm, path string) (*model.Flow
 	defer s.flowsMu.RUnlock()
 
 	// For the time being we just iterate over all flows and return the first one that matches the path
-	for _, flow := range s.flows {
-		if flow.Route == "/"+path {
-			return flow, true
-		}
+	flow, ok := s.flows[tenant+"/"+realm+"/"+path]
+	if !ok {
+		return nil, false
 	}
 
-	return nil, false
+	return flow, true
 }
 
 func (s *flowServiceImpl) ListFlows(tenant, realm string) ([]*model.FlowWithRoute, error) {
@@ -121,7 +123,15 @@ func (s *flowServiceImpl) CreateFlow(tenant, realm string, flow *model.FlowWithR
 	s.flowsMu.Lock()
 	defer s.flowsMu.Unlock()
 
-	s.flows[flow.Flow.Name] = flow
+	// We ignore heading "/" for the route name
+	flow.Route, _ = strings.CutPrefix(flow.Route, "/")
+
+	// Ensure realm and tenant are set correctly
+	flow.Realm = realm
+	flow.Tenant = tenant
+
+	// Store flow in memory
+	s.flows[tenant+"/"+realm+"/"+flow.Route] = flow
 
 	return nil
 }
@@ -130,14 +140,25 @@ func (s *flowServiceImpl) initFlowsFromConfigDir(configRoot string) error {
 
 	logger.DebugNoContext("Initializing flows from config dir: %s", configRoot)
 
-	s.flowsMu.Lock()
-	defer s.flowsMu.Unlock()
-
 	// clear the map
 	s.flows = make(map[string]*model.FlowWithRoute)
 
-	// Get the flows directory
-	flowsDir := filepath.Join(configRoot, "flows")
+	// Load all flows for all realms
+	allRealms := services.RealmService.GetAllRealms()
+
+	for _, realm := range allRealms {
+		err := s.loadFlowsFromRealmConfigDir(realm.Config.Tenant, realm.Config.Realm, configRoot)
+		if err != nil {
+			return fmt.Errorf("failed to load flows from realm %s: %w", realm.RealmID, err)
+		}
+	}
+
+	return nil
+}
+
+func (s *flowServiceImpl) loadFlowsFromRealmConfigDir(tenant, realm, configRoot string) error {
+
+	flowsDir := filepath.Join(configRoot, "tenants", tenant, realm, "flows")
 
 	// check if the dir exists
 	if _, err := os.Stat(flowsDir); os.IsNotExist(err) {
@@ -158,56 +179,15 @@ func (s *flowServiceImpl) initFlowsFromConfigDir(configRoot string) error {
 		}
 
 		// check if flow name is already in the map
-		if _, ok := s.flows[flow.Flow.Name]; ok {
-			return fmt.Errorf("flow name %s already in use", flow.Flow.Name)
+		if _, ok := s.flows[tenant+"/"+realm+"/"+flow.Route]; ok {
+			return fmt.Errorf("flow name %s already in use", tenant+"/"+realm+"/"+flow.Route)
 		}
 
 		// Add the flow to the map with the flow name as key
-		s.flows[flow.Flow.Name] = flow
+		logger.DebugNoContext("loaded flow %s from %s for realmId %s", flow.Flow.Name, file, tenant+"/"+realm)
+
+		s.CreateFlow(tenant, realm, flow)
 	}
 
 	return nil
 }
-
-/*
-func (s *realmServiceImpl) LookupFlow(tenant, realm, path string) (*model.FlowWithRoute, error) {
-	realmID := fmt.Sprintf("%s/%s", tenant, realm)
-	loaded, ok := s.GetRealm(realmID)
-	if !ok {
-		return nil, errors.New("realm not found")
-	}
-
-	cleanPath := "/" + strings.TrimPrefix(path, "/")
-
-	for _, f := range loaded.Config.Flows {
-		if f.Route == cleanPath {
-			return &f, nil
-		}
-	}
-
-	return nil, errors.New("route not found in realm")
-}
-
-func (s *realmServiceImpl) ListFlowsPerRealm(tenant, realm string) ([]model.FlowWithRoute, error) {
-	realmID := fmt.Sprintf("%s/%s", tenant, realm)
-	loaded, ok := s.GetRealm(realmID)
-	if !ok {
-		return nil, fmt.Errorf("realm not found: %s", realmID)
-	}
-	return loaded.Config.Flows, nil
-}
-
-func (s *realmServiceImpl) LookupFlowByName(tenant, realm, name string) (*model.FlowWithRoute, error) {
-	flows, err := s.ListFlowsPerRealm(tenant, realm)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, f := range flows {
-		if f.Flow != nil && f.Flow.Name == name {
-			return &f, nil
-		}
-	}
-
-	return nil, errors.New("flow not found: " + name)
-}*/

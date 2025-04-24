@@ -87,9 +87,22 @@ func loadRealmsFromConfigDir(configRoot string) (map[string]*LoadedRealm, error)
 	tenantsPath := filepath.Join(configRoot, "tenants")
 	logger.DebugNoContext("Walking config dir: %s", tenantsPath)
 
+	// We need this to calculate the depth of the current path
+	baseDepth := strings.Count(tenantsPath, string(os.PathSeparator))
+
+	// Walk the config directory
 	err := filepath.WalkDir(tenantsPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || filepath.Ext(path) != ".yaml" {
 			return nil // Ignore non-yaml files
+		}
+
+		// Skip if the depth is greater than 2
+		currentDepth := strings.Count(path, string(os.PathSeparator)) - baseDepth
+		if currentDepth > 2 {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 
 		logger.DebugNoContext("Loading realm config: %s\n", path)
@@ -144,8 +157,7 @@ func loadRealmConfigFromFilePath(path string) (*model.RealmConfig, error) {
 	}
 
 	var unmarshaledFlowYaml struct {
-		Realm string          `yaml:"realm"`
-		Flows []flowRealmYaml `yaml:"flows"`
+		Realm string `yaml:"realm"`
 	}
 
 	if err := yaml.Unmarshal(data, &unmarshaledFlowYaml); err != nil {
@@ -154,9 +166,6 @@ func loadRealmConfigFromFilePath(path string) (*model.RealmConfig, error) {
 
 	if unmarshaledFlowYaml.Realm == "" {
 		return nil, fmt.Errorf("invalid config in %s: 'realm' is required", path)
-	}
-	if len(unmarshaledFlowYaml.Flows) == 0 {
-		return nil, fmt.Errorf("invalid config in %s: at least one flow is required", path)
 	}
 
 	segments := strings.Split(filepath.ToSlash(path), "/")
@@ -173,8 +182,7 @@ func loadRealmConfigFromFilePath(path string) (*model.RealmConfig, error) {
 	tenant := segments[tenantIdx]
 
 	return &model.RealmConfig{
-		Realm:       unmarshaledFlowYaml.Realm,
-		Tenant:      tenant,
-		ActiveFlows: nil, //TODO fix
+		Realm:  unmarshaledFlowYaml.Realm,
+		Tenant: tenant,
 	}, nil
 }

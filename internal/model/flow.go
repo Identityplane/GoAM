@@ -34,8 +34,10 @@ type FlowDefinition struct {
 }
 
 type FlowWithRoute struct {
-	Route string          // e.g. "/login"
-	Flow  *FlowDefinition // pre-loaded flow definition
+	Route  string          // e.g. "/login"
+	Realm  string          // e.g. "customers"
+	Tenant string          // e.g. "acme"
+	Flow   *FlowDefinition // pre-loaded flow definition
 }
 
 type FlowState struct {

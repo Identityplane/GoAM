@@ -1,5 +1,5 @@
 name: user_register
-route: /register
+route: register
 start: init
 nodes:
   init:
