@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"goiam/internal/auth/repository"
 	"goiam/internal/db"
@@ -24,6 +25,12 @@ type RealmService interface {
 	InitRealms(configRoot string, userDb db.UserDB) error
 	// GetAllRealms returns a map of all loaded realms with realmId as index
 	GetAllRealms() (map[string]*LoadedRealm, error)
+	// CreateRealm creates a new realm
+	CreateRealm(realm *model.Realm) error
+	// UpdateRealm updates an existing realm
+	UpdateRealm(realm *model.Realm) error
+	// DeleteRealm deletes a realm
+	DeleteRealm(tenant, realm string) error
 }
 
 // Intermediate used for deserialization
@@ -99,6 +106,10 @@ func (s *realmServiceImpl) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
 
 	if err != nil {
 		logger.DebugNoContext("cannot load realm %s/%s", tenant, realm)
+		return nil, false
+	}
+
+	if realmConfig == nil {
 		return nil, false
 	}
 
@@ -217,4 +228,59 @@ func loadRealmConfigFromFilePath(path string) (*model.Realm, error) {
 		Realm:  unmarshaledFlowYaml.Realm,
 		Tenant: tenant,
 	}, nil
+}
+
+func (s *realmServiceImpl) CreateRealm(realm *model.Realm) error {
+	// Check if realm already exists
+	existing, err := s.realmDb.GetRealm(context.Background(), realm.Tenant, realm.Realm)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("check existing realm: %w", err)
+	}
+	if existing != nil {
+		return nil // Idempotent - realm already exists
+	}
+
+	// Create new realm
+	if err := s.realmDb.CreateRealm(context.Background(), *realm); err != nil {
+		return fmt.Errorf("create realm: %w", err)
+	}
+
+	return nil
+}
+
+func (s *realmServiceImpl) UpdateRealm(realm *model.Realm) error {
+	// Check if realm exists
+	existing, err := s.realmDb.GetRealm(context.Background(), realm.Tenant, realm.Realm)
+	if err != nil {
+		return fmt.Errorf("check existing realm: %w", err)
+	}
+	if existing == nil {
+		return fmt.Errorf("realm not found")
+	}
+
+	// Only update realm_name
+	existing.RealmName = realm.RealmName
+
+	if err := s.realmDb.UpdateRealm(context.Background(), existing); err != nil {
+		return fmt.Errorf("update realm: %w", err)
+	}
+
+	return nil
+}
+
+func (s *realmServiceImpl) DeleteRealm(tenant, realm string) error {
+	// Check if realm exists
+	existing, err := s.realmDb.GetRealm(context.Background(), tenant, realm)
+	if err != nil {
+		return fmt.Errorf("check existing realm: %w", err)
+	}
+	if existing == nil {
+		return nil // Idempotent - realm already deleted
+	}
+
+	if err := s.realmDb.DeleteRealm(context.Background(), tenant, realm); err != nil {
+		return fmt.Errorf("delete realm: %w", err)
+	}
+
+	return nil
 }

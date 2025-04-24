@@ -90,7 +90,7 @@ func recoveryMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 func setCorsHeaders(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
-	ctx.Response.Header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	ctx.Response.Header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH,DELETE, OPTIONS")
 	ctx.Response.Header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	ctx.Response.Header.Set("Access-Control-Max-Age", "86400") // 24 hours
 }

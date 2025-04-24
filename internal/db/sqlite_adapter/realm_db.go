@@ -158,7 +158,6 @@ func (s *SQLiteRealmDB) ListAllRealms(ctx context.Context) ([]model.Realm, error
 }
 
 func (s *SQLiteRealmDB) DeleteRealm(ctx context.Context, tenant, realm string) error {
-
 	query := `
 		DELETE FROM realms
 		WHERE tenant = ? AND realm = ?

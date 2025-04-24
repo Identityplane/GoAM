@@ -23,20 +23,6 @@ var SuccessResultNode = &NodeDefinition{
 	Run:             RunAuthSuccessNode,
 }
 
-func RunAuthSuccessNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
-
-	state.Result = &model.FlowResult{
-		UserID:        state.Context["user_id"],
-		Username:      state.Context["username"],
-		Authenticated: true}
-
-	return &model.NodeResult{
-		Condition: "",
-		Prompts:   nil,
-	}, nil
-
-}
-
 var FailureResultNode = &NodeDefinition{
 	Name:            "failureResult",
 	Type:            model.NodeTypeResult,
@@ -102,6 +88,20 @@ func RunSetVariableNode(state *model.FlowState, node *model.GraphNode, input map
 	state.Context[key] = value
 
 	return model.NewNodeResultWithCondition("done")
+}
+
+func RunAuthSuccessNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+
+	state.Result = &model.FlowResult{
+		UserID:        state.Context["user_id"],
+		Username:      state.Context["username"],
+		Authenticated: true}
+
+	return &model.NodeResult{
+		Condition: "",
+		Prompts:   nil,
+	}, nil
+
 }
 
 func ptr[T any](v T) *T {

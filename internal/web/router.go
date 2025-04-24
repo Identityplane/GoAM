@@ -31,7 +31,10 @@ func New() *router.Router {
 	admin.GET("/{tenant}/{realm}/dashboard", WrapMiddleware(admin_api.HandleDashboard))
 
 	admin.GET("/realms", WrapMiddleware(admin_api.HandleListRealms))
-	admin.GET("/{tenant}/{realm}/", admin_api.HandleGetRealm)
+	admin.GET("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleGetRealm))
+	admin.POST("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleCreateRealm))
+	admin.PATCH("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleUpdateRealm))
+	admin.DELETE("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleDeleteRealm))
 
 	// Debug routes
 	r.GET("/debug/flows/all", WrapMiddleware(debug.HandleListAllFlows))
