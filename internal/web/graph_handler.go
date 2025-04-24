@@ -45,7 +45,9 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	svc := service.GetServices()
 
-	loadedRealm, ok := svc.RealmService.GetRealm(tenant + "/" + realm)
+	// TODO this should be optimized to only require one service call to be more efficient
+	// but currently we need the registry and flow seperatly
+	loadedRealm, ok := svc.RealmService.GetRealm(tenant, realm)
 	if !ok {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		ctx.SetBodyString("realm not found")

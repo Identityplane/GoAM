@@ -144,7 +144,12 @@ func (s *flowServiceImpl) initFlowsFromConfigDir(configRoot string) error {
 	s.flows = make(map[string]*model.FlowWithRoute)
 
 	// Load all flows for all realms
-	allRealms := services.RealmService.GetAllRealms()
+	allRealms, err := services.RealmService.GetAllRealms()
+
+	if err != nil {
+
+		return fmt.Errorf("failed to load all realms while initFlowsFromConfigDir: %s", err)
+	}
 
 	for _, realm := range allRealms {
 		err := s.loadFlowsFromRealmConfigDir(realm.Config.Tenant, realm.Config.Realm, configRoot)
@@ -162,7 +167,9 @@ func (s *flowServiceImpl) loadFlowsFromRealmConfigDir(tenant, realm, configRoot 
 
 	// check if the dir exists
 	if _, err := os.Stat(flowsDir); os.IsNotExist(err) {
-		return fmt.Errorf("flows directory %s does not exist", flowsDir)
+
+		logger.ErrorNoContext("flows directory %s does not exist", flowsDir)
+		return nil
 	}
 
 	// Go over all yaml files in the flows directory

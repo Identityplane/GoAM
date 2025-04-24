@@ -34,7 +34,7 @@ func TestUserAPI_E2E(t *testing.T) {
 
 	// Test creating a user
 	t.Run("Create User", func(t *testing.T) {
-		e.POST("/acme/customers/admin/users/"+testUser["username"].(string)).
+		e.POST("/admin/acme/customers/users/"+testUser["username"].(string)).
 			WithJSON(testUser).
 			Expect().
 			Status(http.StatusCreated).
@@ -46,7 +46,7 @@ func TestUserAPI_E2E(t *testing.T) {
 
 	// Test getting user stats
 	t.Run("Get User Stats", func(t *testing.T) {
-		e.GET("/acme/customers/admin/users/stats").
+		e.GET("/admin/acme/customers/users/stats").
 			Expect().
 			Status(http.StatusOK).
 			JSON().
@@ -57,7 +57,7 @@ func TestUserAPI_E2E(t *testing.T) {
 
 	// Test listing users with pagination
 	t.Run("List Users", func(t *testing.T) {
-		resp := e.GET("/acme/customers/admin/users").
+		resp := e.GET("/admin/acme/customers/users").
 			WithQuery("page", 1).
 			WithQuery("page_size", 20).
 			Expect().
@@ -82,7 +82,7 @@ func TestUserAPI_E2E(t *testing.T) {
 
 	// Test getting a specific user
 	t.Run("Get User", func(t *testing.T) {
-		e.GET("/acme/customers/admin/users/"+testUser["username"].(string)).
+		e.GET("/admin/acme/customers/users/"+testUser["username"].(string)).
 			Expect().
 			Status(http.StatusOK).
 			JSON().
@@ -96,7 +96,7 @@ func TestUserAPI_E2E(t *testing.T) {
 		updatedUser := testUser
 		updatedUser["display_name"] = "Updated Admin Test User"
 
-		e.PUT("/acme/customers/admin/users/"+testUser["username"].(string)).
+		e.PUT("/admin/acme/customers/users/"+testUser["username"].(string)).
 			WithJSON(updatedUser).
 			Expect().
 			Status(http.StatusOK).
@@ -107,12 +107,12 @@ func TestUserAPI_E2E(t *testing.T) {
 
 	// Test deleting a user
 	t.Run("Delete User", func(t *testing.T) {
-		e.DELETE("/acme/customers/admin/users/" + testUser["username"].(string)).
+		e.DELETE("/admin/acme/customers/users/" + testUser["username"].(string)).
 			Expect().
 			Status(http.StatusNoContent)
 
 		// Verify user is deleted
-		e.GET("/acme/customers/admin/users/" + testUser["username"].(string)).
+		e.GET("/admin/acme/customers/users/" + testUser["username"].(string)).
 			Expect().
 			Status(http.StatusNotFound)
 	})

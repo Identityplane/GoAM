@@ -16,7 +16,10 @@ type UserRepository struct {
 }
 
 func NewUserRepository(tenant, realm string, db UserDB) repository.UserRepository {
-	return &UserRepository{tenant: tenant, realm: realm, db: db}
+
+	repo := &UserRepository{tenant: tenant, realm: realm, db: db}
+
+	return repo
 }
 
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {

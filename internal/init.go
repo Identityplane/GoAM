@@ -18,12 +18,6 @@ var (
 	UserAdminService service.UserAdminService
 )
 
-// DatabaseConnections holds all database connections
-type DatabaseConnections struct {
-	UserDB service.UserDB
-	// Add more database connections here as needed
-}
-
 // Initialize loads all tenant/realm configurations at startup.
 // Each realm must include its own flow configuration.
 func Initialize() {
@@ -38,8 +32,8 @@ func Initialize() {
 }
 
 // initDatabase initializes all database connections based on the connection strings
-func initDatabase() *DatabaseConnections {
-	connections := &DatabaseConnections{}
+func initDatabase() *service.DatabaseConnections {
+	connections := &service.DatabaseConnections{}
 	var err error
 
 	if strings.HasPrefix(config.DBConnString, "postgres://") {
@@ -71,9 +65,15 @@ func initDatabase() *DatabaseConnections {
 		}
 
 		// init user db
-		connections.UserDB, err = sqlite_adapter.NewSQLiteUserDB(sqliteDB)
+		connections.UserDB, err = sqlite_adapter.NewUserDB(sqliteDB)
 		if err != nil {
 			logger.PanicNoContext("Failed to initialize sqlite user db: %v", err)
+		}
+
+		// init realms db
+		connections.RealmDB, err = sqlite_adapter.NewRealmDB(sqliteDB)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize sqlite realm db: %v", err)
 		}
 	}
 
@@ -113,9 +113,9 @@ func initSQLiteDB() (*sql.DB, error) {
 }
 
 // initServices initializes all services and loads realm configurations
-func initServices(dbConnections *DatabaseConnections) {
+func initServices(dbConnections *service.DatabaseConnections) {
 	// Initialize services
-	services := service.InitServices(dbConnections.UserDB)
+	services := service.InitServices(*dbConnections)
 
 	// Initialize realms
 	if err := services.RealmService.InitRealms(config.ConfigPath, dbConnections.UserDB); err != nil {

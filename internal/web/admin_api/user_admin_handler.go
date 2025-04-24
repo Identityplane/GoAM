@@ -24,21 +24,9 @@ type Pagination struct {
 	TotalPages int   `json:"total_pages"`
 }
 
-// Handler handles admin API endpoints
-type Handler struct {
-	userService service.UserAdminService
-}
-
-// New creates a new admin API handler
-func New(userService service.UserAdminService) *Handler {
-	return &Handler{
-		userService: userService,
-	}
-}
-
 // @Summary List users
 // @Description Get a paginated list of users
-// @Tags users
+// @Tags Users
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
@@ -49,14 +37,14 @@ func New(userService service.UserAdminService) *Handler {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /{tenant}/{realm}/admin/users [get]
-func (h *Handler) HandleListUsers(ctx *fasthttp.RequestCtx) {
+// @Router /admin/{tenant}/{realm}/users [get]
+func HandleListUsers(ctx *fasthttp.RequestCtx) {
 	// Get tenant and realm from path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -80,7 +68,7 @@ func (h *Handler) HandleListUsers(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Get users from service
-	users, total, err := h.userService.ListUsers(ctx, tenant, realm, service.PaginationParams{
+	users, total, err := service.GetServices().UserService.ListUsers(ctx, tenant, realm, service.PaginationParams{
 		Page:     page,
 		PageSize: pageSize,
 	})
@@ -124,7 +112,7 @@ func (h *Handler) HandleListUsers(ctx *fasthttp.RequestCtx) {
 
 // @Summary Get user
 // @Description Get a specific user by username
-// @Tags users
+// @Tags Users
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
@@ -134,15 +122,15 @@ func (h *Handler) HandleListUsers(ctx *fasthttp.RequestCtx) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /{tenant}/{realm}/admin/users/{username} [get]
-func (h *Handler) HandleGetUser(ctx *fasthttp.RequestCtx) {
+// @Router /admin/{tenant}/{realm}/users/{username} [get]
+func HandleGetUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -150,7 +138,7 @@ func (h *Handler) HandleGetUser(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Get user from service
-	user, err := h.userService.GetUser(ctx, tenant, realm, username)
+	user, err := service.GetServices().UserService.GetUser(ctx, tenant, realm, username)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to get user: " + err.Error())
@@ -178,7 +166,7 @@ func (h *Handler) HandleGetUser(ctx *fasthttp.RequestCtx) {
 
 // @Summary Create user
 // @Description Create a new user
-// @Tags users
+// @Tags Users
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
@@ -188,15 +176,15 @@ func (h *Handler) HandleGetUser(ctx *fasthttp.RequestCtx) {
 // @Success 201 {object} model.User
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /{tenant}/{realm}/admin/users/{username} [post]
-func (h *Handler) HandleCreateUser(ctx *fasthttp.RequestCtx) {
+// @Router /admin/{tenant}/{realm}/users/{username} [post]
+func HandleCreateUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -219,7 +207,7 @@ func (h *Handler) HandleCreateUser(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Create user through service
-	user, err := h.userService.CreateUser(ctx, tenant, realm, createUser)
+	user, err := service.GetServices().UserService.CreateUser(ctx, tenant, realm, createUser)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to create user: " + err.Error())
@@ -242,7 +230,7 @@ func (h *Handler) HandleCreateUser(ctx *fasthttp.RequestCtx) {
 
 // @Summary Update user
 // @Description Update an existing user
-// @Tags users
+// @Tags Users
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
@@ -253,15 +241,15 @@ func (h *Handler) HandleCreateUser(ctx *fasthttp.RequestCtx) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /{tenant}/{realm}/admin/users/{username} [put]
-func (h *Handler) HandleUpdateUser(ctx *fasthttp.RequestCtx) {
+// @Router /admin/{tenant}/{realm}/users/{username} [put]
+func HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -277,7 +265,7 @@ func (h *Handler) HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Update user through service
-	user, err := h.userService.UpdateUser(ctx, tenant, realm, username, updateUser)
+	user, err := service.GetServices().UserService.UpdateUser(ctx, tenant, realm, username, updateUser)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to update user: " + err.Error())
@@ -305,7 +293,7 @@ func (h *Handler) HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 
 // @Summary Delete user
 // @Description Delete a user
-// @Tags users
+// @Tags Users
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
@@ -315,15 +303,15 @@ func (h *Handler) HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /{tenant}/{realm}/admin/users/{username} [delete]
-func (h *Handler) HandleDeleteUser(ctx *fasthttp.RequestCtx) {
+// @Router /admin/{tenant}/{realm}/users/{username} [delete]
+func HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 	username := ctx.UserValue("username").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -331,7 +319,7 @@ func (h *Handler) HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Delete user through service
-	err := h.userService.DeleteUser(ctx, tenant, realm, username)
+	err := service.GetServices().UserService.DeleteUser(ctx, tenant, realm, username)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to delete user: " + err.Error())
@@ -343,7 +331,7 @@ func (h *Handler) HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 
 // @Summary Get user statistics
 // @Description Get user statistics for the realm
-// @Tags users
+// @Tags Users
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
@@ -352,14 +340,14 @@ func (h *Handler) HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /{tenant}/{realm}/admin/users/stats [get]
-func (h *Handler) HandleGetUserStats(ctx *fasthttp.RequestCtx) {
+// @Router /admin/{tenant}/{realm}/users/stats [get]
+func HandleGetUserStats(ctx *fasthttp.RequestCtx) {
 	// Get tenant and realm from path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 
 	// Lookup the loaded realm
-	_, ok := service.GetServices().RealmService.GetRealm(tenant + "/" + realm)
+	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -367,7 +355,7 @@ func (h *Handler) HandleGetUserStats(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Get stats from service
-	stats, err := h.userService.GetUserStats(ctx, tenant, realm)
+	stats, err := service.GetServices().UserService.GetUserStats(ctx, tenant, realm)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to get user stats: " + err.Error())

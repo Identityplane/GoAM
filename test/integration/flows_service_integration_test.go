@@ -1,10 +1,8 @@
 package integration
 
 import (
-	"path/filepath"
 	"testing"
 
-	"goiam/internal/config"
 	"goiam/internal/service"
 
 	"github.com/stretchr/testify/assert"
@@ -50,17 +48,4 @@ func TestFlowService_Integration(t *testing.T) {
 	for _, expectedFlow := range expectedFlows {
 		assert.True(t, flowMap[expectedFlow], "Flow %s should be in the list", expectedFlow)
 	}
-}
-
-func TestFlowService_InvalidConfig(t *testing.T) {
-	// Create a new flow service
-	SetupIntegrationTest(t, "")
-
-	// Change the config path to a non-existent directory
-	config.ConfigPath = filepath.Join(config.ConfigPath, "non_existent")
-
-	// Test initialization with invalid config path
-	err := service.GetServices().FlowService.InitFlows()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to init flows from config dir")
 }

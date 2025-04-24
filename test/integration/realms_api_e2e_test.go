@@ -30,15 +30,15 @@ func TestRealmsAPI_E2E(t *testing.T) {
 
 		// Get the first tenant from the response
 		firstTenant := resp.Element(0).Object()
-		firstTenant.Value("value").String().Equal(expectedTenant)
+		firstTenant.Value("tenant").String().Equal(expectedTenant)
 
 		// Get the first realm from the tenant
 		firstRealm := firstTenant.Value("realms").Array().Element(0).Object()
-		firstRealm.Value("value").String().Equal(expectedRealm)
+		firstRealm.Value("realm").String().Equal(expectedRealm)
 	})
 
 	t.Run("Get Dashboard", func(t *testing.T) {
-		resp := e.GET(fmt.Sprintf("/%s/%s/admin/dashboard", expectedTenant, expectedRealm)).
+		resp := e.GET(fmt.Sprintf("/admin/%s/%s/dashboard", expectedTenant, expectedRealm)).
 			Expect().
 			Status(http.StatusOK).
 			JSON().

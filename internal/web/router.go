@@ -2,7 +2,6 @@ package web
 
 import (
 	"encoding/json"
-	"goiam/internal/service"
 	"goiam/internal/web/admin_api"
 	"goiam/internal/web/debug"
 
@@ -13,9 +12,6 @@ import (
 func New() *router.Router {
 	r := router.New()
 
-	// Get services
-	services := service.GetServices()
-
 	// Set the NotFound handler
 	r.NotFound = WrapMiddleware(handleNotFound)
 
@@ -24,15 +20,18 @@ func New() *router.Router {
 	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(HandleAuthRequest))
 
 	// Admin routes
-	adminHandler := admin_api.New(services.UserService)
-	r.GET("/{tenant}/{realm}/admin/users", WrapMiddleware(adminHandler.HandleListUsers))
-	r.GET("/{tenant}/{realm}/admin/users/stats", WrapMiddleware(adminHandler.HandleGetUserStats))
-	r.GET("/{tenant}/{realm}/admin/users/{username}", WrapMiddleware(adminHandler.HandleGetUser))
-	r.POST("/{tenant}/{realm}/admin/users/{username}", WrapMiddleware(adminHandler.HandleCreateUser))
-	r.PUT("/{tenant}/{realm}/admin/users/{username}", WrapMiddleware(adminHandler.HandleUpdateUser))
-	r.DELETE("/{tenant}/{realm}/admin/users/{username}", WrapMiddleware(adminHandler.HandleDeleteUser))
-	r.GET("/{tenant}/{realm}/admin/dashboard", WrapMiddleware(adminHandler.HandleDashboard))
-	r.GET("/admin/realms", WrapMiddleware(adminHandler.HandleListRealms))
+	admin := r.Group("/admin")
+	admin.GET("/{tenant}/{realm}/users", WrapMiddleware(admin_api.HandleListUsers))
+	admin.GET("/{tenant}/{realm}/users/stats", WrapMiddleware(admin_api.HandleGetUserStats))
+	admin.GET("/{tenant}/{realm}/users/{username}", WrapMiddleware(admin_api.HandleGetUser))
+	admin.POST("/{tenant}/{realm}/users/{username}", WrapMiddleware(admin_api.HandleCreateUser))
+	admin.PUT("/{tenant}/{realm}/users/{username}", WrapMiddleware(admin_api.HandleUpdateUser))
+	admin.DELETE("/{tenant}/{realm}/users/{username}", WrapMiddleware(admin_api.HandleDeleteUser))
+
+	admin.GET("/{tenant}/{realm}/dashboard", WrapMiddleware(admin_api.HandleDashboard))
+
+	admin.GET("/realms", WrapMiddleware(admin_api.HandleListRealms))
+	admin.GET("/{tenant}/{realm}/", admin_api.HandleGetRealm)
 
 	// Debug routes
 	r.GET("/debug/flows/all", WrapMiddleware(debug.HandleListAllFlows))

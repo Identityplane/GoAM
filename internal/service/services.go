@@ -4,11 +4,6 @@ import (
 	"goiam/internal/db"
 )
 
-// UserDB defines the interface for user database operations
-type UserDB interface {
-	db.UserDB
-}
-
 // Services holds all service instances
 type Services struct {
 	UserService  UserAdminService
@@ -16,18 +11,29 @@ type Services struct {
 	FlowService  FlowService
 }
 
+// DatabaseConnections holds all database connections
+type DatabaseConnections struct {
+	UserDB  db.UserDB
+	RealmDB db.RealmDB
+}
+
 var (
 	// Global service registry
-	services *Services
+	services  *Services
+	databases *DatabaseConnections
 )
 
 // InitServices initializes all services with their dependencies
-func InitServices(userDB UserDB) *Services {
+func InitServices(connections DatabaseConnections) *Services {
+
+	databases = &connections
+
 	services = &Services{
-		UserService:  NewUserService(userDB),
-		RealmService: NewRealmService(),
+		UserService:  NewUserService(databases.UserDB),
+		RealmService: NewRealmService(databases.RealmDB, databases.UserDB),
 		FlowService:  NewFlowService(),
 	}
+
 	return services
 }
 

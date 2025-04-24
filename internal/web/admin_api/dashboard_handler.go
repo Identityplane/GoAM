@@ -24,7 +24,7 @@ type FlowInfo struct {
 // HandleDashboard returns combined dashboard data for a tenant/realm
 // @Summary Get dashboard data
 // @Description Returns combined user stats and flow information for a tenant/realm
-// @Tags dashboard
+// @Tags Dashboard
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
@@ -33,8 +33,8 @@ type FlowInfo struct {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /{tenant}/{realm}/admin/dashboard [get]
-func (h *Handler) HandleDashboard(ctx *fasthttp.RequestCtx) {
+// @Router /admin/{tenant}/{realm}/dashboard [get]
+func HandleDashboard(ctx *fasthttp.RequestCtx) {
 	// Get tenant and realm from path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
@@ -42,7 +42,7 @@ func (h *Handler) HandleDashboard(ctx *fasthttp.RequestCtx) {
 	services := service.GetServices()
 
 	// Lookup the loaded realm
-	_, ok := services.RealmService.GetRealm(tenant + "/" + realm)
+	_, ok := services.RealmService.GetRealm(tenant, realm)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
@@ -50,7 +50,7 @@ func (h *Handler) HandleDashboard(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Get user stats
-	stats, err := h.userService.GetUserStats(ctx, tenant, realm)
+	stats, err := service.GetServices().UserService.GetUserStats(ctx, tenant, realm)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to get user stats: " + err.Error())

@@ -38,9 +38,17 @@ func handleReadiness(ctx *fasthttp.RequestCtx) {
 	ready := map[string]string{}
 	isReady := true
 
-	if len(service.GetServices().RealmService.GetAllRealms()) == 0 {
-		ready["Realms"] = "not ready"
+	allRealms, err := service.GetServices().RealmService.GetAllRealms()
+
+	if err != nil {
+		ready["Realms"] = "cannot load realms"
 		isReady = false
+	}
+
+	if len(allRealms) == 0 {
+		ready["Realms"] = "not at least 1 realm available"
+		isReady = false
+
 	} else {
 		ready["Realms"] = "ready"
 	}

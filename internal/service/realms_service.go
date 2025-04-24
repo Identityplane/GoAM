@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"goiam/internal/auth/repository"
 	"goiam/internal/db"
@@ -10,19 +11,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
 // RealmService defines the business logic for realm operations
 type RealmService interface {
 	// GetRealm returns a loaded realm configuration by its composite ID
-	GetRealm(id string) (*LoadedRealm, bool)
+	GetRealm(tenant, realm string) (*LoadedRealm, bool)
 	// InitRealms loads all static realm configurations from disk
 	InitRealms(configRoot string, userDb db.UserDB) error
-	// GetAllRealms returns all loaded realms
-	GetAllRealms() map[string]*LoadedRealm
+	// GetAllRealms returns a map of all loaded realms with realmId as index
+	GetAllRealms() (map[string]*LoadedRealm, error)
 }
 
 // Intermediate used for deserialization
@@ -32,39 +33,47 @@ type flowRealmYaml struct {
 
 // LoadedRealm wraps a RealmConfig with metadata for tracking its source.
 type LoadedRealm struct {
-	Config       *model.RealmConfig       // parsed realm config
+	Config       *model.Realm             // parsed realm config
 	RealmID      string                   // composite ID like "acme/customers"
-	Path         string                   // original file path, useful for debugging/reloads
 	Repositories *repository.Repositories // services for this realm
+}
+
+func NewLoadedRealm(realmConfig *model.Realm, userRepo repository.UserRepository) *LoadedRealm {
+
+	realmId := realmConfig.Tenant + "/" + realmConfig.Realm
+	repos := &repository.Repositories{UserRepo: userRepo}
+
+	return &LoadedRealm{
+		Config:       realmConfig,
+		RealmID:      realmId,
+		Repositories: repos,
+	}
 }
 
 // realmServiceImpl implements RealmService
 type realmServiceImpl struct {
-	loadedRealms   map[string]*LoadedRealm
-	loadedRealmsMu sync.RWMutex
+	realmDb db.RealmDB
+	userDb  db.UserDB
 }
 
 // NewRealmService creates a new RealmService instance
-func NewRealmService() RealmService {
+func NewRealmService(realmDb db.RealmDB, userDb db.UserDB) RealmService {
 	return &realmServiceImpl{
-		loadedRealms: make(map[string]*LoadedRealm),
+		realmDb: realmDb,
+		userDb:  userDb,
 	}
 }
 
 func (s *realmServiceImpl) InitRealms(configRoot string, userDb db.UserDB) error {
 
-	// Swap global registry
-	s.loadedRealmsMu.Lock()
-	defer s.loadedRealmsMu.Unlock()
-
 	// Load realms from config directory
-	newRealms, err := loadRealmsFromConfigDir(configRoot)
+	realmsFromConfigDir, err := loadRealmsFromConfigDir(configRoot)
 	if err != nil {
 		return fmt.Errorf("failed to load realms from config directory %s: %w", configRoot, err)
 	}
 
 	// Init services for each realm
-	for _, realm := range newRealms {
+	for _, realm := range realmsFromConfigDir {
 
 		// Init services for realm
 		realm.Repositories = &repository.Repositories{}
@@ -74,9 +83,52 @@ func (s *realmServiceImpl) InitRealms(configRoot string, userDb db.UserDB) error
 		logger.DebugNoContext("Initialized user repository for realm %s", realm.RealmID)
 	}
 
-	s.loadedRealms = newRealms
+	// Currently we store the local realms in the database
+	for _, realm := range realmsFromConfigDir {
+
+		s.realmDb.CreateRealm(context.Background(), *realm.Config)
+	}
 
 	return nil
+}
+
+func (s *realmServiceImpl) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
+
+	// Use the database to get the realm config
+	realmConfig, err := s.realmDb.GetRealm(context.Background(), tenant, realm)
+
+	if err != nil {
+		logger.DebugNoContext("cannot load realm %s/%s", tenant, realm)
+		return nil, false
+	}
+
+	// Load the realm with repo
+	userRepo := db.NewUserRepository(tenant, realm, s.userDb)
+	loadedRealm := NewLoadedRealm(realmConfig, userRepo)
+
+	return loadedRealm, true
+}
+
+func (s *realmServiceImpl) GetAllRealms() (map[string]*LoadedRealm, error) {
+
+	realmConfigs, err := s.realmDb.ListAllRealms(context.Background())
+
+	if err != nil {
+		return nil, errors.Errorf("cannot load all realms")
+	}
+
+	loadedRealms := make(map[string]*LoadedRealm)
+
+	for _, realmConfig := range realmConfigs {
+
+		// Load the realm with repo
+		userRepo := db.NewUserRepository(realmConfig.Tenant, realmConfig.Tenant, s.userDb)
+		loadedRealm := NewLoadedRealm(&realmConfig, userRepo)
+
+		loadedRealms[loadedRealm.RealmID] = loadedRealm
+	}
+
+	return loadedRealms, nil
 }
 
 // loadRealmsFromConfigDir loads all realm configurations from the given config root directory
@@ -116,7 +168,6 @@ func loadRealmsFromConfigDir(configRoot string) (map[string]*LoadedRealm, error)
 		newRealms[id] = &LoadedRealm{
 			Config:  cfg,
 			RealmID: id,
-			Path:    path,
 		}
 		return nil
 	})
@@ -129,28 +180,9 @@ func loadRealmsFromConfigDir(configRoot string) (map[string]*LoadedRealm, error)
 
 }
 
-func (s *realmServiceImpl) GetRealm(id string) (*LoadedRealm, bool) {
-	s.loadedRealmsMu.RLock()
-	defer s.loadedRealmsMu.RUnlock()
-	r, ok := s.loadedRealms[id]
-	return r, ok
-}
-
-func (s *realmServiceImpl) GetAllRealms() map[string]*LoadedRealm {
-	s.loadedRealmsMu.RLock()
-	defer s.loadedRealmsMu.RUnlock()
-
-	// Shallow copy to prevent external mutation
-	copy := make(map[string]*LoadedRealm, len(s.loadedRealms))
-	for k, v := range s.loadedRealms {
-		copy[k] = v
-	}
-	return copy
-}
-
 // Helper function to load realm config from file
 // Does not load flows, only realm config as we have a seperate service for loading flows
-func loadRealmConfigFromFilePath(path string) (*model.RealmConfig, error) {
+func loadRealmConfigFromFilePath(path string) (*model.Realm, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read failed: %w", err)
@@ -181,7 +213,7 @@ func loadRealmConfigFromFilePath(path string) (*model.RealmConfig, error) {
 	}
 	tenant := segments[tenantIdx]
 
-	return &model.RealmConfig{
+	return &model.Realm{
 		Realm:  unmarshaledFlowYaml.Realm,
 		Tenant: tenant,
 	}, nil

@@ -31,22 +31,34 @@ definitions:
       total_pages:
         type: integer
     type: object
-  admin_api.RealmInfo:
+  admin_api.ShortRealmInfo:
     properties:
-      label:
+      realm:
         type: string
-      value:
+      realm_name:
         type: string
     type: object
-  admin_api.TenantInfo:
+  admin_api.ShortTenantInfo:
     properties:
-      label:
-        type: string
       realms:
         items:
-          $ref: '#/definitions/admin_api.RealmInfo'
+          $ref: '#/definitions/admin_api.ShortRealmInfo'
         type: array
-      value:
+      tenant:
+        type: string
+      tenant_name:
+        type: string
+    type: object
+  model.Realm:
+    properties:
+      realm:
+        description: e.g. "customers"
+        type: string
+      realmName:
+        description: e.g. "Our Customers"
+        type: string
+      tenant:
+        description: e.g. "acme"
         type: string
     type: object
   model.User:
@@ -204,305 +216,6 @@ info:
   title: GoIAM Admin API
   version: "1.0"
 paths:
-  /{tenant}/{realm}/admin/dashboard:
-    get:
-      consumes:
-      - application/json
-      description: Returns combined user stats and flow information for a tenant/realm
-      parameters:
-      - description: Tenant ID
-        in: path
-        name: tenant
-        required: true
-        type: string
-      - description: Realm ID
-        in: path
-        name: realm
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/admin_api.DashboardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get dashboard data
-      tags:
-      - dashboard
-  /{tenant}/{realm}/admin/users:
-    get:
-      consumes:
-      - application/json
-      description: Get a paginated list of users
-      parameters:
-      - description: Tenant ID
-        in: path
-        name: tenant
-        required: true
-        type: string
-      - description: Realm ID
-        in: path
-        name: realm
-        required: true
-        type: string
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
-      - default: 100
-        description: Page size
-        in: query
-        name: page_size
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/admin_api.PagedResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: List users
-      tags:
-      - users
-  /{tenant}/{realm}/admin/users/{username}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a user
-      parameters:
-      - description: Tenant ID
-        in: path
-        name: tenant
-        required: true
-        type: string
-      - description: Realm ID
-        in: path
-        name: realm
-        required: true
-        type: string
-      - description: Username
-        in: path
-        name: username
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Delete user
-      tags:
-      - users
-    get:
-      consumes:
-      - application/json
-      description: Get a specific user by username
-      parameters:
-      - description: Tenant ID
-        in: path
-        name: tenant
-        required: true
-        type: string
-      - description: Realm ID
-        in: path
-        name: realm
-        required: true
-        type: string
-      - description: Username
-        in: path
-        name: username
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.User'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get user
-      tags:
-      - users
-    post:
-      consumes:
-      - application/json
-      description: Create a new user
-      parameters:
-      - description: Tenant ID
-        in: path
-        name: tenant
-        required: true
-        type: string
-      - description: Realm ID
-        in: path
-        name: realm
-        required: true
-        type: string
-      - description: Username
-        in: path
-        name: username
-        required: true
-        type: string
-      - description: User object
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/model.User'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/model.User'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Create user
-      tags:
-      - users
-    put:
-      consumes:
-      - application/json
-      description: Update an existing user
-      parameters:
-      - description: Tenant ID
-        in: path
-        name: tenant
-        required: true
-        type: string
-      - description: Realm ID
-        in: path
-        name: realm
-        required: true
-        type: string
-      - description: Username
-        in: path
-        name: username
-        required: true
-        type: string
-      - description: User object
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/model.User'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.User'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Update user
-      tags:
-      - users
-  /{tenant}/{realm}/admin/users/stats:
-    get:
-      consumes:
-      - application/json
-      description: Get user statistics for the realm
-      parameters:
-      - description: Tenant ID
-        in: path
-        name: tenant
-        required: true
-        type: string
-      - description: Realm ID
-        in: path
-        name: realm
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.UserStats'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get user statistics
-      tags:
-      - users
   /{tenant}/{realm}/auth/{path}:
     get:
       consumes:
@@ -615,17 +328,17 @@ paths:
       description: Generates and returns a PNG image visualization of the specified
         authentication flow
       parameters:
-      - description: Tenant ID
+      - description: Tenant
         in: path
         name: tenant
         required: true
         type: string
-      - description: Realm ID
+      - description: Realm
         in: path
         name: realm
         required: true
         type: string
-      - description: Flow name
+      - description: Flow Route
         in: path
         name: flow
         required: true
@@ -759,6 +472,339 @@ paths:
       summary: Serve static files
       tags:
       - Static
+  /admin/{tenant}/{realm}/:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of all available tenant/realm combinations
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenant
+        required: true
+        type: string
+      - description: Realm ID
+        in: path
+        name: realm
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Realm'
+        "404":
+          description: Realm not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List all tenant/realm combinations
+      tags:
+      - Realms
+  /admin/{tenant}/{realm}/dashboard:
+    get:
+      consumes:
+      - application/json
+      description: Returns combined user stats and flow information for a tenant/realm
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenant
+        required: true
+        type: string
+      - description: Realm ID
+        in: path
+        name: realm
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/admin_api.DashboardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get dashboard data
+      tags:
+      - Dashboard
+  /admin/{tenant}/{realm}/users:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of users
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenant
+        required: true
+        type: string
+      - description: Realm ID
+        in: path
+        name: realm
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 100
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/admin_api.PagedResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List users
+      tags:
+      - Users
+  /admin/{tenant}/{realm}/users/{username}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a user
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenant
+        required: true
+        type: string
+      - description: Realm ID
+        in: path
+        name: realm
+        required: true
+        type: string
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete user
+      tags:
+      - Users
+    get:
+      consumes:
+      - application/json
+      description: Get a specific user by username
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenant
+        required: true
+        type: string
+      - description: Realm ID
+        in: path
+        name: realm
+        required: true
+        type: string
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get user
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenant
+        required: true
+        type: string
+      - description: Realm ID
+        in: path
+        name: realm
+        required: true
+        type: string
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: User object
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create user
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update an existing user
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenant
+        required: true
+        type: string
+      - description: Realm ID
+        in: path
+        name: realm
+        required: true
+        type: string
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: User object
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update user
+      tags:
+      - Users
+  /admin/{tenant}/{realm}/users/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get user statistics for the realm
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: tenant
+        required: true
+        type: string
+      - description: Realm ID
+        in: path
+        name: realm
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserStats'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get user statistics
+      tags:
+      - Users
   /admin/realms:
     get:
       consumes:
@@ -771,7 +817,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/admin_api.TenantInfo'
+              $ref: '#/definitions/admin_api.ShortTenantInfo'
             type: array
         "500":
           description: Internal Server Error
@@ -779,7 +825,7 @@ paths:
             type: string
       summary: List all tenant/realm combinations
       tags:
-      - tenants
+      - Realms
   /debug/flows/all:
     get:
       description: Returns a plain text list of all authentication flows across all

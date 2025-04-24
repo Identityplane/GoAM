@@ -23,8 +23,8 @@ func (s *SQLiteUserDB) ListUsers(ctx context.Context, tenant string, realm strin
 	panic("unimplemented")
 }
 
-// NewSQLiteUserDB creates a new SQLiteUserDB instance
-func NewSQLiteUserDB(db *sql.DB) (*SQLiteUserDB, error) {
+// NewUserDB creates a new SQLiteUserDB instance
+func NewUserDB(db *sql.DB) (*SQLiteUserDB, error) {
 
 	// Check if the connection works and users table exists by executing a query
 	_, err := db.Exec(`
