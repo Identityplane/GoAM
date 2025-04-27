@@ -36,6 +36,13 @@ func New() *router.Router {
 	admin.PATCH("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleUpdateRealm))
 	admin.DELETE("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleDeleteRealm))
 
+	// Flow management routes
+	admin.GET("/{tenant}/{realm}/flows", WrapMiddleware(admin_api.HandleListFlows))
+	admin.GET("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleGetFlow))
+	admin.POST("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleCreateFlow))
+	admin.PATCH("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleUpdateFlow))
+	admin.DELETE("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleDeleteFlow))
+
 	// Debug routes
 	r.GET("/debug/flows/all", WrapMiddleware(debug.HandleListAllFlows))
 	r.GET("/{tenant}/{realm}/debug/flows", WrapMiddleware(debug.HandleListFlows))

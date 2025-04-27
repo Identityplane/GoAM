@@ -70,7 +70,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	handler := NewGraphHandler(tenant, realm, flow.Flow, registry)
+	handler := NewGraphHandler(tenant, realm, flow.Definition, registry)
 
 	// Execute the actual handler
 	handler.Handle(ctx)

@@ -1,44 +1,56 @@
-name: user_register
+flow_id: user_register
 route: register
-start: init
-nodes:
-  init:
-    use: init
-    next:
-      start: askUsername
+active: yes
 
-  askUsername:
-    use: askUsername
-    next:
-      submitted: checkUsernameAvailable
-    custom_config:
-      message: Please register your account
+definition:
+  name: "User Registration"
+  description: "User registration flow with username and password"
 
-  checkUsernameAvailable:
-    use: checkUsernameAvailable
-    next:
-      available: askPassword
-      taken: registerFailed
+  start: init
+  nodes:
+    init:
+      use: init
+      next:
+        start: askUsername
 
-  askPassword:
-    use: askPassword
-    next:
-      submitted: createUser
-    custom_config:
-      message: Please register your account
+    askUsername:
+      use: askUsername
+      next:
+        submitted: checkUsernameAvailable
+      custom_config:
+        message: Please register your account
 
-  createUser:
-    use: createUser
-    next:
-      success: registerSuccess
-      fail: registerFailed
+    checkUsernameAvailable:
+      use: checkUsernameAvailable
+      next:
+        available: askPassword
+        taken: registerFailed
 
-  registerSuccess:
-    use: successResult
-    custom_config:
-      message: Registration successful!
+    askPassword:
+      use: askPassword
+      next:
+        submitted: createUser
+      custom_config:
+        message: Please register your account
 
-  registerFailed:
-    use: failureResult
-    custom_config:
-      message: Registration failed. Username may already exist.
+    createUser:
+      use: createUser
+      next:
+        success: registerSuccess
+        fail: registerFailed
+
+    registerSuccess:
+      use: successResult
+      custom_config:
+        message: Registration successful!
+
+    registerFailed:
+      use: failureResult
+      custom_config:
+        message: Registration failed. Username may already exist.
+
+  editor:
+    nodes:
+      askUsername:
+        x: 200
+        y: 300

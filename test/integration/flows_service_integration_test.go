@@ -23,11 +23,11 @@ func TestFlowService_Integration(t *testing.T) {
 		"username_password_auth",
 	}
 
-	for _, flowName := range expectedFlows {
-		flow, exists := service.GetServices().FlowService.GetFlowById("acme", "customers", flowName)
-		assert.True(t, exists, "Flow %s should exist", flowName)
-		assert.NotNil(t, flow, "Flow %s should not be nil", flowName)
-		assert.Equal(t, flowName, flow.Flow.Name, "Flow name should match")
+	for _, flowId := range expectedFlows {
+		flow, exists := service.GetServices().FlowService.GetFlowById("acme", "customers", flowId)
+		assert.True(t, exists, "Flow %s should exist", flowId)
+		assert.NotNil(t, flow, "Flow %s should not be nil", flowId)
+		assert.Equal(t, flowId, flow.Id, "Flow name should match")
 	}
 
 	// Test getting a non-existent flow
@@ -40,10 +40,10 @@ func TestFlowService_Integration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, flows, len(expectedFlows), "Should list all flows")
 
-	// Verify all expected flows are present
+	// Verify all expected flows are present in list flows
 	flowMap := make(map[string]bool)
 	for _, flow := range flows {
-		flowMap[flow.Flow.Name] = true
+		flowMap[flow.Id] = true
 	}
 	for _, expectedFlow := range expectedFlows {
 		assert.True(t, flowMap[expectedFlow], "Flow %s should be in the list", expectedFlow)

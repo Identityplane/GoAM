@@ -29,18 +29,21 @@ type GraphNode struct {
 
 // This is the flow definition, usually stored as a yaml file
 type FlowDefinition struct {
-	Name  string                `json:"name"`
-	Start string                `json:"start"` // e.g., "init"
-	Nodes map[string]*GraphNode `json:"nodes"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Start       string                `json:"start"` // e.g., "init"
+	Nodes       map[string]*GraphNode `json:"nodes"`
 }
 
 // This is a flow together with meta information such as route, realm and tenant.
 // It contains the flow defition which is a yaml file
-type FlowWithRoute struct {
-	Route  string          // e.g. "/login"
-	Realm  string          // e.g. "customers"
-	Tenant string          // e.g. "acme"
-	Flow   *FlowDefinition // pre-loaded flow definition
+type Flow struct {
+	Tenant     string          // e.g. "acme"
+	Realm      string          // e.g. "customers"
+	Id         string          // e.g. "login"
+	Route      string          // e.g. "/login"
+	Active     bool            // whether the flow is active
+	Definition *FlowDefinition // pre-loaded flow definition
 }
 
 // Represents a ongoing execution of a flow

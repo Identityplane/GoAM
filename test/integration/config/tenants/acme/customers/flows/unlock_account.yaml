@@ -1,31 +1,43 @@
-name: unlock_account
+flow_id: unlock_account
 route: unlockAccount
-start: init
-nodes:
-  init:
-    use: init
-    next:
-      start: askUsername
+active: yes
 
-  askUsername:
-    use: askUsername
-    next:
-      submitted: unlockAccount
-    custom_config:
-      message: Enter username to unlock your account
+definition:
+  name: "Unlock Account"
+  description: "Account unlocking flow not secure, only for testing purposes"
 
-  unlockAccount:
-    use: unlockAccount
-    next:
-      success: unlockSuccess
-      fail: unlockFailure
+  start: init
+  nodes:
+    init:
+      use: init
+      next:
+        start: askUsername
 
-  unlockSuccess:
-    use: successResult
-    custom_config:
-      message: "The account has been successfully unlocked."
+    askUsername:
+      use: askUsername
+      next:
+        submitted: unlockAccount
+      custom_config:
+        message: Enter username to unlock your account
 
-  unlockFailure:
-    use: failureResult
-    custom_config:
-      message: "Failed to unlock the account. Please try again or contact support."
+    unlockAccount:
+      use: unlockAccount
+      next:
+        success: unlockSuccess
+        fail: unlockFailure
+
+    unlockSuccess:
+      use: successResult
+      custom_config:
+        message: "The account has been successfully unlocked."
+
+    unlockFailure:
+      use: failureResult
+      custom_config:
+        message: "Failed to unlock the account. Please try again or contact support."
+
+  editor:
+    nodes:
+      askUsername:
+        x: 200
+        y: 300

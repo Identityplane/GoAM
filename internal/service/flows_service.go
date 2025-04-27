@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"goiam/internal/auth/graph"
 	"goiam/internal/config"
 	"goiam/internal/logger"
 	"goiam/internal/model"
@@ -18,26 +19,29 @@ type FlowService interface {
 	InitFlows() error
 
 	// GetFlow returns a flow by its ID
-	GetFlowById(tenant, realm, id string) (*model.FlowWithRoute, bool)
+	GetFlowById(tenant, realm, id string) (*model.Flow, bool)
 
 	// GetFlowByPath returns a flow by its path
-	GetFlowByPath(tenant, realm, path string) (*model.FlowWithRoute, bool)
+	GetFlowByPath(tenant, realm, path string) (*model.Flow, bool)
 
 	// ListFlows returns all flows
-	ListFlows(tenant, realm string) ([]*model.FlowWithRoute, error)
+	ListFlows(tenant, realm string) ([]*model.Flow, error)
 
 	// ListAllFlows returns all flows or all realms
-	ListAllFlows() ([]*model.FlowWithRoute, error)
+	ListAllFlows() ([]*model.Flow, error)
 
 	// CreateFlow creates a new flow
-	CreateFlow(tenant, realm string, flow *model.FlowWithRoute) error
+	CreateFlow(tenant, realm string, flow *model.Flow) error
+
+	// DeleteFlow deletes a flow by its ID
+	DeleteFlow(tenant, realm, id string) error
 }
 
 // flowServiceImpl implements FlowService
 type flowServiceImpl struct {
 
 	// flows is a map of flow name to flow with route, flow name is used as key
-	flows   map[string]*model.FlowWithRoute
+	flows   map[string]*model.Flow
 	flowsMu sync.RWMutex
 }
 
@@ -56,7 +60,7 @@ func (s *flowServiceImpl) InitFlows() error {
 	return nil
 }
 
-func (s *flowServiceImpl) GetFlowById(tenant, realm, id string) (*model.FlowWithRoute, bool) {
+func (s *flowServiceImpl) GetFlowById(tenant, realm, id string) (*model.Flow, bool) {
 
 	// TODO we need to filter the flows by tenant and realm
 
@@ -65,7 +69,7 @@ func (s *flowServiceImpl) GetFlowById(tenant, realm, id string) (*model.FlowWith
 
 	// For now we just go over all flows and return the first one that matches the id and realm
 	for _, flow := range s.flows {
-		if flow.Realm == realm && flow.Tenant == tenant && flow.Flow.Name == id {
+		if flow.Realm == realm && flow.Tenant == tenant && flow.Id == id {
 			return flow, true
 		}
 	}
@@ -73,7 +77,7 @@ func (s *flowServiceImpl) GetFlowById(tenant, realm, id string) (*model.FlowWith
 	return nil, false
 }
 
-func (s *flowServiceImpl) GetFlowByPath(tenant, realm, path string) (*model.FlowWithRoute, bool) {
+func (s *flowServiceImpl) GetFlowByPath(tenant, realm, path string) (*model.Flow, bool) {
 
 	// TODO we need to filter the flows by tenant and realm
 
@@ -89,14 +93,14 @@ func (s *flowServiceImpl) GetFlowByPath(tenant, realm, path string) (*model.Flow
 	return flow, true
 }
 
-func (s *flowServiceImpl) ListFlows(tenant, realm string) ([]*model.FlowWithRoute, error) {
+func (s *flowServiceImpl) ListFlows(tenant, realm string) ([]*model.Flow, error) {
 
 	// TODO we need to filter the flows by tenant and realm
 
 	s.flowsMu.RLock()
 	defer s.flowsMu.RUnlock()
 
-	flows := make([]*model.FlowWithRoute, 0, len(s.flows))
+	flows := make([]*model.Flow, 0, len(s.flows))
 	for _, flow := range s.flows {
 		flows = append(flows, flow)
 	}
@@ -104,13 +108,13 @@ func (s *flowServiceImpl) ListFlows(tenant, realm string) ([]*model.FlowWithRout
 	return flows, nil
 }
 
-func (s *flowServiceImpl) ListAllFlows() ([]*model.FlowWithRoute, error) {
+func (s *flowServiceImpl) ListAllFlows() ([]*model.Flow, error) {
 
 	s.flowsMu.RLock()
 	defer s.flowsMu.RUnlock()
 
 	// Return a copy of the flows
-	flows := make([]*model.FlowWithRoute, 0, len(s.flows))
+	flows := make([]*model.Flow, 0, len(s.flows))
 	for _, flow := range s.flows {
 		flows = append(flows, flow)
 	}
@@ -118,7 +122,22 @@ func (s *flowServiceImpl) ListAllFlows() ([]*model.FlowWithRoute, error) {
 	return flows, nil
 }
 
-func (s *flowServiceImpl) CreateFlow(tenant, realm string, flow *model.FlowWithRoute) error {
+func (s *flowServiceImpl) CreateFlow(tenant, realm string, flow *model.Flow) error {
+
+	// Ensure the flow definition is valid
+	if err := graph.ValidateFlowDefinition(flow.Definition); err != nil {
+		return fmt.Errorf("invalid flow definition: %w", err)
+	}
+
+	// Check that route is not ""
+	if flow.Route == "" {
+		return fmt.Errorf("flow route is empty")
+	}
+
+	// Check that flow id is not ""
+	if flow.Id == "" {
+		return fmt.Errorf("flow id is empty")
+	}
 
 	s.flowsMu.Lock()
 	defer s.flowsMu.Unlock()
@@ -136,12 +155,28 @@ func (s *flowServiceImpl) CreateFlow(tenant, realm string, flow *model.FlowWithR
 	return nil
 }
 
+func (s *flowServiceImpl) DeleteFlow(tenant, realm, id string) error {
+	// Get the flow first to check if it exists and get its route
+	flow, exists := s.GetFlowById(tenant, realm, id)
+	if !exists {
+		return fmt.Errorf("flow with id %s not found", id)
+	}
+
+	s.flowsMu.Lock()
+	defer s.flowsMu.Unlock()
+
+	// Delete the flow from the map using the tenant/realm/route key
+	delete(s.flows, tenant+"/"+realm+"/"+flow.Route)
+
+	return nil
+}
+
 func (s *flowServiceImpl) initFlowsFromConfigDir(configRoot string) error {
 
 	logger.DebugNoContext("Initializing flows from config dir: %s", configRoot)
 
 	// clear the map
-	s.flows = make(map[string]*model.FlowWithRoute)
+	s.flows = make(map[string]*model.Flow)
 
 	// Load all flows for all realms
 	allRealms, err := services.RealmService.GetAllRealms()
@@ -191,9 +226,12 @@ func (s *flowServiceImpl) loadFlowsFromRealmConfigDir(tenant, realm, configRoot 
 		}
 
 		// Add the flow to the map with the flow name as key
-		logger.DebugNoContext("loaded flow %s from %s for realmId %s", flow.Flow.Name, file, tenant+"/"+realm)
+		logger.DebugNoContext("loaded flow %s from %s for realmId %s", flow.Id, file, tenant+"/"+realm)
 
-		s.CreateFlow(tenant, realm, flow)
+		err = s.CreateFlow(tenant, realm, flow)
+		if err != nil {
+			return fmt.Errorf("failed to create flow %s: %w", flow.Id, err)
+		}
 	}
 
 	return nil

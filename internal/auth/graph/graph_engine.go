@@ -30,7 +30,7 @@ func NewEngine(def *model.FlowDefinition) (*Engine, error) {
 	engine := &Engine{
 		Flow: def,
 	}
-	if err := engine.validate(); err != nil {
+	if err := ValidateFlowDefinition(def); err != nil {
 		return nil, err
 	}
 
@@ -129,7 +129,7 @@ func Run(flow *model.FlowDefinition, state *model.FlowState, inputs map[string]s
 		condition := nodeResult.Condition
 		state.History = append(state.History, fmt.Sprintf("%s:%s", node.Name, condition))
 
-		// Check if resulting condition is valid as defined in the node definiton
+		// Check if resulting condition is valid as defined in the node Definition
 		valid := false
 		for _, c := range def.Conditions {
 			if c == condition {

@@ -26,9 +26,8 @@ func TestEngine_ValidMinimalFlow(t *testing.T) {
 		},
 	}
 
-	engine, err := NewEngine(flow)
+	err := ValidateFlowDefinition(flow)
 	assert.NoError(t, err)
-	assert.NotNil(t, engine)
 }
 
 func TestEngine_MissingStartNode(t *testing.T) {
@@ -38,8 +37,7 @@ func TestEngine_MissingStartNode(t *testing.T) {
 		Nodes: map[string]*model.GraphNode{},
 	}
 
-	engine, err := NewEngine(flow)
-	assert.Nil(t, engine)
+	err := ValidateFlowDefinition(flow)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "start node")
 }
@@ -63,8 +61,7 @@ func TestEngine_StartNotInit(t *testing.T) {
 		},
 	}
 
-	engine, err := NewEngine(flow)
-	assert.Nil(t, engine)
+	err := ValidateFlowDefinition(flow)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "must be of type 'init'")
 }
@@ -89,8 +86,7 @@ func TestEngine_MissingNextOnLogicNode(t *testing.T) {
 		},
 	}
 
-	engine, err := NewEngine(flow)
-	assert.Nil(t, engine)
+	err := ValidateFlowDefinition(flow)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "must define a 'Next' map")
 }

@@ -6,15 +6,14 @@ import (
 	"goiam/internal/model"
 )
 
-// validate checks for basic structural integrity of the flow
-func (e *Engine) validate() error {
+// ValidateFlowDefinition checks for basic structural integrity of the flow
+func ValidateFlowDefinition(def *model.FlowDefinition) error {
 
 	// Check if start node is in map
-	_, ok := e.Flow.Nodes[e.Flow.Start]
+	_, ok := def.Nodes[def.Start]
 	if !ok {
-		return fmt.Errorf("start node '%s' not found in nodes", e.Flow.Start)
+		return fmt.Errorf("start node '%s' not found in nodes", def.Start)
 	}
-	def := e.Flow
 
 	// Check start node is of type 'init'
 	if def.Start == "" {

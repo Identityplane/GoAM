@@ -48,7 +48,10 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 		}
 
 		// Add the flow to the loaded flows
-		service.GetServices().FlowService.CreateFlow(DefaultTenant, DefaultRealm, flow)
+		err = service.GetServices().FlowService.CreateFlow(DefaultTenant, DefaultRealm, flow)
+		if err != nil {
+			t.Fatalf("failed to create flow: %v", err)
+		}
 	}
 
 	// Setup Http

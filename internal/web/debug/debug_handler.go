@@ -120,7 +120,7 @@ func HandleFlowGraphPNG(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Generate the DOT representation for the flow graph
-	dot := visual.RenderDOTGraph(flowWithRoute.Flow)
+	dot := visual.RenderDOTGraph(flowWithRoute.Definition)
 
 	// Prepare the PNG output buffer
 	var out bytes.Buffer
@@ -181,7 +181,7 @@ func HandleFlowGraphSVG(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Generate the DOT representation for the flow graph
-	dot := visual.RenderDOTGraph(flow.Flow)
+	dot := visual.RenderDOTGraph(flow.Definition)
 
 	// Prepare the SVG output buffer
 	var out bytes.Buffer

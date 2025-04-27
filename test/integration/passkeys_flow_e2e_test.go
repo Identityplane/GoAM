@@ -7,27 +7,30 @@ import (
 
 func TestPasskeysRegistration(t *testing.T) {
 
-	flow := `name: test_passkeys
+	flow := `flow_id: test_passkeys
 route: /test_passkeys
-start: init
-nodes:
-  init:
-    use: init
-    next:
-      start: setVariable
-  setVariable:
-    use: setVariable
-    custom_config:
-      key: username
-      value: admin
-    next:
-      done: registerPasskey
-  registerPasskey:
-    use: registerPasskey
-    next:
-      success: finish
-  finish:
-    use: successResult`
+definition:
+  name: test_passkeys
+  description: test passkeys
+  start: init
+  nodes:
+    init:
+      use: init
+      next:
+        start: setVariable
+    setVariable:
+      use: setVariable
+      custom_config:
+        key: username
+        value: admin
+      next:
+        done: registerPasskey
+    registerPasskey:
+      use: registerPasskey
+      next:
+        success: finish
+    finish:
+      use: successResult`
 
 	e := SetupIntegrationTest(t, flow)
 

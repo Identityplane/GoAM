@@ -10,28 +10,34 @@ import (
 
 func TestLoadFlowFromYAML(t *testing.T) {
 	yamlContent := `
-name: test_login_flow
-start: init
-nodes:
-  init:
-    use: init
-    next:
-      start: askUsername
+flow_id: test_login_flow
+route: /login
+active: yes
 
-  askUsername:
-    use: askUsername
-    next:
-      submitted: askPassword
+definition:
+  name: test_login_flow
+  description: test login flow
+  start: init
+  nodes:
+    init:
+      use: init
+      next:
+        start: askUsername
 
-  askPassword:
-    use: askPassword
-    next:
-      submitted: done
+    askUsername:
+      use: askUsername
+      next:
+        submitted: askPassword
 
-  done:
-    use: successResult
-    custom_config:
-      message: Login complete.
+    askPassword:
+      use: askPassword
+      next:
+        submitted: done
+
+    done:
+      use: successResult
+      custom_config:
+        message: Login complete.
 `
 	tmpFile, err := os.CreateTemp("", "test-flow-*.yaml")
 	assert.NoError(t, err)
@@ -45,12 +51,15 @@ nodes:
 	assert.NoError(t, err)
 	assert.NotNil(t, flow)
 
-	assert.Equal(t, "test_login_flow", flow.Flow.Name)
-	assert.Equal(t, "init", flow.Flow.Start)
-	assert.Contains(t, flow.Flow.Nodes, "askPassword")
-	assert.Equal(t, "askPassword", flow.Flow.Nodes["askPassword"].Name)
-	assert.Equal(t, "done", flow.Flow.Nodes["askPassword"].Next["submitted"])
-	assert.Equal(t, "Login complete.", flow.Flow.Nodes["done"].CustomConfig["message"])
+	assert.Equal(t, "test_login_flow", flow.Id)
+	assert.Equal(t, "/login", flow.Route)
+	assert.True(t, flow.Active)
+	assert.Equal(t, "test_login_flow", flow.Definition.Name)
+	assert.Equal(t, "init", flow.Definition.Start)
+	assert.Contains(t, flow.Definition.Nodes, "askPassword")
+	assert.Equal(t, "askPassword", flow.Definition.Nodes["askPassword"].Name)
+	assert.Equal(t, "done", flow.Definition.Nodes["askPassword"].Next["submitted"])
+	assert.Equal(t, "Login complete.", flow.Definition.Nodes["done"].CustomConfig["message"])
 }
 
 func TestLoadFlowsFromDir(t *testing.T) {
@@ -60,28 +69,30 @@ func TestLoadFlowsFromDir(t *testing.T) {
 	file2 := filepath.Join(dir, "flow2.yaml")
 
 	flow1 := `
-name: flow_one
+flow_id: flow_one
 route: /one
-start: start
-nodes:
-  start:
-    use: init
-    next:
-      start: step1
-  step1:
-    use: successResult
+active: yes
+
+definition:
+  name: flow_one
+  description: flow one
+  start: init
+  nodes:
+    init:
+      use: init
 `
 	flow2 := `
-name: flow_two
+flow_id: flow_two
 route: /two
-start: entry
-nodes:
-  entry:
-    use: askUsername
-    next:
-      submitted: result
-  result:
-    use: successResult
+active: yes
+
+definition:
+  name: flow_two
+  description: flow two
+  start: init
+  nodes:
+    init:
+      use: init
 `
 
 	assert.NoError(t, os.WriteFile(file1, []byte(flow1), 0644))
@@ -93,7 +104,7 @@ nodes:
 
 	names := map[string]bool{}
 	for _, f := range flows {
-		names[f.Flow.Name] = true
+		names[f.Definition.Name] = true
 	}
 
 	assert.Contains(t, names, "flow_one")

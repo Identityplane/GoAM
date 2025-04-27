@@ -1,23 +1,38 @@
-name: test_passkeys_registration
+flow_id: test_passkeys_registration
 route: test_create_passkeys
-start: init
-nodes:
-  init:
-    use: init
-    next:
-      start: setVariable
-  setVariable:
-    use: setVariable
-    custom_config:
-      key: username
-      value: admin
-    next:
-      done: registerPasskey
-  registerPasskey:
-    use: registerPasskey
-    next:
-      success: finish
-    custom_config:
-      message: Click the button below to register a registered passkey.
-  finish:
-    use: successResult
+active: yes
+
+definition:
+  name: "Passkey Registration Debug"
+  description: "Debug flow for passkey registration"
+
+  start: init
+  nodes:
+    init:
+      use: init
+      next:
+        start: setVariable
+
+    setVariable:
+      use: setVariable
+      custom_config:
+        key: username
+        value: admin
+      next:
+        done: registerPasskey
+
+    registerPasskey:
+      use: registerPasskey
+      next:
+        success: finish
+      custom_config:
+        message: Click the button below to register a registered passkey.
+
+    finish:
+      use: successResult
+
+  editor:
+    nodes:
+      setVariable:
+        x: 200
+        y: 300
