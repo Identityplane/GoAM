@@ -12,13 +12,13 @@ import (
 )
 
 type NodeDefinition struct {
-	Name            string                                                                                                                                     `json:"name"`       // e.g. "askUsername"
-	Type            model.NodeType                                                                                                                             `json:"type"`       // query, logic, etc.
-	RequiredContext []string                                                                                                                                   `json:"inputs"`     // field that the node requires from the flow context
-	OutputContext   []string                                                                                                                                   `json:"outputs"`    // fields that the node will set in the flow context
-	Prompts         map[string]string                                                                                                                          `json:"prompts"`    // key: label/type shown to user, will be returned via the user input argument
-	Conditions      []string                                                                                                                                   `json:"conditions"` // e.g. ["success", "fail"]
-	Run             func(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) // Run function for logic nodes, must either return a condition or a set of prompts
+	Name                 string                                                                                                                                     `json:"name"`       // e.g. "askUsername"
+	Type                 model.NodeType                                                                                                                             `json:"type"`       // query, logic, etc.
+	RequiredContext      []string                                                                                                                                   `json:"inputs"`     // field that the node requires from the flow context
+	OutputContext        []string                                                                                                                                   `json:"outputs"`    // fields that the node will set in the flow context
+	PossiblePrompts      map[string]string                                                                                                                          `json:"prompts"`    // key: label/type shown to user, will be returned via the user input argument
+	PossibleResultStates []string                                                                                                                                   `json:"conditions"` // e.g. ["success", "fail"]
+	Run                  func(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) // Run function for logic nodes, must either return a condition or a set of prompts
 }
 
 type Engine struct {
@@ -131,7 +131,7 @@ func Run(flow *model.FlowDefinition, state *model.FlowState, inputs map[string]s
 
 		// Check if resulting condition is valid as defined in the node Definition
 		valid := false
-		for _, c := range def.Conditions {
+		for _, c := range def.PossibleResultStates {
 			if c == condition {
 				valid = true
 				break
@@ -169,7 +169,7 @@ func ProcessQueryTypeNode(state *model.FlowState, node *model.GraphNode, def *No
 	// If no inputs are present send prompts to user
 	if inputs == nil {
 
-		return &model.NodeResult{Prompts: def.Prompts, Condition: ""}, nil
+		return &model.NodeResult{Prompts: def.PossiblePrompts, Condition: ""}, nil
 	}
 
 	// Else if we have inputs to context and return submitted

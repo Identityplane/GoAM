@@ -15,3 +15,11 @@ type FlowPatch struct {
 	Route *string `json:"route,omitempty"`
 	YAML  *string `json:"yaml,omitempty"`
 }
+
+// NodeInfo represents a node definition in the API response
+type NodeInfo struct {
+	Name                 string   `json:"name"`
+	Description          string   `json:"description"`
+	Type                 string   `json:"type"`
+	PossibleResultStates []string `json:"possible_result_states"`
+}

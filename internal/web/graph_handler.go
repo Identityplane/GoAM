@@ -170,7 +170,7 @@ func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *model.FlowDefinit
 	}
 
 	def := graph.NodeDefinitions[node.Use]
-	for key := range def.Prompts {
+	for key := range def.PossiblePrompts {
 		val := string(ctx.PostArgs().Peek(key))
 		if val != "" {
 			input[key] = val

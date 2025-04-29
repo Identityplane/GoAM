@@ -6,30 +6,30 @@ import (
 )
 
 var InitNode = &NodeDefinition{
-	Name:            "init",
-	Type:            model.NodeTypeInit,
-	RequiredContext: []string{},
-	OutputContext:   []string{},
-	Conditions:      []string{"start"},
-	Run:             RunInitNode,
+	Name:                 "init",
+	Type:                 model.NodeTypeInit,
+	RequiredContext:      []string{},
+	OutputContext:        []string{},
+	PossibleResultStates: []string{"start"},
+	Run:                  RunInitNode,
 }
 
 var SuccessResultNode = &NodeDefinition{
-	Name:            "successResult",
-	Type:            model.NodeTypeResult,
-	RequiredContext: []string{"user_id", "username"}, // expected to be set by now
-	OutputContext:   []string{},
-	Conditions:      []string{}, // terminal node
-	Run:             RunAuthSuccessNode,
+	Name:                 "successResult",
+	Type:                 model.NodeTypeResult,
+	RequiredContext:      []string{"user_id", "username"}, // expected to be set by now
+	OutputContext:        []string{},
+	PossibleResultStates: []string{}, // terminal node
+	Run:                  RunAuthSuccessNode,
 }
 
 var FailureResultNode = &NodeDefinition{
-	Name:            "failureResult",
-	Type:            model.NodeTypeResult,
-	RequiredContext: []string{},
-	OutputContext:   []string{},
-	Conditions:      []string{}, // terminal node
-	Run:             RunAuthFailureNode,
+	Name:                 "failureResult",
+	Type:                 model.NodeTypeResult,
+	RequiredContext:      []string{},
+	OutputContext:        []string{},
+	PossibleResultStates: []string{}, // terminal node
+	Run:                  RunAuthFailureNode,
 }
 
 func RunAuthFailureNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
@@ -49,10 +49,10 @@ var AskUsernameNode = &NodeDefinition{
 	Type:            model.NodeTypeQuery,
 	RequiredContext: []string{},
 	OutputContext:   []string{"username"},
-	Prompts: map[string]string{
+	PossiblePrompts: map[string]string{
 		"username": "text",
 	},
-	Conditions: []string{"submitted"},
+	PossibleResultStates: []string{"submitted"},
 }
 
 var AskPasswordNode = &NodeDefinition{
@@ -60,19 +60,19 @@ var AskPasswordNode = &NodeDefinition{
 	Type:            model.NodeTypeQuery,
 	RequiredContext: []string{},
 	OutputContext:   []string{"password"},
-	Prompts: map[string]string{
+	PossiblePrompts: map[string]string{
 		"password": "password",
 	},
-	Conditions: []string{"submitted"},
+	PossibleResultStates: []string{"submitted"},
 }
 
 var SetVariableNode = &NodeDefinition{
-	Name:            "setVariable",
-	Type:            model.NodeTypeLogic,
-	RequiredContext: []string{},
-	OutputContext:   []string{},
-	Conditions:      []string{"done"},
-	Run:             RunSetVariableNode,
+	Name:                 "setVariable",
+	Type:                 model.NodeTypeLogic,
+	RequiredContext:      []string{},
+	OutputContext:        []string{},
+	PossibleResultStates: []string{"done"},
+	Run:                  RunSetVariableNode,
 }
 
 func RunInitNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {

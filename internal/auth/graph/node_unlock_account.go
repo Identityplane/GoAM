@@ -9,12 +9,12 @@ import (
 
 // Unlock account logic node
 var UnlockAccountNode = &NodeDefinition{
-	Name:            "unlockAccount",
-	Type:            model.NodeTypeLogic,
-	RequiredContext: []string{"username"},
-	OutputContext:   []string{},
-	Conditions:      []string{"success", "fail"},
-	Run:             RunUnlockAccountNode,
+	Name:                 "unlockAccount",
+	Type:                 model.NodeTypeLogic,
+	RequiredContext:      []string{"username"},
+	OutputContext:        []string{},
+	PossibleResultStates: []string{"success", "fail"},
+	Run:                  RunUnlockAccountNode,
 }
 
 func RunUnlockAccountNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {

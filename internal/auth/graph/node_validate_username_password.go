@@ -10,12 +10,12 @@ import (
 )
 
 var ValidateUsernamePasswordNode = &NodeDefinition{
-	Name:            "validateUsernamePassword",
-	Type:            model.NodeTypeLogic,
-	RequiredContext: []string{"username", "password"},
-	OutputContext:   []string{"auth_result"}, // or we may skip outputs if conditions imply it
-	Conditions:      []string{"success", "fail", "locked"},
-	Run:             RunValidateUsernamePasswordNode,
+	Name:                 "validateUsernamePassword",
+	Type:                 model.NodeTypeLogic,
+	RequiredContext:      []string{"username", "password"},
+	OutputContext:        []string{"auth_result"}, // or we may skip outputs if conditions imply it
+	PossibleResultStates: []string{"success", "fail", "locked"},
+	Run:                  RunValidateUsernamePasswordNode,
 }
 
 func RunValidateUsernamePasswordNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {

@@ -374,3 +374,38 @@ func HandleDeleteFlow(ctx *fasthttp.RequestCtx) {
 
 	ctx.SetStatusCode(http.StatusOK)
 }
+
+// HandleListNodes returns all available node definitions
+// @Summary List all nodes
+// @Description Returns a list of all available node definitions in the system
+// @Tags Nodes
+// @Accept json
+// @Produce json
+// @Success 200 {array} NodeInfo
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /admin/nodes [get]
+func HandleListNodes(ctx *fasthttp.RequestCtx) {
+	// Get all node definitions and convert to API format
+	nodes := make([]NodeInfo, 0, len(graph.NodeDefinitions))
+	for _, node := range graph.NodeDefinitions {
+		nodes = append(nodes, NodeInfo{
+			Name:                 node.Name,
+			Type:                 string(node.Type),
+			PossibleResultStates: node.PossibleResultStates,
+		})
+	}
+
+	// Marshal response to JSON with pretty printing
+	jsonData, err := json.MarshalIndent(nodes, "", "  ")
+	if err != nil {
+		ctx.SetStatusCode(http.StatusInternalServerError)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Failed to marshal response: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.SetContentType("application/json")
+	ctx.SetBody(jsonData)
+}

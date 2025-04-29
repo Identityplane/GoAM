@@ -7,12 +7,12 @@ import (
 )
 
 var CheckUsernameAvailableNode = &NodeDefinition{
-	Name:            "checkUsernameAvailable",
-	Type:            model.NodeTypeLogic,
-	RequiredContext: []string{"username"},
-	OutputContext:   []string{},
-	Conditions:      []string{"available", "taken"},
-	Run:             RunCheckUsernameAvailableNode,
+	Name:                 "checkUsernameAvailable",
+	Type:                 model.NodeTypeLogic,
+	RequiredContext:      []string{"username"},
+	OutputContext:        []string{},
+	PossibleResultStates: []string{"available", "taken"},
+	Run:                  RunCheckUsernameAvailableNode,
 }
 
 func RunCheckUsernameAvailableNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {

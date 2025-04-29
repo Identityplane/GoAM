@@ -12,12 +12,12 @@ import (
 )
 
 var CreateUserNode = &NodeDefinition{
-	Name:            "createUser",
-	Type:            model.NodeTypeLogic,
-	RequiredContext: []string{"username", "password"},
-	OutputContext:   []string{"user_id"},
-	Conditions:      []string{"success", "fail"},
-	Run:             RunCreateUserNode,
+	Name:                 "createUser",
+	Type:                 model.NodeTypeLogic,
+	RequiredContext:      []string{"username", "password"},
+	OutputContext:        []string{"user_id"},
+	PossibleResultStates: []string{"success", "fail"},
+	Run:                  RunCreateUserNode,
 }
 
 func RunCreateUserNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {

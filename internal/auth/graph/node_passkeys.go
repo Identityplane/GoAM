@@ -17,34 +17,34 @@ var PasskeyRegisterNode = &NodeDefinition{
 	Name:            "registerPasskey",
 	Type:            model.NodeTypeQueryWithLogic,
 	RequiredContext: []string{"username"},
-	Prompts: map[string]string{
+	PossiblePrompts: map[string]string{
 		"passkeysFinishRegistrationJson": "json",
 	},
-	OutputContext: []string{"passkeysFinishRegistrationJson", "passkeysSession", "passkeysOptions"},
-	Conditions:    []string{"success", "failure"},
-	Run:           RunPasskeyRegisterNode,
+	OutputContext:        []string{"passkeysFinishRegistrationJson", "passkeysSession", "passkeysOptions"},
+	PossibleResultStates: []string{"success", "failure"},
+	Run:                  RunPasskeyRegisterNode,
 }
 
 var PasskeysVerifyNode = &NodeDefinition{
 	Name:            "verifyPasskey",
 	Type:            model.NodeTypeQueryWithLogic,
 	RequiredContext: []string{"username"},
-	Prompts: map[string]string{
+	PossiblePrompts: map[string]string{
 		"passkeysFinishLoginJson": "json",
 	},
-	OutputContext: []string{"passkeysFinishLoginJson", "passkeysLoginSession", "passkeysLoginOptions"},
-	Conditions:    []string{"success", "failure"},
-	Run:           RunPasskeyVerifyNode,
+	OutputContext:        []string{"passkeysFinishLoginJson", "passkeysLoginSession", "passkeysLoginOptions"},
+	PossibleResultStates: []string{"success", "failure"},
+	Run:                  RunPasskeyVerifyNode,
 }
 
 var PasskeysCheckUserRegistered = &NodeDefinition{
-	Name:            "checkPasskeyRegistered",
-	Type:            model.NodeTypeLogic,
-	RequiredContext: []string{"username"},
-	Prompts:         nil,
-	OutputContext:   []string{},
-	Conditions:      []string{"registered", "not_registered", "user_not_found"},
-	Run:             RunCheckUserHasPasskeyNode,
+	Name:                 "checkPasskeyRegistered",
+	Type:                 model.NodeTypeLogic,
+	RequiredContext:      []string{"username"},
+	PossiblePrompts:      nil,
+	OutputContext:        []string{},
+	PossibleResultStates: []string{"registered", "not_registered", "user_not_found"},
+	Run:                  RunCheckUserHasPasskeyNode,
 }
 
 func RunCheckUserHasPasskeyNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
