@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goiam/internal/logger"
+	"goiam/internal/service"
 	"runtime/debug"
 
 	"github.com/google/uuid"
@@ -110,12 +111,24 @@ func corsMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	}
 }
 
-// WrapMiddleware wraps a handler with all necessary middleware
+// serviceMiddleware injects services into the request context
+func serviceMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		ctx.SetUserValue("flowService", service.GetServices().FlowService)
+		next(ctx)
+	}
+}
+
+// WrapMiddleware wraps a handler with all the necessary middleware
 func WrapMiddleware(h fasthttp.RequestHandler) fasthttp.RequestHandler {
-	return traceIDMiddleware(
-		loggingMiddleware(
-			recoveryMiddleware(
-				corsMiddleware(h),
+	return TopLevelMiddleware(
+		traceIDMiddleware(
+			loggingMiddleware(
+				recoveryMiddleware(
+					corsMiddleware(
+						serviceMiddleware(h),
+					),
+				),
 			),
 		),
 	)

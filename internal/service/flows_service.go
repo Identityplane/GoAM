@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"gopkg.in/yaml.v3"
 )
 
 // FlowService defines the business logic for flow operations
@@ -35,6 +37,9 @@ type FlowService interface {
 
 	// DeleteFlow deletes a flow by its ID
 	DeleteFlow(tenant, realm, id string) error
+
+	// ValidateFlowDefinition validates a YAML flow definition
+	ValidateFlowDefinition(content string) ([]FlowLintError, error)
 }
 
 // flowServiceImpl implements FlowService
@@ -124,11 +129,6 @@ func (s *flowServiceImpl) ListAllFlows() ([]*model.Flow, error) {
 
 func (s *flowServiceImpl) CreateFlow(tenant, realm string, flow *model.Flow) error {
 
-	// Ensure the flow definition is valid
-	if err := graph.ValidateFlowDefinition(flow.Definition); err != nil {
-		return fmt.Errorf("invalid flow definition: %w", err)
-	}
-
 	// Check that route is not ""
 	if flow.Route == "" {
 		return fmt.Errorf("flow route is empty")
@@ -139,15 +139,24 @@ func (s *flowServiceImpl) CreateFlow(tenant, realm string, flow *model.Flow) err
 		return fmt.Errorf("flow id is empty")
 	}
 
+	// Ensure realm and tenant are set correctly
+	flow.Realm = realm
+	flow.Tenant = tenant
+
+	// check if flow already exisits by query for id, if it already exists we need to delete it first
+	_, exists := s.GetFlowById(tenant, realm, flow.Id)
+	if exists {
+		err := s.DeleteFlow(tenant, realm, flow.Id)
+		if err != nil {
+			return fmt.Errorf("failed to delete flow %s: %w", flow.Id, err)
+		}
+	}
+
 	s.flowsMu.Lock()
 	defer s.flowsMu.Unlock()
 
 	// We ignore heading "/" for the route name
 	flow.Route, _ = strings.CutPrefix(flow.Route, "/")
-
-	// Ensure realm and tenant are set correctly
-	flow.Realm = realm
-	flow.Tenant = tenant
 
 	// Store flow in memory
 	s.flows[tenant+"/"+realm+"/"+flow.Route] = flow
@@ -235,4 +244,45 @@ func (s *flowServiceImpl) loadFlowsFromRealmConfigDir(tenant, realm, configRoot 
 	}
 
 	return nil
+}
+
+type FlowLintError struct {
+	StartLineNumber int    `json:"startLineNumber"`
+	StartColumn     int    `json:"startColumn"`
+	EndLineNumber   int    `json:"endLineNumber"`
+	EndColumn       int    `json:"endColumn"`
+	Message         string `json:"message"`
+	Severity        int    `json:"severity"`
+}
+
+func (s *flowServiceImpl) ValidateFlowDefinition(content string) ([]FlowLintError, error) {
+
+	// Try to parse the YAML content
+	var yflow yamlFlowDefinition
+	if err := yaml.Unmarshal([]byte(content), &yflow); err != nil {
+		return []FlowLintError{{
+			StartLineNumber: 1,
+			StartColumn:     1,
+			EndLineNumber:   1,
+			EndColumn:       1,
+			Message:         fmt.Sprintf("Invalid YAML format: %v", err),
+			Severity:        8,
+		}}, nil
+	}
+
+	flowDefinition := yflow.ConvertToFlowDefinition()
+	error := graph.ValidateFlowDefinition(flowDefinition)
+
+	if error != nil {
+		return []FlowLintError{{
+			StartLineNumber: 1,
+			StartColumn:     1,
+			EndLineNumber:   1,
+			EndColumn:       1,
+			Message:         fmt.Sprintf(error.Error()),
+			Severity:        8,
+		}}, nil
+	}
+
+	return []FlowLintError{}, nil
 }

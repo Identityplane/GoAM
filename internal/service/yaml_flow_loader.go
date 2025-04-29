@@ -13,10 +13,10 @@ type yamlFlow struct {
 	FlowId     string             `yaml:"flow_id"`
 	Route      string             `yaml:"route"`
 	Active     bool               `yaml:"active"`
-	Definition yamlFlowdefinition `yaml:"definition"`
+	Definition yamlFlowDefinition `yaml:"definition"`
 }
 
-type yamlFlowdefinition struct {
+type yamlFlowDefinition struct {
 	Name        string                   `yaml:"name"`
 	Description string                   `yaml:"description"`
 	Start       string                   `yaml:"start"`
@@ -29,11 +29,10 @@ type yamlGraphNode struct {
 	CustomConfig map[string]string `yaml:"custom_config"`
 }
 
-// Converts parsed yamlFlow into a graph.FlowWithRoute
-func convertToFlow(yf *yamlFlow) *model.Flow {
+func (y *yamlFlowDefinition) ConvertToFlowDefinition() *model.FlowDefinition {
 
-	nodes := make(map[string]*model.GraphNode, len(yf.Definition.Nodes))
-	for name, yn := range yf.Definition.Nodes {
+	nodes := make(map[string]*model.GraphNode, len(y.Nodes))
+	for name, yn := range y.Nodes {
 		nodes[name] = &model.GraphNode{
 			Name:         name,
 			Use:          yn.Use,
@@ -42,16 +41,24 @@ func convertToFlow(yf *yamlFlow) *model.Flow {
 		}
 	}
 
+	return &model.FlowDefinition{
+		Name:        y.Name,
+		Description: y.Description,
+		Start:       y.Start,
+		Nodes:       nodes,
+	}
+}
+
+// Converts parsed yamlFlow into a graph.FlowWithRoute
+func convertToFlow(yf *yamlFlow) *model.Flow {
+
+	flowDefinition := yf.Definition.ConvertToFlowDefinition()
+
 	return &model.Flow{
-		Id:     yf.FlowId,
-		Route:  yf.Route,
-		Active: yf.Active,
-		Definition: &model.FlowDefinition{
-			Name:        yf.Definition.Name,
-			Description: yf.Definition.Description,
-			Start:       yf.Definition.Start,
-			Nodes:       nodes,
-		},
+		Id:         yf.FlowId,
+		Route:      yf.Route,
+		Active:     yf.Active,
+		Definition: flowDefinition,
 	}
 }
 
@@ -60,7 +67,26 @@ func LoadFlowFromYAMLString(content string) (*model.Flow, error) {
 	if err := yaml.Unmarshal([]byte(content), &yflow); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML content: %w", err)
 	}
-	return convertToFlow(&yflow), nil
+
+	flow := convertToFlow(&yflow)
+
+	// The flow yaml is not the same as the flow definition yaml
+	// we need to store the definition yaml but as we don't have that here, we create it
+	definitionYaml, err := yaml.Marshal(flow.Definition)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal flow definition: %w", err)
+	}
+	flow.DefintionYaml = string(definitionYaml)
+
+	return flow, nil
+}
+
+func LoadFlowDefinitonFromString(content string) (*model.FlowDefinition, error) {
+	var yflow yamlFlowDefinition
+	if err := yaml.Unmarshal([]byte(content), &yflow); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML content: %w", err)
+	}
+	return yflow.ConvertToFlowDefinition(), nil
 }
 
 func LoadFlowFromYAML(path string) (*model.Flow, error) {
@@ -69,13 +95,7 @@ func LoadFlowFromYAML(path string) (*model.Flow, error) {
 		return nil, fmt.Errorf("failed to read YAML file %s: %w", path, err)
 	}
 
-	var yflow yamlFlow
-	if err := yaml.Unmarshal(data, &yflow); err != nil {
-		return nil, fmt.Errorf("failed to parse YAML in %s: %w", path, err)
-	}
-
-	flow := convertToFlow(&yflow)
-	return flow, nil
+	return LoadFlowFromYAMLString(string(data))
 }
 
 func LoadFlowsFromDir(dir string) ([]*model.Flow, error) {
@@ -92,12 +112,12 @@ func LoadFlowsFromDir(dir string) ([]*model.Flow, error) {
 			return nil, fmt.Errorf("failed to read flow file %s: %w", file, err)
 		}
 
-		var y yamlFlow
-		if err := yaml.Unmarshal(data, &y); err != nil {
-			return nil, fmt.Errorf("invalid YAML in flow file %s: %w", file, err)
+		flow, err := LoadFlowFromYAMLString(string(data))
+		if err != nil {
+			return nil, fmt.Errorf("failed to load flow from YAML file %s: %w", file, err)
 		}
 
-		flows = append(flows, convertToFlow(&y))
+		flows = append(flows, flow)
 	}
 
 	return flows, nil

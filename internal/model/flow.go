@@ -38,12 +38,13 @@ type FlowDefinition struct {
 // This is a flow together with meta information such as route, realm and tenant.
 // It contains the flow defition which is a yaml file
 type Flow struct {
-	Tenant     string          // e.g. "acme"
-	Realm      string          // e.g. "customers"
-	Id         string          // e.g. "login"
-	Route      string          // e.g. "/login"
-	Active     bool            // whether the flow is active
-	Definition *FlowDefinition // pre-loaded flow definition
+	Tenant        string          `json:"tenant"` // e.g. "acme"
+	Realm         string          `json:"realm"`  // e.g. "customers"
+	Id            string          `json:"id"`     // e.g. "login"
+	Route         string          `json:"route"`  // e.g. "/login"
+	Active        bool            `json:"active"` // whether the flow is active
+	Definition    *FlowDefinition `json:"-"`      // pre-loaded flow definition
+	DefintionYaml string          `json:"-"`      // original yaml content, we keep that in order to perserve the exactly same yaml
 }
 
 // Represents a ongoing execution of a flow

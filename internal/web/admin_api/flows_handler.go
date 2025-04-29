@@ -2,11 +2,14 @@ package admin_api
 
 import (
 	"encoding/json"
+	"fmt"
 	"goiam/internal/auth/graph"
+	"goiam/internal/model"
 	"goiam/internal/service"
 	"net/http"
 
 	"github.com/valyala/fasthttp"
+	"gopkg.in/yaml.v2"
 )
 
 // HandleListFlows returns all flows for a realm
@@ -17,7 +20,7 @@ import (
 // @Produce json
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
-// @Success 200 {array} FlowWithYAML
+// @Success 200 {array} model.Flow
 // @Failure 404 {string} string "Realm not found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /admin/{tenant}/{realm}/flows [get]
@@ -35,29 +38,8 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Convert flows to API format
-	apiFlows := make([]FlowWithYAML, len(flows))
-	for i, flow := range flows {
-		yaml, err := service.ConvertFlowToYAML(flow.Definition)
-		if err != nil {
-			ctx.SetStatusCode(http.StatusInternalServerError)
-			ctx.SetContentType("application/json")
-			_ = json.NewEncoder(ctx).Encode(map[string]string{
-				"error": "Failed to convert flow to YAML: " + err.Error(),
-			})
-			return
-		}
-		apiFlows[i] = FlowWithYAML{
-			FlowId: flow.Id,
-			Route:  flow.Route,
-			Realm:  flow.Realm,
-			Tenant: flow.Tenant,
-			YAML:   yaml,
-		}
-	}
-
 	// Marshal response to JSON with pretty printing
-	jsonData, err := json.MarshalIndent(apiFlows, "", "  ")
+	jsonData, err := json.MarshalIndent(flows, "", "  ")
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
@@ -80,16 +62,16 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
 // @Param flow path string true "Flow ID"
-// @Success 200 {object} FlowWithYAML
+// @Success 200 {object} model.Flow
 // @Failure 404 {string} string "Flow not found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /admin/{tenant}/{realm}/flows/{flow} [get]
 func HandleGetFlow(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
-	flow := ctx.UserValue("flow").(string)
+	flowId := ctx.UserValue("flow").(string)
 
-	flowWithRoute, ok := service.GetServices().FlowService.GetFlowById(tenant, realm, flow)
+	flow, ok := service.GetServices().FlowService.GetFlowById(tenant, realm, flowId)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetContentType("application/json")
@@ -99,28 +81,8 @@ func HandleGetFlow(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Convert flow to YAML
-	yaml, err := service.ConvertFlowToYAML(flowWithRoute.Definition)
-	if err != nil {
-		ctx.SetStatusCode(http.StatusInternalServerError)
-		ctx.SetContentType("application/json")
-		_ = json.NewEncoder(ctx).Encode(map[string]string{
-			"error": "Failed to convert flow to YAML: " + err.Error(),
-		})
-		return
-	}
-
-	// Create API response
-	apiFlow := FlowWithYAML{
-		FlowId: flowWithRoute.Id,
-		Route:  flowWithRoute.Route,
-		Realm:  flowWithRoute.Realm,
-		Tenant: flowWithRoute.Tenant,
-		YAML:   yaml,
-	}
-
 	// Marshal response to JSON with pretty printing
-	jsonData, err := json.MarshalIndent(apiFlow, "", "  ")
+	jsonData, err := json.MarshalIndent(flow, "", "  ")
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
@@ -143,19 +105,19 @@ func HandleGetFlow(ctx *fasthttp.RequestCtx) {
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
 // @Param flow path string true "Flow ID"
-// @Param request body FlowWithYAML true "Flow configuration"
-// @Success 201 {object} FlowWithYAML
+// @Param request body model.Flow true "Flow configuration"
+// @Success 201 {object} model.Flow
 // @Failure 400 {string} string "Invalid request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /admin/{tenant}/{realm}/flows/{flow} [post]
 func HandleCreateFlow(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
-	flow := ctx.UserValue("flow").(string)
+	flowId := ctx.UserValue("flow").(string)
 
-	// Parse JSON request body into FlowWithYAML
-	var apiFlow FlowWithYAML
-	if err := json.Unmarshal(ctx.PostBody(), &apiFlow); err != nil {
+	// Parse JSON request body
+	var flow model.Flow
+	if err := json.Unmarshal(ctx.PostBody(), &flow); err != nil {
 		ctx.SetStatusCode(http.StatusBadRequest)
 		ctx.SetContentType("application/json")
 		_ = json.NewEncoder(ctx).Encode(map[string]string{
@@ -165,38 +127,12 @@ func HandleCreateFlow(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Set route from URL parameter
-	apiFlow.Route = flow
-	apiFlow.Tenant = tenant
-	apiFlow.Realm = realm
-	apiFlow.FlowId = flow
+	flow.Route = flowId
+	flow.Tenant = tenant
+	flow.Realm = realm
+	flow.Id = flowId
 
-	// Convert YAML to FlowWithRoute
-	flowWithRoute, err := service.LoadFlowFromYAMLString(apiFlow.YAML)
-	if err != nil {
-		ctx.SetStatusCode(http.StatusBadRequest)
-		ctx.SetContentType("application/json")
-		_ = json.NewEncoder(ctx).Encode(map[string]string{
-			"error": "Invalid YAML content: " + err.Error(),
-		})
-		return
-	}
-
-	// Check if flow definition is valid
-	if err := graph.ValidateFlowDefinition(flowWithRoute.Definition); err != nil {
-		ctx.SetStatusCode(http.StatusBadRequest)
-		ctx.SetContentType("application/json")
-		_ = json.NewEncoder(ctx).Encode(map[string]string{
-			"error": "Invalid flow definition: " + err.Error(),
-		})
-		return
-	}
-
-	flowWithRoute.Route = apiFlow.Route
-	flowWithRoute.Tenant = apiFlow.Tenant
-	flowWithRoute.Realm = apiFlow.Realm
-	flowWithRoute.Id = apiFlow.FlowId
-
-	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, flowWithRoute); err != nil {
+	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, &flow); err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
 		_ = json.NewEncoder(ctx).Encode(map[string]string{
@@ -206,7 +142,7 @@ func HandleCreateFlow(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Return created flow
-	jsonData, err := json.MarshalIndent(apiFlow, "", "  ")
+	jsonData, err := json.MarshalIndent(flow, "", "  ")
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
@@ -231,7 +167,7 @@ func HandleCreateFlow(ctx *fasthttp.RequestCtx) {
 // @Param realm path string true "Realm ID"
 // @Param flow path string true "Flow ID"
 // @Param request body FlowPatch true "Flow patch object with fields to update"
-// @Success 200 {object} FlowWithYAML
+// @Success 200 {object} model.Flow
 // @Failure 400 {string} string "Invalid request"
 // @Failure 404 {string} string "Flow not found"
 // @Failure 500 {string} string "Internal Server Error"
@@ -267,28 +203,6 @@ func HandleUpdateFlow(ctx *fasthttp.RequestCtx) {
 	if patch.Route != nil {
 		existingFlow.Route = *patch.Route
 	}
-	if patch.YAML != nil {
-		flowDef, err := service.LoadFlowFromYAMLString(*patch.YAML)
-		if err != nil {
-			ctx.SetStatusCode(http.StatusBadRequest)
-			ctx.SetContentType("application/json")
-			_ = json.NewEncoder(ctx).Encode(map[string]string{
-				"error": "Invalid YAML content: " + err.Error(),
-			})
-			return
-		}
-		existingFlow.Definition = flowDef.Definition
-
-		// Check if flow definition is valid
-		if err := graph.ValidateFlowDefinition(flowDef.Definition); err != nil {
-			ctx.SetStatusCode(http.StatusBadRequest)
-			ctx.SetContentType("application/json")
-			_ = json.NewEncoder(ctx).Encode(map[string]string{
-				"error": "Invalid flow definition: " + err.Error(),
-			})
-			return
-		}
-	}
 
 	// Update flow by creating a new one with the same route
 	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, existingFlow); err != nil {
@@ -300,28 +214,8 @@ func HandleUpdateFlow(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Convert updated flow to YAML
-	yaml, err := service.ConvertFlowToYAML(existingFlow.Definition)
-	if err != nil {
-		ctx.SetStatusCode(http.StatusInternalServerError)
-		ctx.SetContentType("application/json")
-		_ = json.NewEncoder(ctx).Encode(map[string]string{
-			"error": "Failed to convert flow to YAML: " + err.Error(),
-		})
-		return
-	}
-
-	// Create API response
-	apiFlow := FlowWithYAML{
-		FlowId: existingFlow.Id,
-		Route:  existingFlow.Route,
-		Realm:  existingFlow.Realm,
-		Tenant: existingFlow.Tenant,
-		YAML:   yaml,
-	}
-
 	// Return updated flow
-	jsonData, err := json.MarshalIndent(apiFlow, "", "  ")
+	jsonData, err := json.MarshalIndent(existingFlow, "", "  ")
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
@@ -408,4 +302,177 @@ func HandleListNodes(ctx *fasthttp.RequestCtx) {
 
 	ctx.SetContentType("application/json")
 	ctx.SetBody(jsonData)
+}
+
+// HandleGetFlowDefintion returns the flow definition for a given flow id as yaml
+// @Summary Get a flow definition
+// @Description Returns the flow definition for a given flow id as yaml
+// @Tags Flows
+// @Accept json
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param flow path string true "Flow ID"
+// @Success 200 {string} string "Flow definition as YAML"
+// @Failure 404 {string} string "Flow not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /admin/{tenant}/{realm}/flows/{flow}/definition [get]
+func HandleGetFlowDefintion(ctx *fasthttp.RequestCtx) {
+	tenant := ctx.UserValue("tenant").(string)
+	realm := ctx.UserValue("realm").(string)
+	flowId := ctx.UserValue("flow").(string)
+
+	flow, ok := service.GetServices().FlowService.GetFlowById(tenant, realm, flowId)
+	if !ok {
+		ctx.SetStatusCode(http.StatusNotFound)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Flow not found",
+		})
+		return
+	}
+
+	if flow.Definition == nil {
+		ctx.SetStatusCode(http.StatusNotFound)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Flow definition not found",
+		})
+		return
+	}
+
+	ctx.SetContentType("application/yaml")
+	ctx.SetBody([]byte(flow.DefintionYaml))
+}
+
+// HandleValidateFlow handles the validation of a YAML flow definition
+// @Summary Validate a flow definition
+// @Description Validates a YAML flow definition
+// @Tags Flows
+// @Accept text/yaml
+// @Produce json
+// @Param request body string true "Flow definition as YAML"
+// @Success 200 {object} map[string]interface{} "Validation results"
+// @Failure 400 {string} string "Invalid request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /admin/{tenant}/{realm}/flows/validate [post]
+func HandleValidateFlow(ctx *fasthttp.RequestCtx) {
+	// Get the flow service from the context
+	flowService := service.GetServices().FlowService
+
+	// Get the YAML content from the request body
+	content := string(ctx.PostBody())
+	if content == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "YAML content is required in the request body",
+		})
+		return
+	}
+
+	// Validate the flow definition
+	validationErrors, err := flowService.ValidateFlowDefinition(content)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": fmt.Sprintf("failed to validate flow definition: %v", err),
+		})
+		return
+	}
+
+	if validationErrors == nil {
+		validationErrors = []service.FlowLintError{}
+	}
+
+	// Return the validation results
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.SetContentType("application/json")
+	_ = json.NewEncoder(ctx).Encode(map[string]interface{}{
+		"valid":  len(validationErrors) == 0,
+		"errors": validationErrors,
+	})
+}
+
+// HandlePutFlowDefintion creates or updates a yaml flow defintion for a flow
+// @Summary Create or update a flow definition
+// @Description Creates or updates a flow definition for a given flow ID
+// @Tags Flows
+// @Accept text/yaml
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param flow path string true "Flow ID"
+// @Param request body string true "Flow definition as YAML"
+// @Success 200 {object} model.Flow
+// @Failure 400 {string} string "Invalid request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /admin/{tenant}/{realm}/flows/{flow}/definition [put]
+func HandlePutFlowDefintion(ctx *fasthttp.RequestCtx) {
+	tenant := ctx.UserValue("tenant").(string)
+	realm := ctx.UserValue("realm").(string)
+	flowId := ctx.UserValue("flow").(string)
+
+	// Get existing flow
+	existingFlow, ok := service.GetServices().FlowService.GetFlowById(tenant, realm, flowId)
+	if !ok {
+		ctx.SetStatusCode(http.StatusNotFound)
+		ctx.SetContentType("application/json")
+
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Flow not found",
+		})
+		return
+	}
+
+	yamlDefinition := string(ctx.PostBody())
+
+	// Validate the flow definition
+	validationErrors, err := service.GetServices().FlowService.ValidateFlowDefinition(yamlDefinition)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": fmt.Sprintf("failed to validate flow definition: %v", err),
+		})
+		return
+	}
+
+	if validationErrors != nil && len(validationErrors) > 0 {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Invalid flow definition: " + validationErrors[0].Message,
+		})
+		return
+	}
+
+	// Unmarsahl the yaml and update the flow definition
+	var flowDef model.FlowDefinition
+	if err := yaml.Unmarshal([]byte(yamlDefinition), &flowDef); err != nil {
+		ctx.SetStatusCode(http.StatusInternalServerError)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Failed to unmarshal flow definition: " + err.Error(),
+		})
+		return
+	}
+
+	existingFlow.Definition = &flowDef
+	existingFlow.DefintionYaml = yamlDefinition
+
+	// Update flow by creating a new one with the same route
+	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, existingFlow); err != nil {
+		ctx.SetStatusCode(http.StatusInternalServerError)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Failed to update flow: " + err.Error(),
+		})
+		return
+	}
+
+	// Return 200 OK
+	ctx.SetStatusCode(http.StatusOK)
 }

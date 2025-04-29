@@ -43,6 +43,11 @@ func New() *router.Router {
 	admin.PATCH("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleUpdateFlow))
 	admin.DELETE("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleDeleteFlow))
 
+	// Flow defintion routes
+	admin.POST("/{tenant}/{realm}/flows/validate", WrapMiddleware(admin_api.HandleValidateFlow))
+	admin.GET("/{tenant}/{realm}/flows/{flow}/definition", WrapMiddleware(admin_api.HandleGetFlowDefintion))
+	admin.PUT("/{tenant}/{realm}/flows/{flow}/definition", WrapMiddleware(admin_api.HandlePutFlowDefintion))
+
 	// Node management routes
 	admin.GET("/nodes", WrapMiddleware(admin_api.HandleListNodes))
 
