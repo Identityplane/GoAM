@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS realms (
     tenant TEXT NOT NULL,
     realm TEXT NOT NULL,
     realm_name TEXT NOT NULL,
+    base_url TEXT,
 
     -- Constraints
     PRIMARY KEY (tenant, realm)

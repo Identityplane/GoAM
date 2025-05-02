@@ -20,6 +20,7 @@ func TemplateTestRealmCRUD(t *testing.T, db RealmDB) {
 		Realm:     "test-realm",
 		RealmName: "Test Realm",
 		Tenant:    testTenant,
+		BaseUrl:   "https://test.example.com",
 	}
 
 	t.Run("CreateRealm", func(t *testing.T) {
@@ -33,6 +34,7 @@ func TemplateTestRealmCRUD(t *testing.T, db RealmDB) {
 		assert.NotNil(t, realm)
 		assert.Equal(t, testRealm.Realm, realm.Realm)
 		assert.Equal(t, testRealm.RealmName, realm.RealmName)
+		assert.Equal(t, testRealm.BaseUrl, realm.BaseUrl)
 	})
 
 	t.Run("UpdateRealm", func(t *testing.T) {
@@ -41,12 +43,14 @@ func TemplateTestRealmCRUD(t *testing.T, db RealmDB) {
 		require.NotNil(t, realm)
 
 		realm.RealmName = "Updated Test Realm"
+		realm.BaseUrl = "https://updated.example.com"
 		err = db.UpdateRealm(ctx, realm)
 		assert.NoError(t, err)
 
 		updatedRealm, err := db.GetRealm(ctx, testTenant, testRealm.Realm)
 		assert.NoError(t, err)
 		assert.Equal(t, "Updated Test Realm", updatedRealm.RealmName)
+		assert.Equal(t, "https://updated.example.com", updatedRealm.BaseUrl)
 	})
 
 	t.Run("ListRealms", func(t *testing.T) {
@@ -54,6 +58,7 @@ func TemplateTestRealmCRUD(t *testing.T, db RealmDB) {
 		assert.NoError(t, err)
 		assert.Len(t, realms, 1)
 		assert.Equal(t, testRealm.Realm, realms[0].Realm)
+		assert.Equal(t, "https://updated.example.com", realms[0].BaseUrl)
 	})
 
 	t.Run("DeleteRealm", func(t *testing.T) {

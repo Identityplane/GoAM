@@ -29,12 +29,12 @@ func NewRealmDB(db *sql.DB) (*SQLiteRealmDB, error) {
 func (s *SQLiteRealmDB) CreateRealm(ctx context.Context, realm model.Realm) error {
 	query := `
 		INSERT INTO realms (
-			tenant, realm, realm_name
-		) VALUES (?, ?, ?)
+			tenant, realm, realm_name, base_url
+		) VALUES (?, ?, ?, ?)
 	`
 
 	_, err := s.db.ExecContext(ctx, query,
-		realm.Tenant, realm.Realm, realm.RealmName,
+		realm.Tenant, realm.Realm, realm.RealmName, realm.BaseUrl,
 	)
 	if err != nil {
 		return fmt.Errorf("insert realm: %w", err)
@@ -45,7 +45,7 @@ func (s *SQLiteRealmDB) CreateRealm(ctx context.Context, realm model.Realm) erro
 
 func (s *SQLiteRealmDB) GetRealm(ctx context.Context, tenant, realm string) (*model.Realm, error) {
 	query := `
-		SELECT tenant, realm, realm_name
+		SELECT tenant, realm, realm_name, base_url
 		FROM realms
 		WHERE tenant = ? AND realm = ?
 	`
@@ -53,7 +53,7 @@ func (s *SQLiteRealmDB) GetRealm(ctx context.Context, tenant, realm string) (*mo
 	var realmConfig model.Realm
 	err := s.db.QueryRowContext(ctx, query, tenant, realm).Scan(
 		&realmConfig.Tenant, &realmConfig.Realm,
-		&realmConfig.RealmName,
+		&realmConfig.RealmName, &realmConfig.BaseUrl,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -68,12 +68,12 @@ func (s *SQLiteRealmDB) GetRealm(ctx context.Context, tenant, realm string) (*mo
 func (s *SQLiteRealmDB) UpdateRealm(ctx context.Context, realm *model.Realm) error {
 	query := `
 		UPDATE realms
-		SET realm_name = ?
+		SET realm_name = ?, base_url = ?
 		WHERE tenant = ? AND realm = ?
 	`
 
 	result, err := s.db.ExecContext(ctx, query,
-		realm.RealmName, realm.Tenant, realm.Realm,
+		realm.RealmName, realm.BaseUrl, realm.Tenant, realm.Realm,
 	)
 	if err != nil {
 		return fmt.Errorf("update realm: %w", err)
@@ -92,7 +92,7 @@ func (s *SQLiteRealmDB) UpdateRealm(ctx context.Context, realm *model.Realm) err
 
 func (s *SQLiteRealmDB) ListRealms(ctx context.Context, tenant string) ([]model.Realm, error) {
 	query := `
-		SELECT tenant, realm, realm_name
+		SELECT tenant, realm, realm_name, base_url
 		FROM realms
 		WHERE tenant = ?
 	`
@@ -108,7 +108,7 @@ func (s *SQLiteRealmDB) ListRealms(ctx context.Context, tenant string) ([]model.
 		var realm model.Realm
 		err := rows.Scan(
 			&realm.Tenant, &realm.Realm,
-			&realm.RealmName,
+			&realm.RealmName, &realm.BaseUrl,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan realm: %w", err)
@@ -126,7 +126,7 @@ func (s *SQLiteRealmDB) ListRealms(ctx context.Context, tenant string) ([]model.
 
 func (s *SQLiteRealmDB) ListAllRealms(ctx context.Context) ([]model.Realm, error) {
 	query := `
-		SELECT tenant, realm, realm_name
+		SELECT tenant, realm, realm_name, base_url
 		FROM realms
 	`
 
@@ -141,7 +141,7 @@ func (s *SQLiteRealmDB) ListAllRealms(ctx context.Context) ([]model.Realm, error
 		var realm model.Realm
 		err := rows.Scan(
 			&realm.Tenant, &realm.Realm,
-			&realm.RealmName,
+			&realm.RealmName, &realm.BaseUrl,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan realm: %w", err)
