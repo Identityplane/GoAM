@@ -83,67 +83,6 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody(activeFlowsJSON)
 }
 
-// HandleFlowGraphPNG generates and serves a PNG image of the requested flow graph.
-// @Summary Generate PNG graph of a flow
-// @Description Generates and returns a PNG image visualization of the specified authentication flow
-// @Tags Debug
-// @Produce image/png
-// @Param tenant path string true "Tenant"
-// @Param realm path string true "Realm"
-// @Param flow path string true "Flow Route"
-// @Success 200 {file} binary "PNG image of the flow graph"
-// @Failure 400 {string} string "Bad request - missing flow parameter"
-// @Failure 404 {string} string "Flow not found"
-// @Failure 500 {string} string "Internal server error"
-// @Router /{tenant}/{realm}/debug/{flow}/graph.png [get]
-func HandleFlowGraphPNG(ctx *fasthttp.RequestCtx) {
-
-	tenant := ctx.UserValue("tenant").(string)
-	realm := ctx.UserValue("realm").(string)
-	flowPath := ctx.UserValue("flow").(string)
-
-	if flowPath == "" {
-		// Return a bad request if flow name is missing
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		ctx.SetBodyString("Missing parameter: flow")
-		return
-	}
-
-	// Look up the flow in the registry
-	flowWithRoute, err := service.GetServices().FlowService.GetFlowByPath(tenant, realm, flowPath)
-
-	if !err {
-		// Return 404 if flow is not found
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		ctx.SetBodyString(fmt.Sprintf("Flow not found: %q", flowPath))
-		return
-	}
-
-	// Generate the DOT representation for the flow graph
-	dot := visual.RenderDOTGraph(flowWithRoute.Definition)
-
-	// Prepare the PNG output buffer
-	var out bytes.Buffer
-
-	// Use the `dot` command to convert the DOT string into a PNG image
-	cmd := exec.Command("dot", "-Tpng")
-	cmd.Stdin = bytes.NewReader([]byte(dot)) // Pass the DOT data as input
-	cmd.Stdout = &out                        // Capture the PNG output in the buffer
-
-	// Run the command and check for errors
-	if err := cmd.Run(); err != nil {
-		// Return an internal server error if Graphviz fails
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		ctx.SetBodyString(fmt.Sprintf("Failed to generate PNG: %v", err))
-		return
-	}
-
-	// Set the content type to image/png and return the image data
-	ctx.SetContentType("image/png")
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	ctx.SetBody(out.Bytes())
-}
-
 // HandleFlowGraphSVG generates and serves an SVG image of the requested flow graph.
 // @Summary Generate SVG graph of a flow
 // @Description Generates and returns an SVG image visualization of the specified authentication flow
@@ -171,9 +110,9 @@ func HandleFlowGraphSVG(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Look up the flow in the registry
-	flow, err := service.GetServices().FlowService.GetFlowById(tenant, realm, flowPath)
+	flow, ok := service.GetServices().FlowService.GetFlowByPath(tenant, realm, flowPath)
 
-	if err {
+	if !ok {
 		// Return 404 if flow is not found
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		ctx.SetBodyString(fmt.Sprintf("Flow not found: %q", flowPath))
