@@ -81,6 +81,12 @@ func initDatabase() *service.DatabaseConnections {
 		if err != nil {
 			logger.PanicNoContext("Failed to initialize sqlite flows db: %v", err)
 		}
+
+		// init applications db
+		connections.ApplicationsDB, err = sqlite_adapter.NewApplicationDB(sqliteDB)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize sqlite application db: %v", err)
+		}
 	}
 
 	if err != nil {

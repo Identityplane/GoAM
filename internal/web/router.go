@@ -36,6 +36,14 @@ func New() *router.Router {
 	admin.PATCH("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleUpdateRealm))
 	admin.DELETE("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleDeleteRealm))
 
+	// Application management routes
+	admin.GET("/{tenant}/{realm}/applications", WrapMiddleware(admin_api.HandleListApplications))
+	admin.GET("/{tenant}/{realm}/applications/{client_id}", WrapMiddleware(admin_api.HandleGetApplication))
+	admin.POST("/{tenant}/{realm}/applications/{client_id}", WrapMiddleware(admin_api.HandleCreateApplication))
+	admin.PUT("/{tenant}/{realm}/applications/{client_id}", WrapMiddleware(admin_api.HandleUpdateApplication))
+	admin.DELETE("/{tenant}/{realm}/applications/{client_id}", WrapMiddleware(admin_api.HandleDeleteApplication))
+	admin.POST("/{tenant}/{realm}/applications/{client_id}/regenerate-secret", WrapMiddleware(admin_api.HandleRegenerateClientSecret))
+
 	// Flow management routes
 	admin.GET("/{tenant}/{realm}/flows", WrapMiddleware(admin_api.HandleListFlows))
 	admin.GET("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleGetFlow))
@@ -54,7 +62,6 @@ func New() *router.Router {
 	// Debug routes
 	r.GET("/debug/flows/all", WrapMiddleware(debug.HandleListAllFlows))
 	r.GET("/{tenant}/{realm}/debug/flows", WrapMiddleware(debug.HandleListFlows))
-	r.GET("/{tenant}/{realm}/debug/{flow}/graph.png", WrapMiddleware(debug.HandleFlowGraphPNG))
 	r.GET("/{tenant}/{realm}/debug/{flow}/graph.svg", WrapMiddleware(debug.HandleFlowGraphSVG))
 
 	// Static files
