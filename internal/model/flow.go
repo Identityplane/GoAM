@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"time"
 )
 
 // Enum of node types
@@ -45,6 +46,8 @@ type Flow struct {
 	Active        bool            `json:"active"` // whether the flow is active
 	Definition    *FlowDefinition `json:"-"`      // pre-loaded flow definition
 	DefintionYaml string          `json:"-"`      // original yaml content, we keep that in order to perserve the exactly same yaml
+	CreatedAt     time.Time       `json:"created_at"`
+	UpdatedAt     time.Time       `json:"updated_at"`
 }
 
 // Represents a ongoing execution of a flow

@@ -75,6 +75,12 @@ func initDatabase() *service.DatabaseConnections {
 		if err != nil {
 			logger.PanicNoContext("Failed to initialize sqlite realm db: %v", err)
 		}
+
+		// init flows db
+		connections.FlowDB, err = sqlite_adapter.NewFlowDB(sqliteDB)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize sqlite flows db: %v", err)
+		}
 	}
 
 	if err != nil {

@@ -2,9 +2,11 @@ package service
 
 import (
 	"fmt"
+	"goiam/internal/logger"
 	"goiam/internal/model"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -64,15 +66,27 @@ func convertToFlow(yf *yamlFlow) *model.Flow {
 
 func LoadFlowFromYAMLString(content string) (*model.Flow, error) {
 	var yflow yamlFlow
+
+	// Check if the flow contains the invalid yaml tag 'customconfig' and outpur a warning as we changed this name
+	if strings.Contains(strings.ToLower(content), "customconfig") {
+		logger.InfoNoContext("Flow seems to contain invalid yaml tag 'customconfig', please use 'custom_config' instead")
+	}
+
+	// Parse the yaml content
 	if err := yaml.Unmarshal([]byte(content), &yflow); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML content: %w", err)
 	}
 
 	flow := convertToFlow(&yflow)
 
+	// Validate flow id is set
+	if flow.Id == "" {
+		return nil, fmt.Errorf("flow id is empty")
+	}
+
 	// The flow yaml is not the same as the flow definition yaml
 	// we need to store the definition yaml but as we don't have that here, we create it
-	definitionYaml, err := yaml.Marshal(flow.Definition)
+	definitionYaml, err := yaml.Marshal(yflow.Definition)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal flow definition: %w", err)
 	}

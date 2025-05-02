@@ -38,6 +38,11 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Ensure flows is never nil
+	if flows == nil {
+		flows = []model.Flow{}
+	}
+
 	// Marshal response to JSON with pretty printing
 	jsonData, err := json.MarshalIndent(flows, "", "  ")
 	if err != nil {
@@ -132,7 +137,7 @@ func HandleCreateFlow(ctx *fasthttp.RequestCtx) {
 	flow.Realm = realm
 	flow.Id = flowId
 
-	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, &flow); err != nil {
+	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, flow); err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
 		_ = json.NewEncoder(ctx).Encode(map[string]string{
@@ -205,7 +210,7 @@ func HandleUpdateFlow(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Update flow by creating a new one with the same route
-	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, existingFlow); err != nil {
+	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, *existingFlow); err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
 		_ = json.NewEncoder(ctx).Encode(map[string]string{
@@ -315,7 +320,7 @@ func HandleListNodes(ctx *fasthttp.RequestCtx) {
 // @Description Returns the flow definition for a given flow id as yaml
 // @Tags Flows
 // @Accept json
-// @Produce json
+// @Produce text/yaml
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
 // @Param flow path string true "Flow ID"
@@ -347,7 +352,7 @@ func HandleGetFlowDefintion(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	ctx.SetContentType("application/yaml")
+	ctx.SetContentType("text/yaml")
 	ctx.SetBody([]byte(flow.DefintionYaml))
 }
 
@@ -470,7 +475,7 @@ func HandlePutFlowDefintion(ctx *fasthttp.RequestCtx) {
 	existingFlow.DefintionYaml = yamlDefinition
 
 	// Update flow by creating a new one with the same route
-	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, existingFlow); err != nil {
+	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, *existingFlow); err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
 		_ = json.NewEncoder(ctx).Encode(map[string]string{

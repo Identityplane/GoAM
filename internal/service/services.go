@@ -15,6 +15,7 @@ type Services struct {
 type DatabaseConnections struct {
 	UserDB  db.UserDB
 	RealmDB db.RealmDB
+	FlowDB  db.FlowDB
 }
 
 var (
@@ -31,7 +32,7 @@ func InitServices(connections DatabaseConnections) *Services {
 	services = &Services{
 		UserService:  NewUserService(databases.UserDB),
 		RealmService: NewRealmService(databases.RealmDB, databases.UserDB),
-		FlowService:  NewFlowService(),
+		FlowService:  NewFlowService(databases.FlowDB),
 	}
 
 	return services

@@ -110,3 +110,36 @@ definition:
 	assert.Contains(t, names, "flow_one")
 	assert.Contains(t, names, "flow_two")
 }
+
+func TestLoadFlowDefinitonFromString(t *testing.T) {
+	yamlContent := `
+name: test_login_flow
+description: test login flow
+start: init
+nodes:
+  init:
+    use: init
+    next:
+      start: registerSuccess
+  registerSuccess:
+    use: successResult
+    custom_config:
+      message: Registration successful!`
+
+	flow, err := LoadFlowDefinitonFromString(yamlContent)
+
+	assert.NotNil(t, flow)
+	assert.NoError(t, err)
+	assert.Equal(t, "Registration successful!", flow.Nodes["registerSuccess"].CustomConfig["message"])
+}
+
+func TestLoadFlowDefinitonFromString_RegisterError(t *testing.T) {
+
+	yamlContent := "name: User Registration\ndescription: User registration flow with username and password\nstart: init\nnodes:\n    askPassword:\n        name: askPassword\n        use: askPassword\n        next:\n            submitted: createUser\n        custom_config:\n            message: Please register your account\n    askUsername:\n        name: askUsername\n        use: askUsername\n        next:\n            submitted: checkUsernameAvailable\n        custom_config:\n            message: Please register your account\n    checkUsernameAvailable:\n        name: checkUsernameAvailable\n        use: checkUsernameAvailable\n        next:\n            available: askPassword\n            taken: registerFailed\n        custom_config: {}\n    createUser:\n        name: createUser\n        use: createUser\n        next:\n            fail: registerFailed\n            success: registerSuccess\n        custom_config: {}\n    init:\n        name: init\n        use: init\n        next:\n            start: askUsername\n        custom_config: {}\n    registerFailed:\n        name: registerFailed\n        use: failureResult\n        next: {}\n        custom_config:\n            message: Registration failed. Username may already exist.\n    registerSuccess:\n        name: registerSuccess\n        use: successResult\n        next: {}\n        custom_config:\n            message: Registration successful!\n"
+
+	flow, err := LoadFlowDefinitonFromString(yamlContent)
+
+	assert.NotNil(t, flow)
+	assert.NoError(t, err)
+	assert.Equal(t, "Registration successful!", flow.Nodes["registerSuccess"].CustomConfig["message"])
+}
