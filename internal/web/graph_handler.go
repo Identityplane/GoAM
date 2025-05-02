@@ -70,6 +70,13 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Check if flow definiton is available
+	if flow.Definition == nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		ctx.SetBodyString("flow definiton not found")
+		return
+	}
+
 	handler := NewGraphHandler(tenant, realm, flow.Definition, registry)
 
 	// Execute the actual handler
