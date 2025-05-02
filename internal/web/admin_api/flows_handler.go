@@ -283,9 +283,15 @@ func HandleListNodes(ctx *fasthttp.RequestCtx) {
 	nodes := make([]NodeInfo, 0, len(graph.NodeDefinitions))
 	for _, node := range graph.NodeDefinitions {
 		nodes = append(nodes, NodeInfo{
-			Name:                 node.Name,
+			Use:                  node.Name,
 			Type:                 string(node.Type),
+			PrettyName:           node.Name, // TODO: Add pretty name
+			Category:             "",        // TODO: Add category
+			RequiredContext:      node.RequiredContext,
+			OutputContext:        node.OutputContext,
 			PossibleResultStates: node.PossibleResultStates,
+			Description:          "",  // TODO: Add description
+			CustomConfigOptions:  nil, // TODO: Add custom config options
 		})
 	}
 
@@ -345,7 +351,7 @@ func HandleGetFlowDefintion(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody([]byte(flow.DefintionYaml))
 }
 
-// HandleValidateFlow handles the validation of a YAML flow definition
+// HandleValidateFlowDefinition handles the validation of a YAML flow definition
 // @Summary Validate a flow definition
 // @Description Validates a YAML flow definition
 // @Tags Flows
@@ -356,7 +362,7 @@ func HandleGetFlowDefintion(ctx *fasthttp.RequestCtx) {
 // @Failure 400 {string} string "Invalid request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /admin/{tenant}/{realm}/flows/validate [post]
-func HandleValidateFlow(ctx *fasthttp.RequestCtx) {
+func HandleValidateFlowDefinition(ctx *fasthttp.RequestCtx) {
 	// Get the flow service from the context
 	flowService := service.GetServices().FlowService
 

@@ -8,8 +8,13 @@ type FlowPatch struct {
 
 // NodeInfo represents a node definition in the API response
 type NodeInfo struct {
-	Name                 string   `json:"name"`
-	Description          string   `json:"description"`
-	Type                 string   `json:"type"`
-	PossibleResultStates []string `json:"possible_result_states"`
+	Use                  string            `json:"use"`
+	PrettyName           string            `json:"prettyName"`
+	Type                 string            `json:"type"`
+	Category             string            `json:"category"`
+	RequiredContext      []string          `json:"requiredContext"`
+	OutputContext        []string          `json:"outputContext"`
+	PossibleResultStates []string          `json:"possibleResultStates"`
+	Description          string            `json:"description"`
+	CustomConfigOptions  map[string]string `json:"customConfigOptions"`
 }

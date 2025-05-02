@@ -67,7 +67,9 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.F
 		customMessage = resultNode.CustomConfig["message"]
 
 	case prompts != nil:
-		templateFile = fmt.Sprintf("%s.html", state.Current)
+
+		currentNode := flow.Nodes[state.Current]
+		templateFile = fmt.Sprintf("%s.html", currentNode.Use)
 
 	default:
 		RenderError(ctx, "Unknown flow state")

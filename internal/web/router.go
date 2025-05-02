@@ -44,7 +44,7 @@ func New() *router.Router {
 	admin.DELETE("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleDeleteFlow))
 
 	// Flow defintion routes
-	admin.POST("/{tenant}/{realm}/flows/validate", WrapMiddleware(admin_api.HandleValidateFlow))
+	admin.POST("/{tenant}/{realm}/flows/validate", WrapMiddleware(admin_api.HandleValidateFlowDefinition))
 	admin.GET("/{tenant}/{realm}/flows/{flow}/definition", WrapMiddleware(admin_api.HandleGetFlowDefintion))
 	admin.PUT("/{tenant}/{realm}/flows/{flow}/definition", WrapMiddleware(admin_api.HandlePutFlowDefintion))
 
