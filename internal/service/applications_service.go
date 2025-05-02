@@ -90,6 +90,11 @@ func (s *applicationServiceImpl) CreateApplication(tenant, realm string, app mod
 		return fmt.Errorf("application with client_id %s already exists", app.ClientId)
 	}
 
+	// If the client_secret is set we hash it
+	if app.ClientSecret != "" {
+		app.ClientSecret = hashClientSecret(app.ClientSecret)
+	}
+
 	// Create the application in the database
 	return s.appsDb.CreateApplication(context.Background(), app)
 }

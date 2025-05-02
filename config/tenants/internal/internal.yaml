@@ -1,0 +1,20 @@
+realm: internal
+base_url: http://localhost:8080/internal/interal
+
+applications:
+  management-ui:
+    client_secret: secret
+    confidential: false
+    consent_required: false
+    description: Management UI Application
+    allowed_scopes:
+      - openid
+      - profile
+      - write:user
+      - write:flows
+      - write:realms
+      - write:applications
+    allowed_flows:
+      - authorization_code
+    redirect_uris:
+      - http://localhost:3000/callback

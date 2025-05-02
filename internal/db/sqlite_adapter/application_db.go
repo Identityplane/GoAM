@@ -41,11 +41,16 @@ func (s *SQLiteApplicationDB) CreateApplication(ctx context.Context, app model.A
 		return fmt.Errorf("failed to marshal allowed flows: %w", err)
 	}
 
+	redirectUrisJSON, err := json.Marshal(app.RedirectUris)
+	if err != nil {
+		return fmt.Errorf("failed to marshal redirect uris: %w", err)
+	}
+
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO applications (
 			tenant, realm, client_id, client_secret, confidential, consent_required,
-			description, allowed_scopes, allowed_flows, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			description, allowed_scopes, allowed_flows, redirect_uris, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		app.Tenant,
 		app.Realm,
@@ -56,6 +61,7 @@ func (s *SQLiteApplicationDB) CreateApplication(ctx context.Context, app model.A
 		app.Description,
 		scopesJSON,
 		flowsJSON,
+		redirectUrisJSON,
 		now.Format(time.RFC3339),
 		now.Format(time.RFC3339),
 	)
@@ -69,13 +75,13 @@ func (s *SQLiteApplicationDB) CreateApplication(ctx context.Context, app model.A
 func (s *SQLiteApplicationDB) GetApplication(ctx context.Context, tenant, realm, id string) (*model.Application, error) {
 	row := s.db.QueryRowContext(ctx, `
 		SELECT tenant, realm, client_id, client_secret, confidential, consent_required,
-		       description, allowed_scopes, allowed_flows, created_at, updated_at
+		       description, allowed_scopes, allowed_flows, redirect_uris, created_at, updated_at
 		FROM applications 
 		WHERE tenant = ? AND realm = ? AND client_id = ?
 	`, tenant, realm, id)
 
 	var app model.Application
-	var scopesJSON, flowsJSON string
+	var scopesJSON, flowsJSON, redirectUrisJSON string
 	var createdAt, updatedAt string
 
 	err := row.Scan(
@@ -88,6 +94,7 @@ func (s *SQLiteApplicationDB) GetApplication(ctx context.Context, tenant, realm,
 		&app.Description,
 		&scopesJSON,
 		&flowsJSON,
+		&redirectUrisJSON,
 		&createdAt,
 		&updatedAt,
 	)
@@ -104,6 +111,9 @@ func (s *SQLiteApplicationDB) GetApplication(ctx context.Context, tenant, realm,
 	}
 	if err := json.Unmarshal([]byte(flowsJSON), &app.AllowedFlows); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal allowed flows: %w", err)
+	}
+	if err := json.Unmarshal([]byte(redirectUrisJSON), &app.RedirectUris); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal redirect uris: %w", err)
 	}
 
 	// Parse timestamps
@@ -126,6 +136,11 @@ func (s *SQLiteApplicationDB) UpdateApplication(ctx context.Context, app *model.
 		return fmt.Errorf("failed to marshal allowed flows: %w", err)
 	}
 
+	redirectUrisJSON, err := json.Marshal(app.RedirectUris)
+	if err != nil {
+		return fmt.Errorf("failed to marshal redirect uris: %w", err)
+	}
+
 	_, err = s.db.ExecContext(ctx, `
 		UPDATE applications SET
 			client_secret = ?,
@@ -134,6 +149,7 @@ func (s *SQLiteApplicationDB) UpdateApplication(ctx context.Context, app *model.
 			description = ?,
 			allowed_scopes = ?,
 			allowed_flows = ?,
+			redirect_uris = ?,
 			updated_at = ?
 		WHERE tenant = ? AND realm = ? AND client_id = ?
 	`,
@@ -143,6 +159,7 @@ func (s *SQLiteApplicationDB) UpdateApplication(ctx context.Context, app *model.
 		app.Description,
 		scopesJSON,
 		flowsJSON,
+		redirectUrisJSON,
 		now.Format(time.RFC3339),
 		app.Tenant,
 		app.Realm,
@@ -154,7 +171,7 @@ func (s *SQLiteApplicationDB) UpdateApplication(ctx context.Context, app *model.
 func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, realm string) ([]model.Application, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT tenant, realm, client_id, client_secret, confidential, consent_required,
-		       description, allowed_scopes, allowed_flows, created_at, updated_at
+		       description, allowed_scopes, allowed_flows, redirect_uris, created_at, updated_at
 		FROM applications 
 		WHERE tenant = ? AND realm = ?
 	`, tenant, realm)
@@ -166,7 +183,7 @@ func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, real
 	var apps []model.Application
 	for rows.Next() {
 		var app model.Application
-		var scopesJSON, flowsJSON string
+		var scopesJSON, flowsJSON, redirectUrisJSON string
 		var createdAt, updatedAt string
 
 		err := rows.Scan(
@@ -179,6 +196,7 @@ func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, real
 			&app.Description,
 			&scopesJSON,
 			&flowsJSON,
+			&redirectUrisJSON,
 			&createdAt,
 			&updatedAt,
 		)
@@ -192,6 +210,9 @@ func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, real
 		}
 		if err := json.Unmarshal([]byte(flowsJSON), &app.AllowedFlows); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal allowed flows: %w", err)
+		}
+		if err := json.Unmarshal([]byte(redirectUrisJSON), &app.RedirectUris); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal redirect uris: %w", err)
 		}
 
 		// Parse timestamps
@@ -211,7 +232,7 @@ func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, real
 func (s *SQLiteApplicationDB) ListAllApplications(ctx context.Context) ([]model.Application, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT tenant, realm, client_id, client_secret, confidential, consent_required,
-		       description, allowed_scopes, allowed_flows, created_at, updated_at
+		       description, allowed_scopes, allowed_flows, redirect_uris, created_at, updated_at
 		FROM applications
 	`)
 	if err != nil {
@@ -222,7 +243,7 @@ func (s *SQLiteApplicationDB) ListAllApplications(ctx context.Context) ([]model.
 	var apps []model.Application
 	for rows.Next() {
 		var app model.Application
-		var scopesJSON, flowsJSON string
+		var scopesJSON, flowsJSON, redirectUrisJSON string
 		var createdAt, updatedAt string
 
 		err := rows.Scan(
@@ -235,6 +256,7 @@ func (s *SQLiteApplicationDB) ListAllApplications(ctx context.Context) ([]model.
 			&app.Description,
 			&scopesJSON,
 			&flowsJSON,
+			&redirectUrisJSON,
 			&createdAt,
 			&updatedAt,
 		)
@@ -248,6 +270,9 @@ func (s *SQLiteApplicationDB) ListAllApplications(ctx context.Context) ([]model.
 		}
 		if err := json.Unmarshal([]byte(flowsJSON), &app.AllowedFlows); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal allowed flows: %w", err)
+		}
+		if err := json.Unmarshal([]byte(redirectUrisJSON), &app.RedirectUris); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal redirect uris: %w", err)
 		}
 
 		// Parse timestamps

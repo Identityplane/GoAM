@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
@@ -38,11 +39,30 @@ type flowRealmYaml struct {
 	Name string `yaml:"name"`
 }
 
+type realmYaml struct {
+	Realm        string                     `yaml:"realm"`
+	RealmName    string                     `yaml:"realm_name"`
+	Tenant       string                     `yaml:"tenant"`
+	BaseUrl      string                     `yaml:"base_url"`
+	Applications map[string]applicationYaml `yaml:"applications"`
+}
+
+type applicationYaml struct {
+	ClientSecret    string   `yaml:"client_secret"`
+	Confidential    bool     `yaml:"confidential"`
+	ConsentRequired bool     `yaml:"consent_required"`
+	Description     string   `yaml:"description"`
+	AllowedScopes   []string `yaml:"allowed_scopes"`
+	AllowedFlows    []string `yaml:"allowed_flows"`
+	RedirectUris    []string `yaml:"redirect_uris"`
+}
+
 // LoadedRealm wraps a RealmConfig with metadata for tracking its source.
 type LoadedRealm struct {
 	Config       *model.Realm             // parsed realm config
 	RealmID      string                   // composite ID like "acme/customers"
 	Repositories *repository.Repositories // services for this realm
+	Applications []model.Application      // applications for this realm
 }
 
 func NewLoadedRealm(realmConfig *model.Realm, userRepo repository.UserRepository) *LoadedRealm {
@@ -88,6 +108,13 @@ func (s *realmServiceImpl) InitRealms(configRoot string, userDb db.UserDB) error
 		// Init user repository
 		realm.Repositories.UserRepo = db.NewUserRepository(realm.Config.Tenant, realm.Config.Realm, userDb)
 		logger.DebugNoContext("Initialized user repository for realm %s", realm.RealmID)
+	}
+
+	// Store all application of the loaded realms
+	for _, realm := range realmsFromConfigDir {
+		for _, application := range realm.Applications {
+			services.ApplicationService.CreateApplication(realm.Config.Tenant, realm.Config.Realm, application)
+		}
 	}
 
 	// Currently we store the local realms in the database
@@ -161,7 +188,7 @@ func loadRealmsFromConfigDir(configRoot string) (map[string]*LoadedRealm, error)
 
 		// Skip if the depth is greater than 2
 		currentDepth := strings.Count(path, string(os.PathSeparator)) - baseDepth
-		if currentDepth > 2 {
+		if currentDepth != 2 {
 			if d.IsDir() {
 				return filepath.SkipDir
 			}
@@ -170,15 +197,16 @@ func loadRealmsFromConfigDir(configRoot string) (map[string]*LoadedRealm, error)
 
 		logger.DebugNoContext("Loading realm config: %s\n", path)
 
-		cfg, err := loadRealmConfigFromFilePath(path)
+		cfg, apps, err := loadRealmConfigFromFilePath(path)
 		if err != nil {
 			return fmt.Errorf("error loading realm config at %s: %w", path, err)
 		}
 
 		id := fmt.Sprintf("%s/%s", cfg.Tenant, cfg.Realm)
 		newRealms[id] = &LoadedRealm{
-			Config:  cfg,
-			RealmID: id,
+			Config:       cfg,
+			RealmID:      id,
+			Applications: apps,
 		}
 		return nil
 	})
@@ -192,23 +220,19 @@ func loadRealmsFromConfigDir(configRoot string) (map[string]*LoadedRealm, error)
 }
 
 // Helper function to load realm config from file
-// Does not load flows, only realm config as we have a seperate service for loading flows
-func loadRealmConfigFromFilePath(path string) (*model.Realm, error) {
+func loadRealmConfigFromFilePath(path string) (*model.Realm, []model.Application, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("read failed: %w", err)
+		return nil, nil, fmt.Errorf("read failed: %w", err)
 	}
 
-	var unmarshaledFlowYaml struct {
-		Realm string `yaml:"realm"`
+	var yamlConfig realmYaml
+	if err := yaml.Unmarshal(data, &yamlConfig); err != nil {
+		return nil, nil, fmt.Errorf("yaml unmarshal failed: %w", err)
 	}
 
-	if err := yaml.Unmarshal(data, &unmarshaledFlowYaml); err != nil {
-		return nil, fmt.Errorf("yaml unmarshal failed: %w", err)
-	}
-
-	if unmarshaledFlowYaml.Realm == "" {
-		return nil, fmt.Errorf("invalid config in %s: 'realm' is required", path)
+	if yamlConfig.Realm == "" {
+		return nil, nil, fmt.Errorf("invalid config in %s: 'realm' is required", path)
 	}
 
 	segments := strings.Split(filepath.ToSlash(path), "/")
@@ -220,14 +244,35 @@ func loadRealmConfigFromFilePath(path string) (*model.Realm, error) {
 		}
 	}
 	if tenantIdx == -1 {
-		return nil, fmt.Errorf("could not infer tenant name from path: %s", path)
+		return nil, nil, fmt.Errorf("could not infer tenant name from path: %s", path)
 	}
 	tenant := segments[tenantIdx]
 
+	// Create applications from YAML
+	applications := make([]model.Application, 0, len(yamlConfig.Applications))
+	for clientID, appYaml := range yamlConfig.Applications {
+		applications = append(applications, model.Application{
+			Tenant:          tenant,
+			Realm:           yamlConfig.Realm,
+			ClientId:        clientID,
+			ClientSecret:    appYaml.ClientSecret,
+			Confidential:    appYaml.Confidential,
+			ConsentRequired: appYaml.ConsentRequired,
+			Description:     appYaml.Description,
+			AllowedScopes:   appYaml.AllowedScopes,
+			AllowedFlows:    appYaml.AllowedFlows,
+			RedirectUris:    appYaml.RedirectUris,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		})
+	}
+
 	return &model.Realm{
-		Realm:  unmarshaledFlowYaml.Realm,
-		Tenant: tenant,
-	}, nil
+		Realm:     yamlConfig.Realm,
+		RealmName: yamlConfig.RealmName,
+		Tenant:    tenant,
+		BaseUrl:   yamlConfig.BaseUrl,
+	}, applications, nil
 }
 
 func (s *realmServiceImpl) CreateRealm(realm *model.Realm) error {

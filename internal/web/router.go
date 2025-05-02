@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"goiam/internal/web/admin_api"
 	"goiam/internal/web/debug"
+	"goiam/internal/web/oauth2"
 
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
@@ -75,6 +76,9 @@ func New() *router.Router {
 	// Swagger UI
 	r.GET("/swagger/", WrapMiddleware(HandleSwaggerUI))
 	r.GET("/swagger/{*path}", WrapMiddleware(HandleSwaggerUI))
+
+	// Oauth + OIDC
+	r.GET("/{tenant}/{realm}/oauth2/.well-known/openid-configuration", WrapMiddleware(oauth2.HandleOpenIDConfiguration))
 
 	return r
 }

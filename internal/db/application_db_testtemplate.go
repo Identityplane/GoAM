@@ -28,6 +28,7 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		Description:     "A test application",
 		AllowedScopes:   []string{"openid", "profile", "email"},
 		AllowedFlows:    []string{"code", "code + pkce"},
+		RedirectUris:    []string{"https://example.com/callback", "https://example.com/oauth2/callback"},
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
 	}
@@ -46,6 +47,7 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		assert.Equal(t, testApp.Description, app.Description)
 		assert.Equal(t, testApp.AllowedScopes, app.AllowedScopes)
 		assert.Equal(t, testApp.AllowedFlows, app.AllowedFlows)
+		assert.Equal(t, testApp.RedirectUris, app.RedirectUris)
 	})
 
 	t.Run("UpdateApplication", func(t *testing.T) {
@@ -55,6 +57,7 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 
 		app.Description = "Updated description"
 		app.AllowedScopes = []string{"openid", "profile"}
+		app.RedirectUris = []string{"https://example.com/new-callback"}
 		err = db.UpdateApplication(ctx, app)
 		assert.NoError(t, err)
 
@@ -62,6 +65,7 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		assert.NoError(t, err)
 		assert.Equal(t, "Updated description", updatedApp.Description)
 		assert.Equal(t, []string{"openid", "profile"}, updatedApp.AllowedScopes)
+		assert.Equal(t, []string{"https://example.com/new-callback"}, updatedApp.RedirectUris)
 	})
 
 	t.Run("ListApplications", func(t *testing.T) {
@@ -69,6 +73,7 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		assert.NoError(t, err)
 		assert.Len(t, apps, 1)
 		assert.Equal(t, testApp.ClientId, apps[0].ClientId)
+		assert.Equal(t, []string{"https://example.com/new-callback"}, apps[0].RedirectUris)
 	})
 
 	t.Run("DeleteApplication", func(t *testing.T) {
