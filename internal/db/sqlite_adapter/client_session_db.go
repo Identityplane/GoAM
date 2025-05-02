@@ -1,0 +1,363 @@
+package sqlite_adapter
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"goiam/internal/db"
+	"goiam/internal/model"
+	"time"
+)
+
+type SQLiteClientSessionDB struct {
+	db *sql.DB
+}
+
+// NewClientSessionDB creates a new ClientSessionDB instance
+func NewClientSessionDB(db *sql.DB) db.ClientSessionDB {
+	return &SQLiteClientSessionDB{db: db}
+}
+
+func (s *SQLiteClientSessionDB) CreateClientSession(ctx context.Context, session *model.ClientSession) error {
+	query := `
+		INSERT INTO client_sessions (
+			tenant, realm, client_session_id, client_id, grant_type,
+			access_token_hash, refresh_token_hash, auth_code_hash,
+			user_id, scope, created, expire
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	_, err := s.db.ExecContext(ctx, query,
+		session.Tenant,
+		session.Realm,
+		session.ClientSessionID,
+		session.ClientID,
+		session.GrantType,
+		session.AccessTokenHash,
+		session.RefreshTokenHash,
+		session.AuthCodeHash,
+		session.UserID,
+		session.Scope,
+		session.Created.Format(time.RFC3339),
+		session.Expire.Format(time.RFC3339),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create client session: %w", err)
+	}
+
+	return nil
+}
+
+func (s *SQLiteClientSessionDB) GetClientSessionByID(ctx context.Context, tenant, realm, sessionID string) (*model.ClientSession, error) {
+	query := `
+		SELECT tenant, realm, client_session_id, client_id, grant_type,
+		       access_token_hash, refresh_token_hash, auth_code_hash,
+		       user_id, scope, created, expire
+		FROM client_sessions
+		WHERE tenant = ? AND realm = ? AND client_session_id = ?
+	`
+
+	var session model.ClientSession
+	var createdStr, expireStr string
+
+	err := s.db.QueryRowContext(ctx, query, tenant, realm, sessionID).Scan(
+		&session.Tenant,
+		&session.Realm,
+		&session.ClientSessionID,
+		&session.ClientID,
+		&session.GrantType,
+		&session.AccessTokenHash,
+		&session.RefreshTokenHash,
+		&session.AuthCodeHash,
+		&session.UserID,
+		&session.Scope,
+		&createdStr,
+		&expireStr,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client session: %w", err)
+	}
+
+	// Parse timestamps
+	session.Created, _ = time.Parse(time.RFC3339, createdStr)
+	session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+
+	return &session, nil
+}
+
+func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Context, accessTokenHash string) (*model.ClientSession, error) {
+	query := `
+		SELECT tenant, realm, client_session_id, client_id, grant_type,
+		       access_token_hash, refresh_token_hash, auth_code_hash,
+		       user_id, scope, created, expire
+		FROM client_sessions
+		WHERE access_token_hash = ?
+	`
+
+	var session model.ClientSession
+	var createdStr, expireStr string
+
+	err := s.db.QueryRowContext(ctx, query, accessTokenHash).Scan(
+		&session.Tenant,
+		&session.Realm,
+		&session.ClientSessionID,
+		&session.ClientID,
+		&session.GrantType,
+		&session.AccessTokenHash,
+		&session.RefreshTokenHash,
+		&session.AuthCodeHash,
+		&session.UserID,
+		&session.Scope,
+		&createdStr,
+		&expireStr,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client session by access token: %w", err)
+	}
+
+	// Parse timestamps
+	session.Created, _ = time.Parse(time.RFC3339, createdStr)
+	session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+
+	return &session, nil
+}
+
+func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Context, refreshTokenHash string) (*model.ClientSession, error) {
+	query := `
+		SELECT tenant, realm, client_session_id, client_id, grant_type,
+		       access_token_hash, refresh_token_hash, auth_code_hash,
+		       user_id, scope, created, expire
+		FROM client_sessions
+		WHERE refresh_token_hash = ?
+	`
+
+	var session model.ClientSession
+	var createdStr, expireStr string
+
+	err := s.db.QueryRowContext(ctx, query, refreshTokenHash).Scan(
+		&session.Tenant,
+		&session.Realm,
+		&session.ClientSessionID,
+		&session.ClientID,
+		&session.GrantType,
+		&session.AccessTokenHash,
+		&session.RefreshTokenHash,
+		&session.AuthCodeHash,
+		&session.UserID,
+		&session.Scope,
+		&createdStr,
+		&expireStr,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client session by refresh token: %w", err)
+	}
+
+	// Parse timestamps
+	session.Created, _ = time.Parse(time.RFC3339, createdStr)
+	session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+
+	return &session, nil
+}
+
+func (s *SQLiteClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, authCodeHash string) (*model.ClientSession, error) {
+	query := `
+		SELECT tenant, realm, client_session_id, client_id, grant_type,
+		       access_token_hash, refresh_token_hash, auth_code_hash,
+		       user_id, scope, created, expire
+		FROM client_sessions
+		WHERE auth_code_hash = ?
+	`
+
+	var session model.ClientSession
+	var createdStr, expireStr string
+
+	err := s.db.QueryRowContext(ctx, query, authCodeHash).Scan(
+		&session.Tenant,
+		&session.Realm,
+		&session.ClientSessionID,
+		&session.ClientID,
+		&session.GrantType,
+		&session.AccessTokenHash,
+		&session.RefreshTokenHash,
+		&session.AuthCodeHash,
+		&session.UserID,
+		&session.Scope,
+		&createdStr,
+		&expireStr,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client session by auth code: %w", err)
+	}
+
+	// Parse timestamps
+	session.Created, _ = time.Parse(time.RFC3339, createdStr)
+	session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+
+	return &session, nil
+}
+
+func (s *SQLiteClientSessionDB) ListClientSessions(ctx context.Context, tenant, realm, clientID string) ([]model.ClientSession, error) {
+	query := `
+		SELECT tenant, realm, client_session_id, client_id, grant_type,
+		       access_token_hash, refresh_token_hash, auth_code_hash,
+		       user_id, scope, created, expire
+		FROM client_sessions
+		WHERE tenant = ? AND realm = ? AND client_id = ?
+	`
+
+	rows, err := s.db.QueryContext(ctx, query, tenant, realm, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list client sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []model.ClientSession
+	for rows.Next() {
+		var session model.ClientSession
+		var createdStr, expireStr string
+
+		err := rows.Scan(
+			&session.Tenant,
+			&session.Realm,
+			&session.ClientSessionID,
+			&session.ClientID,
+			&session.GrantType,
+			&session.AccessTokenHash,
+			&session.RefreshTokenHash,
+			&session.AuthCodeHash,
+			&session.UserID,
+			&session.Scope,
+			&createdStr,
+			&expireStr,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan client session: %w", err)
+		}
+
+		// Parse timestamps
+		session.Created, _ = time.Parse(time.RFC3339, createdStr)
+		session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+
+		sessions = append(sessions, session)
+	}
+
+	return sessions, nil
+}
+
+func (s *SQLiteClientSessionDB) ListUserClientSessions(ctx context.Context, tenant, realm, userID string) ([]model.ClientSession, error) {
+	query := `
+		SELECT tenant, realm, client_session_id, client_id, grant_type,
+		       access_token_hash, refresh_token_hash, auth_code_hash,
+		       user_id, scope, created, expire
+		FROM client_sessions
+		WHERE tenant = ? AND realm = ? AND user_id = ?
+	`
+
+	rows, err := s.db.QueryContext(ctx, query, tenant, realm, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list user client sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []model.ClientSession
+	for rows.Next() {
+		var session model.ClientSession
+		var createdStr, expireStr string
+
+		err := rows.Scan(
+			&session.Tenant,
+			&session.Realm,
+			&session.ClientSessionID,
+			&session.ClientID,
+			&session.GrantType,
+			&session.AccessTokenHash,
+			&session.RefreshTokenHash,
+			&session.AuthCodeHash,
+			&session.UserID,
+			&session.Scope,
+			&createdStr,
+			&expireStr,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan client session: %w", err)
+		}
+
+		// Parse timestamps
+		session.Created, _ = time.Parse(time.RFC3339, createdStr)
+		session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+
+		sessions = append(sessions, session)
+	}
+
+	return sessions, nil
+}
+
+func (s *SQLiteClientSessionDB) UpdateClientSession(ctx context.Context, session *model.ClientSession) error {
+	query := `
+		UPDATE client_sessions
+		SET client_id = ?, grant_type = ?,
+		    access_token_hash = ?, refresh_token_hash = ?, auth_code_hash = ?,
+		    user_id = ?, scope = ?, created = ?, expire = ?
+		WHERE tenant = ? AND realm = ? AND client_session_id = ?
+	`
+
+	_, err := s.db.ExecContext(ctx, query,
+		session.ClientID,
+		session.GrantType,
+		session.AccessTokenHash,
+		session.RefreshTokenHash,
+		session.AuthCodeHash,
+		session.UserID,
+		session.Scope,
+		session.Created.Format(time.RFC3339),
+		session.Expire.Format(time.RFC3339),
+		session.Tenant,
+		session.Realm,
+		session.ClientSessionID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update client session: %w", err)
+	}
+
+	return nil
+}
+
+func (s *SQLiteClientSessionDB) DeleteClientSession(ctx context.Context, tenant, realm, sessionID string) error {
+	query := `
+		DELETE FROM client_sessions
+		WHERE tenant = ? AND realm = ? AND client_session_id = ?
+	`
+
+	_, err := s.db.ExecContext(ctx, query, tenant, realm, sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to delete client session: %w", err)
+	}
+
+	return nil
+}
+
+func (s *SQLiteClientSessionDB) DeleteExpiredClientSessions(ctx context.Context) error {
+	query := `
+		DELETE FROM client_sessions
+		WHERE expire < ?
+	`
+
+	_, err := s.db.ExecContext(ctx, query, time.Now().Format(time.RFC3339))
+	if err != nil {
+		return fmt.Errorf("failed to delete expired client sessions: %w", err)
+	}
+
+	return nil
+}
