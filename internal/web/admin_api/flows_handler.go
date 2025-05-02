@@ -209,8 +209,12 @@ func HandleUpdateFlow(ctx *fasthttp.RequestCtx) {
 		existingFlow.Route = *patch.Route
 	}
 
+	if patch.Active != nil {
+		existingFlow.Active = *patch.Active
+	}
+
 	// Update flow by creating a new one with the same route
-	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, *existingFlow); err != nil {
+	if err := service.GetServices().FlowService.UpdateFlow(tenant, realm, *existingFlow); err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
 		_ = json.NewEncoder(ctx).Encode(map[string]string{
@@ -219,8 +223,19 @@ func HandleUpdateFlow(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Return updated flow
-	jsonData, err := json.MarshalIndent(existingFlow, "", "  ")
+	// Load flow again and return it
+	flowReleaded, ok := service.GetServices().FlowService.GetFlowById(tenant, realm, flow)
+	if !ok {
+		ctx.SetStatusCode(http.StatusNotFound)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Flow not found",
+		})
+		return
+	}
+
+	// Marshal response to JSON with pretty printing
+	jsonData, err := json.MarshalIndent(flowReleaded, "", "  ")
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
@@ -475,7 +490,7 @@ func HandlePutFlowDefintion(ctx *fasthttp.RequestCtx) {
 	existingFlow.DefintionYaml = yamlDefinition
 
 	// Update flow by creating a new one with the same route
-	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, *existingFlow); err != nil {
+	if err := service.GetServices().FlowService.UpdateFlow(tenant, realm, *existingFlow); err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
 		_ = json.NewEncoder(ctx).Encode(map[string]string{

@@ -35,6 +35,9 @@ type FlowService interface {
 	// CreateFlow creates a new flow
 	CreateFlow(tenant, realm string, flow model.Flow) error
 
+	// UpdateFlow updates an existing flow
+	UpdateFlow(tenant, realm string, flow model.Flow) error
+
 	// DeleteFlow deletes a flow by its ID
 	DeleteFlow(tenant, realm, id string) error
 
@@ -135,8 +138,43 @@ func (s *flowServiceImpl) CreateFlow(tenant, realm string, flow model.Flow) erro
 	// We ignore heading "/" for the route name
 	flow.Route, _ = strings.CutPrefix(flow.Route, "/")
 
+	// Check if the flow already exists
+	_, exists := s.GetFlowById(tenant, realm, flow.Id)
+	if exists {
+		return fmt.Errorf("flow with id %s already exists", flow.Id)
+	}
+
 	// Create the flow in the database
 	return s.flowsDb.CreateFlow(context.Background(), flow)
+}
+
+func (s *flowServiceImpl) UpdateFlow(tenant, realm string, flow model.Flow) error {
+
+	// Check that route is not ""
+	if flow.Route == "" {
+		return fmt.Errorf("flow route is empty")
+	}
+
+	// Check that flow id is not ""
+	if flow.Id == "" {
+		return fmt.Errorf("flow id is empty")
+	}
+
+	// Ensure realm and tenant are set correctly
+	flow.Realm = realm
+	flow.Tenant = tenant
+
+	// We ignore heading "/" for the route name
+	flow.Route, _ = strings.CutPrefix(flow.Route, "/")
+
+	// Check if the flow exists
+	_, exists := s.GetFlowById(tenant, realm, flow.Id)
+	if !exists {
+		return fmt.Errorf("flow with id %s not found", flow.Id)
+	}
+
+	// Update the flow in the database
+	return s.flowsDb.UpdateFlow(context.Background(), &flow)
 }
 
 func (s *flowServiceImpl) DeleteFlow(tenant, realm, id string) error {

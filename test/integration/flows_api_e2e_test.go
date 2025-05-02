@@ -63,8 +63,8 @@ func TestFlowAPI_E2E(t *testing.T) {
 	updatedFlowRoute := "test_flow_updated"
 	t.Run("Update Flow", func(t *testing.T) {
 		updatePayload := map[string]interface{}{
-			"id":    flowId,
-			"route": updatedFlowRoute,
+			"active": true,
+			"route":  updatedFlowRoute,
 		}
 
 		e.PATCH("/admin/acme/test_realm/flows/test_flow").
@@ -74,7 +74,7 @@ func TestFlowAPI_E2E(t *testing.T) {
 			JSON().
 			Object().
 			HasValue("route", updatedFlowRoute).
-			HasValue("id", flowId)
+			HasValue("active", true)
 
 		// Verify the update
 		e.GET("/admin/acme/test_realm/flows/test_flow").
@@ -233,7 +233,7 @@ func TestFlowUpdate(t *testing.T) {
   nodes:
     askPassword:
       x: 424
-      'y': -102
+      y: -102
 `
 
 	e.PUT("/admin/acme/customers/flows/login_auth/definition").
