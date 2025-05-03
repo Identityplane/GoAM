@@ -4,3 +4,5 @@ internal/web/swagger-ui/docs.go
 internal/web/swagger-ui/swagger.json
 internal/web/swagger-ui/swagger.yaml
 cmd/__debug_*
+test/integration/config/tenants/acme/customers/static/style.css.fasthttp.br
+test/integration/config/tenants/acme/customers/static/style.css.fasthttp.gz
