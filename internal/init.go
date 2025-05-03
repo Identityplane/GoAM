@@ -135,14 +135,10 @@ func initServices(dbConnections *service.DatabaseConnections) {
 	// Initialize services
 	services := service.InitServices(*dbConnections)
 
-	// Initialize realms
-	if err := services.RealmService.InitRealms(config.ConfigPath, dbConnections.UserDB); err != nil {
-		logger.PanicNoContext("Failed to initialize realms: %v", err)
-	}
-
-	// Initialize flows
-	if err := services.FlowService.InitFlows(); err != nil {
-		logger.PanicNoContext("Failed to initialize flows: %v", err)
+	// Use the static configuration service to load the realm configurations
+	err := services.StaticConfigurationService.LoadConfigurationFromFiles(config.ConfigPath)
+	if err != nil {
+		logger.PanicNoContext("Failed to load static configuration: %v", err)
 	}
 
 	logger.DebugNoContext("Initialized services and realms")

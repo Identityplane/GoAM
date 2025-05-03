@@ -11,8 +11,8 @@ import (
 func TestRun_SimpleInitToSuccess(t *testing.T) {
 	// Build a super simple flow: init -> successResult
 	flow := &model.FlowDefinition{
-		Name:  "simple_flow",
-		Start: "init",
+		Description: "simple_flow",
+		Start:       "init",
 		Nodes: map[string]*model.GraphNode{
 			"init": {
 				Name: "init",
@@ -42,8 +42,8 @@ func TestRun_SimpleInitToSuccess(t *testing.T) {
 
 func TestRun_InitQueryToSuccess(t *testing.T) {
 	flow := &model.FlowDefinition{
-		Name:  "query_flow",
-		Start: "init",
+		Description: "query_flow",
+		Start:       "init",
 		Nodes: map[string]*model.GraphNode{
 			"init": {
 				Name: "init",

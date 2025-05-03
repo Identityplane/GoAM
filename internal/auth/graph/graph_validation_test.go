@@ -9,8 +9,8 @@ import (
 
 func TestEngine_ValidMinimalFlow(t *testing.T) {
 	flow := &model.FlowDefinition{
-		Name:  "simple_init_only",
-		Start: "init",
+		Description: "simple_init_only",
+		Start:       "init",
 		Nodes: map[string]*model.GraphNode{
 			"init": {
 				Name: "init",
@@ -32,9 +32,9 @@ func TestEngine_ValidMinimalFlow(t *testing.T) {
 
 func TestEngine_MissingStartNode(t *testing.T) {
 	flow := &model.FlowDefinition{
-		Name:  "no_start",
-		Start: "init",
-		Nodes: map[string]*model.GraphNode{},
+		Description: "no_start",
+		Start:       "init",
+		Nodes:       map[string]*model.GraphNode{},
 	}
 
 	err := ValidateFlowDefinition(flow)
@@ -44,8 +44,8 @@ func TestEngine_MissingStartNode(t *testing.T) {
 
 func TestEngine_StartNotInit(t *testing.T) {
 	flow := &model.FlowDefinition{
-		Name:  "bad_start_type",
-		Start: "askUsername",
+		Description: "bad_start_type",
+		Start:       "askUsername",
 		Nodes: map[string]*model.GraphNode{
 			"askUsername": {
 				Name: "askUsername",
@@ -68,8 +68,8 @@ func TestEngine_StartNotInit(t *testing.T) {
 
 func TestEngine_MissingNextOnLogicNode(t *testing.T) {
 	flow := &model.FlowDefinition{
-		Name:  "missing_next",
-		Start: "init",
+		Description: "missing_next",
+		Start:       "init",
 		Nodes: map[string]*model.GraphNode{
 			"init": {
 				Name: "init",

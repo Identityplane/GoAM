@@ -1,56 +1,72 @@
-flow_id: user_register
-route: register
-active: yes
-
-definition:
-  name: "User Registration"
-  description: "User registration flow with username and password"
-
-  start: init
+description: ''
+start: init
+nodes:
+  askPassword:
+    name: askPassword
+    use: askPassword
+    custom_config:
+      message: Please register your account
+    next:
+      submitted: createUser
+  askUsername:
+    name: askUsername
+    use: askUsername
+    custom_config:
+      message: Please register your account
+    next:
+      submitted: checkUsernameAvailable
+  checkUsernameAvailable:
+    name: checkUsernameAvailable
+    use: checkUsernameAvailable
+    custom_config: {}
+    next:
+      available: askPassword
+      taken: registerFailed
+  createUser:
+    name: createUser
+    use: createUser
+    custom_config: {}
+    next:
+      fail: registerFailed
+      success: registerSuccess
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: askUsername
+  registerFailed:
+    name: failureResult
+    use: failureResult
+    custom_config:
+      message: Failed to create user. Username may already exist.
+    next: {}
+  registerSuccess:
+    name: successResult
+    use: successResult
+    custom_config:
+      message: Registration successful!
+    next: {}
+editor:
   nodes:
-    init:
-      use: init
-      next:
-        start: askUsername
-
-    askUsername:
-      use: askUsername
-      next:
-        submitted: checkUsernameAvailable
-      custom_config:
-        message: Please register your account
-
-    checkUsernameAvailable:
-      use: checkUsernameAvailable
-      next:
-        available: askPassword
-        taken: registerFailed
-
     askPassword:
-      use: askPassword
-      next:
-        submitted: createUser
-      custom_config:
-        message: Please register your account
-
+      x: 722.6421052631581
+      'y': -388.4807017543861
+    askUsername:
+      x: 99.378947368421
+      'y': -400.6771929824562
+    checkUsernameAvailable:
+      x: 413.4161403508772
+      'y': -391.52982456140353
     createUser:
-      use: createUser
-      next:
-        success: registerSuccess
-        fail: registerFailed
-
-    registerSuccess:
-      use: successResult
-      custom_config:
-        message: Registration successful!
-
+      x: 1044.555797571421
+      'y': -388.480701754386
+    init:
+      x: -103.15017543859653
+      'y': -364.08771929824564
     registerFailed:
-      use: failureResult
-      custom_config:
-        message: Registration failed. Username may already exist.
-
-  editor:
-    nodes:
-      askUsername:
-        x: 200
-        y: 300
+      x: 1481.7803265839832
+      'y': -95.7649122807018
+    registerSuccess:
+      x: 1494.5452631578946
+      'y': -327.4982456140351

@@ -15,12 +15,9 @@ func TestFlowService_Integration(t *testing.T) {
 
 	// Test getting existing flows
 	expectedFlows := []string{
-		"login_auth",
-		"test_passkeys_registration",
-		"test_passkeys_verify",
-		"user_register",
+		"login",
+		"register",
 		"unlock_account",
-		"username_password_auth",
 	}
 
 	for _, flowId := range expectedFlows {

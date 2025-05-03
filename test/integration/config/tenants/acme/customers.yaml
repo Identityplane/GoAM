@@ -1,12 +1,22 @@
 realm: customers
+realm_name: Our beautiful Customers
+base_url: http://localhost:8080/acme/customers
 
 flows:
-  - route: /login
-    file: login.yaml
+  login:
+    route: /login
+    active: yes
+    definition_location: login.yaml
+  register:
+    route: /register
+    active: yes
+    definition_location: register.yaml
+  unlock_account:
+    route: /unlock-account
+    active: no
+    definition_location: unlock_account.yaml
 
-  - route: /register
-    file: register.yaml
-
-  - route: /passkey_enroll
-    file: passkey_registration_debug.yaml
-
+applications:
+  customers-app:
+    client_id: customers-app
+    client_secret: customers-app-secret

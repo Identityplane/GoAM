@@ -18,12 +18,12 @@ func TemplateTestFlowCRUD(t *testing.T, db FlowDB) {
 
 	// Create test flow
 	testFlow := model.Flow{
-		Tenant:        testTenant,
-		Realm:         testRealm,
-		Id:            "test-flow",
-		Route:         "/test",
-		Active:        true,
-		DefintionYaml: "test: yaml",
+		Tenant:         testTenant,
+		Realm:          testRealm,
+		Id:             "test-flow",
+		Route:          "/test",
+		Active:         true,
+		DefinitionYaml: "test: yaml",
 	}
 
 	t.Run("CreateFlow", func(t *testing.T) {
@@ -37,7 +37,7 @@ func TemplateTestFlowCRUD(t *testing.T, db FlowDB) {
 		assert.NotNil(t, flow)
 		assert.Equal(t, testFlow.Id, flow.Id)
 		assert.Equal(t, testFlow.Route, flow.Route)
-		assert.Equal(t, testFlow.DefintionYaml, flow.DefintionYaml)
+		assert.Equal(t, testFlow.DefinitionYaml, flow.DefinitionYaml)
 	})
 
 	t.Run("GetFlowByRoute", func(t *testing.T) {
@@ -54,14 +54,14 @@ func TemplateTestFlowCRUD(t *testing.T, db FlowDB) {
 		require.NotNil(t, flow)
 
 		flow.Route = "/updated"
-		flow.DefintionYaml = "updated: yaml"
+		flow.DefinitionYaml = "updated: yaml"
 		err = db.UpdateFlow(ctx, flow)
 		assert.NoError(t, err)
 
 		updatedFlow, err := db.GetFlow(ctx, testTenant, testRealm, testFlow.Id)
 		assert.NoError(t, err)
 		assert.Equal(t, "/updated", updatedFlow.Route)
-		assert.Equal(t, "updated: yaml", updatedFlow.DefintionYaml)
+		assert.Equal(t, "updated: yaml", updatedFlow.DefinitionYaml)
 	})
 
 	t.Run("ListFlows", func(t *testing.T) {

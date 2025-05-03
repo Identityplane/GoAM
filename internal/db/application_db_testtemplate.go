@@ -94,7 +94,7 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		assert.Equal(t, 7200, updatedApp.AccessTokenLifetime)
 		assert.Equal(t, 172800, updatedApp.RefreshTokenLifetime)
 		assert.Equal(t, 7200, updatedApp.IdTokenLifetime)
-		assert.Equal(t, "session_key", updatedApp.AccessTokenType)
+		assert.Equal(t, "session_key", string(updatedApp.AccessTokenType))
 		assert.Equal(t, "HS256", updatedApp.AccessTokenAlgorithm)
 		assert.Equal(t, "custom", updatedApp.AccessTokenMapping)
 		assert.Equal(t, "HS256", updatedApp.IdTokenAlgorithm)

@@ -1,68 +1,72 @@
-flow_id: login_auth
-route: /login
-active: yes
-
-definition:
-  name: "Login v1"
-  description: "General login journey with passkey and username password as fallback"
-
-  start: init
+description: ''
+start: init
+nodes:
+  askPassword:
+    name: askPassword
+    use: askPassword
+    next:
+      submitted: validateUsernamePassword
+  askUsername:
+    name: askUsername
+    use: askUsername
+    next:
+      submitted: checkPasskeyRegistered
+  authFailure:
+    name: failureResult
+    use: failureResult
+    next: {}
+  authSuccess:
+    name: successResult
+    use: successResult
+    next: {}
+  checkPasskeyRegistered:
+    name: checkPasskeyRegistered
+    use: checkPasskeyRegistered
+    next:
+      not_registered: askPassword
+      registered: verifyPasskey
+      user_not_found: authFailure
+  init:
+    name: init
+    use: init
+    next:
+      start: askUsername
+  validateUsernamePassword:
+    name: validateUsernamePassword
+    use: validateUsernamePassword
+    next:
+      fail: askPassword
+      locked: authFailure
+      success: authSuccess
+  verifyPasskey:
+    name: verifyPasskey
+    use: verifyPasskey
+    next:
+      failure: authFailure
+      success: authSuccess
+editor:
   nodes:
-    init:
-      use: init
-      next:
-        start: askUsername
-
-    askUsername:
-      use: askUsername
-      next:
-        submitted: checkPasskeyRegistered
-      custom_config:
-        message: Please login to your account
-        showRegisterLink: true
-
-    checkPasskeyRegistered:
-      use: checkPasskeyRegistered
-      next:
-        registered: verifyPasskey
-        not_registered: askPassword
-        user_not_found: authFailure
-
-    verifyPasskey:
-      use: verifyPasskey
-      next:
-        success: authSuccess
-        failure: authFailure
-      custom_config:
-        autosubmit: true
-        message: Click the button below to verify your identity using a registered passkey.
-
     askPassword:
-      use: askPassword
-      next:
-        submitted: validateUsernamePassword
-      custom_config:
-        message: Please login to your account
-
-    validateUsernamePassword:
-      use: validateUsernamePassword
-      next:
-        success: authSuccess
-        fail: askPassword
-        locked: authFailure
-
-    authSuccess:
-      use: successResult
-      custom_config:
-        message: Login successful!
-
+      x: 1066
+      'y': -83.77463861668271
+    askUsername:
+      x: 154
+      'y': -52
     authFailure:
-      use: failureResult
-      custom_config:
-        message: Invalid credentials or account locked.
-
-  editor:
-    nodes:
-      askUsername:
-        x: 200
-        y: 300
+      x: 1996.4
+      'y': 344
+    authSuccess:
+      x: 2007.6
+      'y': -212
+    checkPasskeyRegistered:
+      x: 506
+      'y': -150
+    init:
+      x: -20.399999999999977
+      'y': -34
+    validateUsernamePassword:
+      x: 1528
+      'y': -34.40000000000009
+    verifyPasskey:
+      x: 1068
+      'y': -256.8

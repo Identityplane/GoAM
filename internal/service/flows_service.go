@@ -4,21 +4,14 @@ import (
 	"context"
 	"fmt"
 	"goiam/internal/auth/graph"
-	"goiam/internal/config"
 	"goiam/internal/db"
-	"goiam/internal/logger"
+	"goiam/internal/lib"
 	"goiam/internal/model"
-	"os"
-	"path/filepath"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 )
 
 // FlowService defines the business logic for flow operations
 type FlowService interface {
-	// Initialize Flows
-	InitFlows() error
 
 	// GetFlow returns a flow by its ID
 	GetFlowById(tenant, realm, id string) (*model.Flow, bool)
@@ -57,15 +50,6 @@ func NewFlowService(flowsDb db.FlowDB) FlowService {
 	}
 }
 
-func (s *flowServiceImpl) InitFlows() error {
-	err := s.initFlowsFromConfigDir(config.ConfigPath)
-	if err != nil {
-		return fmt.Errorf("failed to init flows from config dir: %w", err)
-	}
-
-	return nil
-}
-
 func (s *flowServiceImpl) GetFlowById(tenant, realm, id string) (*model.Flow, bool) {
 	flow, err := s.flowsDb.GetFlow(context.Background(), tenant, realm, id)
 	if err != nil || flow == nil {
@@ -73,9 +57,9 @@ func (s *flowServiceImpl) GetFlowById(tenant, realm, id string) (*model.Flow, bo
 	}
 
 	// load flow defenition from yaml if yaml is not ""
-	if flow.DefintionYaml != "" {
+	if flow.DefinitionYaml != "" {
 
-		flow.Definition, err = LoadFlowDefinitonFromString(flow.DefintionYaml)
+		flow.Definition, err = lib.LoadFlowDefinitonFromString(flow.DefinitionYaml)
 
 		if err != nil {
 			return nil, false
@@ -92,9 +76,9 @@ func (s *flowServiceImpl) GetFlowByPath(tenant, realm, path string) (*model.Flow
 	}
 
 	// load flow defenition from yaml if yaml is not ""
-	if flow.DefintionYaml != "" {
+	if flow.DefinitionYaml != "" {
 
-		flow.Definition, err = LoadFlowDefinitonFromString(flow.DefintionYaml)
+		flow.Definition, err = lib.LoadFlowDefinitonFromString(flow.DefinitionYaml)
 
 		if err != nil {
 			return nil, false
@@ -144,6 +128,17 @@ func (s *flowServiceImpl) CreateFlow(tenant, realm string, flow model.Flow) erro
 		return fmt.Errorf("flow with id %s already exists", flow.Id)
 	}
 
+	// If the flow definition is yet, we validate it
+	if flow.DefinitionYaml != "" {
+		lintErrors, err := s.ValidateFlowDefinition(flow.DefinitionYaml)
+		if err != nil {
+			return fmt.Errorf("failed to validate flow definition: %w", err)
+		}
+		if len(lintErrors) > 0 {
+			return fmt.Errorf("flow definition is invalid: %v", lintErrors)
+		}
+	}
+
 	// Create the flow in the database
 	return s.flowsDb.CreateFlow(context.Background(), flow)
 }
@@ -189,64 +184,6 @@ func (s *flowServiceImpl) DeleteFlow(tenant, realm, id string) error {
 	return s.flowsDb.DeleteFlow(context.Background(), tenant, realm, id)
 }
 
-func (s *flowServiceImpl) initFlowsFromConfigDir(configRoot string) error {
-	logger.DebugNoContext("Initializing flows from config dir: %s", configRoot)
-
-	// Load all flows for all realms
-	allRealms, err := services.RealmService.GetAllRealms()
-	if err != nil {
-		return fmt.Errorf("failed to load all realms while initFlowsFromConfigDir: %s", err)
-	}
-
-	for _, realm := range allRealms {
-		err := s.loadFlowsFromRealmConfigDir(realm.Config.Tenant, realm.Config.Realm, configRoot)
-		if err != nil {
-			return fmt.Errorf("failed to load flows from realm %s: %w", realm.RealmID, err)
-		}
-	}
-
-	return nil
-}
-
-func (s *flowServiceImpl) loadFlowsFromRealmConfigDir(tenant, realm, configRoot string) error {
-	flowsDir := filepath.Join(configRoot, "tenants", tenant, realm, "flows")
-
-	// check if the dir exists
-	if _, err := os.Stat(flowsDir); os.IsNotExist(err) {
-		logger.ErrorNoContext("flows directory %s does not exist", flowsDir)
-		return nil
-	}
-
-	// Go over all yaml files in the flows directory
-	files, err := filepath.Glob(filepath.Join(flowsDir, "*.yaml"))
-	if err != nil {
-		return fmt.Errorf("failed to list flows in %s: %w", flowsDir, err)
-	}
-
-	// Load each flow
-	for _, file := range files {
-		flow, err := LoadFlowFromYAML(file)
-		if err != nil {
-			return fmt.Errorf("failed to load flow from %s: %w", file, err)
-		}
-
-		// Check if the flow already exists
-		_, exists := s.GetFlowById(tenant, realm, flow.Id)
-		if exists {
-			logger.InfoNoContext("flow %s already exists, skipping from config file", flow.Id)
-			continue
-		}
-
-		// Create the flow in the database
-		err = s.CreateFlow(tenant, realm, *flow)
-		if err != nil {
-			return fmt.Errorf("failed to create flow %s: %w", flow.Id, err)
-		}
-	}
-
-	return nil
-}
-
 type FlowLintError struct {
 	StartLineNumber int    `json:"startLineNumber"`
 	StartColumn     int    `json:"startColumn"`
@@ -258,19 +195,19 @@ type FlowLintError struct {
 
 func (s *flowServiceImpl) ValidateFlowDefinition(content string) ([]FlowLintError, error) {
 	// Try to parse the YAML content
-	var yflow yamlFlowDefinition
-	if err := yaml.Unmarshal([]byte(content), &yflow); err != nil {
+	flowDefinition, err := lib.LoadFlowDefinitonFromString(content)
+
+	if err != nil {
 		return []FlowLintError{{
 			StartLineNumber: 1,
 			StartColumn:     1,
 			EndLineNumber:   1,
 			EndColumn:       1,
-			Message:         fmt.Sprintf("Invalid YAML format: %v", err),
+			Message:         fmt.Sprintf("%s", err.Error()),
 			Severity:        8,
 		}}, nil
 	}
 
-	flowDefinition := yflow.ConvertToFlowDefinition()
 	error := graph.ValidateFlowDefinition(flowDefinition)
 
 	if error != nil {

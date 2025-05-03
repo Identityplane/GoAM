@@ -102,7 +102,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		Debug:        debug,
 		Error:        resolveErrorMessage(state),
 		StateJSON:    stateJSON,
-		FlowName:     flow.Name,
+		FlowName:     currentGraphNode.Name,
 		Message:      customMessage,
 		StylePath:    "../static/style.css",
 		ScriptPath:   "../static/script.js",

@@ -1,4 +1,5 @@
 realm: internal
+realm_name: IAM Management Users
 base_url: http://localhost:8080/internal/internal
 
 flows:
@@ -6,7 +7,7 @@ flows:
     name: Login or Register
     route: /login
     active: yes
-    definition: login_or_register.yaml
+    definition_location: login_or_register.yaml
 
 applications:
   management-ui:

@@ -185,7 +185,7 @@ nodes:
 				"startColumn":     1,
 				"endLineNumber":   1,
 				"endColumn":       1,
-				"message":         "Invalid YAML format: yaml: line 12: found unexpected end of stream",
+				"message":         "failed to parse YAML content: yaml: line 12: found unexpected end of stream",
 				"severity":        8,
 			},
 		})
@@ -223,27 +223,27 @@ nodes:
 func TestFlowUpdate(t *testing.T) {
 	e := SetupIntegrationTest(t, "")
 
-	originalFlowDefYaml := e.GET("/admin/acme/customers/flows/login_auth/definition").
+	originalFlowDefYaml := e.GET("/admin/acme/customers/flows/login/definition").
 		Expect().
 		Status(http.StatusOK).
 		Body().Raw()
 
 	// Add some editor metadata too see it it is perserved
-	updatedFlowDefYaml := originalFlowDefYaml + `editor:
+	updatedFlowDefYaml := originalFlowDefYaml + `someadditionaldata:
   nodes:
     askPassword:
       x: 424
       y: -102
 `
 
-	e.PUT("/admin/acme/customers/flows/login_auth/definition").
+	e.PUT("/admin/acme/customers/flows/login/definition").
 		WithText(string(updatedFlowDefYaml)).
 		WithHeader("Content-Type", "text/yaml").
 		Expect().
 		Status(http.StatusOK)
 
 	// get the flow again and check the custom config
-	flowDefinitionYaml2 := e.GET("/admin/acme/customers/flows/login_auth/definition").
+	flowDefinitionYaml2 := e.GET("/admin/acme/customers/flows/login/definition").
 		Expect().
 		Status(http.StatusOK).
 		Body().Raw()

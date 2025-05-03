@@ -41,7 +41,7 @@ func (s *SQLiteFlowDB) CreateFlow(ctx context.Context, flow model.Flow) error {
 		flow.Id,
 		flow.Route,
 		flow.Active,
-		flow.DefintionYaml,
+		flow.DefinitionYaml,
 		now.Format(time.RFC3339),
 		now.Format(time.RFC3339),
 	)
@@ -69,7 +69,7 @@ func (s *SQLiteFlowDB) GetFlow(ctx context.Context, tenant, realm, id string) (*
 		&flow.Id,
 		&flow.Route,
 		&flow.Active,
-		&flow.DefintionYaml,
+		&flow.DefinitionYaml,
 		&createdAt,
 		&updatedAt,
 	)
@@ -104,7 +104,7 @@ func (s *SQLiteFlowDB) GetFlowByRoute(ctx context.Context, tenant, realm, route 
 		&flow.Id,
 		&flow.Route,
 		&flow.Active,
-		&flow.DefintionYaml,
+		&flow.DefinitionYaml,
 		&createdAt,
 		&updatedAt,
 	)
@@ -135,7 +135,7 @@ func (s *SQLiteFlowDB) UpdateFlow(ctx context.Context, flow *model.Flow) error {
 	`,
 		flow.Route,
 		flow.Active,
-		flow.DefintionYaml,
+		flow.DefinitionYaml,
 		now.Format(time.RFC3339),
 		flow.Tenant,
 		flow.Realm,
@@ -167,7 +167,7 @@ func (s *SQLiteFlowDB) ListFlows(ctx context.Context, tenant, realm string) ([]m
 			&flow.Id,
 			&flow.Route,
 			&flow.Active,
-			&flow.DefintionYaml,
+			&flow.DefinitionYaml,
 			&createdAt,
 			&updatedAt,
 		)
@@ -219,7 +219,7 @@ func (s *SQLiteFlowDB) ListAllFlows(ctx context.Context) ([]model.Flow, error) {
 			&flow.Id,
 			&flow.Route,
 			&flow.Active,
-			&flow.DefintionYaml,
+			&flow.DefinitionYaml,
 			&createdAt,
 			&updatedAt,
 		)

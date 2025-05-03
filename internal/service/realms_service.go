@@ -8,22 +8,14 @@ import (
 	"goiam/internal/db"
 	"goiam/internal/logger"
 	"goiam/internal/model"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
 )
 
 // RealmService defines the business logic for realm operations
 type RealmService interface {
 	// GetRealm returns a loaded realm configuration by its composite ID
 	GetRealm(tenant, realm string) (*LoadedRealm, bool)
-	// InitRealms loads all static realm configurations from disk
-	InitRealms(configRoot string, userDb db.UserDB) error
 	// GetAllRealms returns a map of all loaded realms with realmId as index
 	GetAllRealms() (map[string]*LoadedRealm, error)
 	// CreateRealm creates a new realm
@@ -39,39 +31,11 @@ type flowRealmYaml struct {
 	Name string `yaml:"name"`
 }
 
-type realmYaml struct {
-	Realm        string                     `yaml:"realm"`
-	RealmName    string                     `yaml:"realm_name"`
-	Tenant       string                     `yaml:"tenant"`
-	BaseUrl      string                     `yaml:"base_url"`
-	Applications map[string]applicationYaml `yaml:"applications"`
-}
-
-type applicationYaml struct {
-	ClientSecret               string   `yaml:"client_secret"`
-	Confidential               bool     `yaml:"confidential"`
-	ConsentRequired            bool     `yaml:"consent_required"`
-	Description                string   `yaml:"description"`
-	AllowedScopes              []string `yaml:"allowed_scopes"`
-	AllowedGrants              []string `yaml:"allowed_grants"`
-	AllowedAuthenticationFlows []string `yaml:"allowed_authentication_flows"`
-	AccessTokenLifetime        int      `yaml:"access_token_lifetime"`
-	RefreshTokenLifetime       int      `yaml:"refresh_token_lifetime"`
-	IdTokenLifetime            int      `yaml:"id_token_lifetime"`
-	AccessTokenType            string   `yaml:"access_token_type"`
-	AccessTokenAlgorithm       string   `yaml:"access_token_algorithm"`
-	AccessTokenMapping         string   `yaml:"access_token_mapping"`
-	IdTokenAlgorithm           string   `yaml:"id_token_algorithm"`
-	IdTokenMapping             string   `yaml:"id_token_mapping"`
-	RedirectUris               []string `yaml:"redirect_uris"`
-}
-
 // LoadedRealm wraps a RealmConfig with metadata for tracking its source.
 type LoadedRealm struct {
 	Config       *model.Realm             // parsed realm config
 	RealmID      string                   // composite ID like "acme/customers"
 	Repositories *repository.Repositories // services for this realm
-	Applications []model.Application      // applications for this realm
 }
 
 func NewLoadedRealm(realmConfig *model.Realm, userRepo repository.UserRepository) *LoadedRealm {
@@ -98,41 +62,6 @@ func NewRealmService(realmDb db.RealmDB, userDb db.UserDB) RealmService {
 		realmDb: realmDb,
 		userDb:  userDb,
 	}
-}
-
-func (s *realmServiceImpl) InitRealms(configRoot string, userDb db.UserDB) error {
-
-	// Load realms from config directory
-	realmsFromConfigDir, err := loadRealmsFromConfigDir(configRoot)
-	if err != nil {
-		return fmt.Errorf("failed to load realms from config directory %s: %w", configRoot, err)
-	}
-
-	// Init services for each realm
-	for _, realm := range realmsFromConfigDir {
-
-		// Init services for realm
-		realm.Repositories = &repository.Repositories{}
-
-		// Init user repository
-		realm.Repositories.UserRepo = db.NewUserRepository(realm.Config.Tenant, realm.Config.Realm, userDb)
-		logger.DebugNoContext("Initialized user repository for realm %s", realm.RealmID)
-	}
-
-	// Store all application of the loaded realms
-	for _, realm := range realmsFromConfigDir {
-		for _, application := range realm.Applications {
-			services.ApplicationService.CreateApplication(realm.Config.Tenant, realm.Config.Realm, application)
-		}
-	}
-
-	// Currently we store the local realms in the database
-	for _, realm := range realmsFromConfigDir {
-
-		s.realmDb.CreateRealm(context.Background(), *realm.Config)
-	}
-
-	return nil
 }
 
 func (s *realmServiceImpl) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
@@ -176,121 +105,6 @@ func (s *realmServiceImpl) GetAllRealms() (map[string]*LoadedRealm, error) {
 	}
 
 	return loadedRealms, nil
-}
-
-// loadRealmsFromConfigDir loads all realm configurations from the given config root directory
-func loadRealmsFromConfigDir(configRoot string) (map[string]*LoadedRealm, error) {
-
-	newRealms := make(map[string]*LoadedRealm)
-
-	tenantsPath := filepath.Join(configRoot, "tenants")
-	logger.DebugNoContext("Walking config dir: %s", tenantsPath)
-
-	// We need this to calculate the depth of the current path
-	baseDepth := strings.Count(tenantsPath, string(os.PathSeparator))
-
-	// Walk the config directory
-	err := filepath.WalkDir(tenantsPath, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || filepath.Ext(path) != ".yaml" {
-			return nil // Ignore non-yaml files
-		}
-
-		// Skip if the depth is greater than 2
-		currentDepth := strings.Count(path, string(os.PathSeparator)) - baseDepth
-		if currentDepth != 2 {
-			if d.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-
-		logger.DebugNoContext("Loading realm config: %s\n", path)
-
-		cfg, apps, err := loadRealmConfigFromFilePath(path)
-		if err != nil {
-			return fmt.Errorf("error loading realm config at %s: %w", path, err)
-		}
-
-		id := fmt.Sprintf("%s/%s", cfg.Tenant, cfg.Realm)
-		newRealms[id] = &LoadedRealm{
-			Config:       cfg,
-			RealmID:      id,
-			Applications: apps,
-		}
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to walk realm config directory %s: %w", configRoot, err)
-	}
-
-	return newRealms, nil
-
-}
-
-// Helper function to load realm config from file
-func loadRealmConfigFromFilePath(path string) (*model.Realm, []model.Application, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, nil, fmt.Errorf("read failed: %w", err)
-	}
-
-	var yamlConfig realmYaml
-	if err := yaml.Unmarshal(data, &yamlConfig); err != nil {
-		return nil, nil, fmt.Errorf("yaml unmarshal failed: %w", err)
-	}
-
-	if yamlConfig.Realm == "" {
-		return nil, nil, fmt.Errorf("invalid config in %s: 'realm' is required", path)
-	}
-
-	segments := strings.Split(filepath.ToSlash(path), "/")
-	tenantIdx := -1
-	for i, segment := range segments {
-		if segment == "tenants" && i+1 < len(segments) {
-			tenantIdx = i + 1
-			break
-		}
-	}
-	if tenantIdx == -1 {
-		return nil, nil, fmt.Errorf("could not infer tenant name from path: %s", path)
-	}
-	tenant := segments[tenantIdx]
-
-	// Create applications from YAML
-	applications := make([]model.Application, 0, len(yamlConfig.Applications))
-	for clientID, appYaml := range yamlConfig.Applications {
-		applications = append(applications, model.Application{
-			Tenant:                     tenant,
-			Realm:                      yamlConfig.Realm,
-			ClientId:                   clientID,
-			ClientSecret:               appYaml.ClientSecret,
-			Confidential:               appYaml.Confidential,
-			ConsentRequired:            appYaml.ConsentRequired,
-			Description:                appYaml.Description,
-			AllowedScopes:              appYaml.AllowedScopes,
-			AllowedGrants:              appYaml.AllowedGrants,
-			AllowedAuthenticationFlows: appYaml.AllowedAuthenticationFlows,
-			AccessTokenLifetime:        appYaml.AccessTokenLifetime,
-			RefreshTokenLifetime:       appYaml.RefreshTokenLifetime,
-			IdTokenLifetime:            appYaml.IdTokenLifetime,
-			AccessTokenType:            model.AccessTokenType(appYaml.AccessTokenType),
-			AccessTokenAlgorithm:       appYaml.AccessTokenAlgorithm,
-			AccessTokenMapping:         appYaml.AccessTokenMapping,
-			IdTokenAlgorithm:           appYaml.IdTokenAlgorithm,
-			IdTokenMapping:             appYaml.IdTokenMapping,
-			RedirectUris:               appYaml.RedirectUris,
-			CreatedAt:                  time.Now(),
-			UpdatedAt:                  time.Now(),
-		})
-	}
-
-	return &model.Realm{
-		Realm:     yamlConfig.Realm,
-		RealmName: yamlConfig.RealmName,
-		Tenant:    tenant,
-		BaseUrl:   yamlConfig.BaseUrl,
-	}, applications, nil
 }
 
 func (s *realmServiceImpl) CreateRealm(realm *model.Realm) error {

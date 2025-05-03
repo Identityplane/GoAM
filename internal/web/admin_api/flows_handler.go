@@ -368,7 +368,7 @@ func HandleGetFlowDefintion(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.SetContentType("text/yaml")
-	ctx.SetBody([]byte(flow.DefintionYaml))
+	ctx.SetBody([]byte(flow.DefinitionYaml))
 }
 
 // HandleValidateFlowDefinition handles the validation of a YAML flow definition
@@ -487,7 +487,7 @@ func HandlePutFlowDefintion(ctx *fasthttp.RequestCtx) {
 	}
 
 	existingFlow.Definition = &flowDef
-	existingFlow.DefintionYaml = yamlDefinition
+	existingFlow.DefinitionYaml = yamlDefinition
 
 	// Update flow by creating a new one with the same route
 	if err := service.GetServices().FlowService.UpdateFlow(tenant, realm, *existingFlow); err != nil {

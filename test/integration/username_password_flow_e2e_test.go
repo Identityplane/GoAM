@@ -62,5 +62,5 @@ func TestUsernamePasswordFlow_E2E(t *testing.T) {
 		Expect().
 		Status(http.StatusOK)
 
-	resp2.Body().Contains("Login successful")
+	resp2.Body().Contains("The flow has completed.")
 }

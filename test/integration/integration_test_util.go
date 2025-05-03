@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"goiam/internal"
 	"goiam/internal/config"
+	"goiam/internal/model"
 	"goiam/internal/web"
 	"net"
 	"net/http"
@@ -41,14 +42,16 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 
 	// if present manually add the flow to the realm
 	if flowYaml != "" {
-		flow, err := service.LoadFlowFromYAMLString(flowYaml)
 
-		if err != nil {
-			t.Fatalf("failed to load flow from YAML: %v", err)
+		flow := &model.Flow{
+			Id:             "test_flow",
+			Route:          "test_flow",
+			Active:         true,
+			DefinitionYaml: flowYaml,
 		}
 
 		// Add the flow to the loaded flows
-		err = service.GetServices().FlowService.CreateFlow(DefaultTenant, DefaultRealm, *flow)
+		err := service.GetServices().FlowService.CreateFlow(DefaultTenant, DefaultRealm, *flow)
 		if err != nil {
 			t.Fatalf("failed to create flow: %v", err)
 		}

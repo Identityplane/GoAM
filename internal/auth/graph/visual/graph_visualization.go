@@ -13,7 +13,7 @@ func RenderDOTGraph(flow *model.FlowDefinition) string {
 	var b strings.Builder
 	b.WriteString("digraph Flow {\n")
 	b.WriteString(`  rankdir=LR;` + "\n")
-	b.WriteString(fmt.Sprintf(`  label="%s"; labelloc=top; fontsize=20;`+"\n", flow.Name))
+	b.WriteString(fmt.Sprintf(`  label="%s"; labelloc=top; fontsize=20;`+"\n", flow.Description))
 
 	for name, node := range flow.Nodes {
 		def := graph.GetNodeDefinitionByName(node.Use)
