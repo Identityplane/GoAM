@@ -19,18 +19,27 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 
 	// Create test application
 	testApp := model.Application{
-		Tenant:          testTenant,
-		Realm:           testRealm,
-		ClientId:        "test-app",
-		ClientSecret:    "test-secret",
-		Confidential:    true,
-		ConsentRequired: false,
-		Description:     "A test application",
-		AllowedScopes:   []string{"openid", "profile", "email"},
-		AllowedFlows:    []string{"code", "code + pkce"},
-		RedirectUris:    []string{"https://example.com/callback", "https://example.com/oauth2/callback"},
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		Tenant:                     testTenant,
+		Realm:                      testRealm,
+		ClientId:                   "test-app",
+		ClientSecret:               "test-secret",
+		Confidential:               true,
+		ConsentRequired:            false,
+		Description:                "A test application",
+		AllowedScopes:              []string{"openid", "profile", "email"},
+		AllowedGrants:              []string{"authorization_code", "refresh_token"},
+		AllowedAuthenticationFlows: []string{"password", "client_credentials"},
+		AccessTokenLifetime:        3600,
+		RefreshTokenLifetime:       86400,
+		IdTokenLifetime:            3600,
+		AccessTokenType:            "jwt",
+		AccessTokenAlgorithm:       "RS256",
+		AccessTokenMapping:         "default",
+		IdTokenAlgorithm:           "RS256",
+		IdTokenMapping:             "default",
+		RedirectUris:               []string{"https://example.com/callback", "https://example.com/oauth2/callback"},
+		CreatedAt:                  time.Now(),
+		UpdatedAt:                  time.Now(),
 	}
 
 	t.Run("CreateApplication", func(t *testing.T) {
@@ -46,7 +55,16 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		assert.Equal(t, testApp.ClientSecret, app.ClientSecret)
 		assert.Equal(t, testApp.Description, app.Description)
 		assert.Equal(t, testApp.AllowedScopes, app.AllowedScopes)
-		assert.Equal(t, testApp.AllowedFlows, app.AllowedFlows)
+		assert.Equal(t, testApp.AllowedGrants, app.AllowedGrants)
+		assert.Equal(t, testApp.AllowedAuthenticationFlows, app.AllowedAuthenticationFlows)
+		assert.Equal(t, testApp.AccessTokenLifetime, app.AccessTokenLifetime)
+		assert.Equal(t, testApp.RefreshTokenLifetime, app.RefreshTokenLifetime)
+		assert.Equal(t, testApp.IdTokenLifetime, app.IdTokenLifetime)
+		assert.Equal(t, testApp.AccessTokenType, app.AccessTokenType)
+		assert.Equal(t, testApp.AccessTokenAlgorithm, app.AccessTokenAlgorithm)
+		assert.Equal(t, testApp.AccessTokenMapping, app.AccessTokenMapping)
+		assert.Equal(t, testApp.IdTokenAlgorithm, app.IdTokenAlgorithm)
+		assert.Equal(t, testApp.IdTokenMapping, app.IdTokenMapping)
 		assert.Equal(t, testApp.RedirectUris, app.RedirectUris)
 	})
 
@@ -57,6 +75,14 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 
 		app.Description = "Updated description"
 		app.AllowedScopes = []string{"openid", "profile"}
+		app.AccessTokenLifetime = 7200
+		app.RefreshTokenLifetime = 172800
+		app.IdTokenLifetime = 7200
+		app.AccessTokenType = "session_key"
+		app.AccessTokenAlgorithm = "HS256"
+		app.AccessTokenMapping = "custom"
+		app.IdTokenAlgorithm = "HS256"
+		app.IdTokenMapping = "custom"
 		app.RedirectUris = []string{"https://example.com/new-callback"}
 		err = db.UpdateApplication(ctx, app)
 		assert.NoError(t, err)
@@ -65,6 +91,14 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		assert.NoError(t, err)
 		assert.Equal(t, "Updated description", updatedApp.Description)
 		assert.Equal(t, []string{"openid", "profile"}, updatedApp.AllowedScopes)
+		assert.Equal(t, 7200, updatedApp.AccessTokenLifetime)
+		assert.Equal(t, 172800, updatedApp.RefreshTokenLifetime)
+		assert.Equal(t, 7200, updatedApp.IdTokenLifetime)
+		assert.Equal(t, "session_key", updatedApp.AccessTokenType)
+		assert.Equal(t, "HS256", updatedApp.AccessTokenAlgorithm)
+		assert.Equal(t, "custom", updatedApp.AccessTokenMapping)
+		assert.Equal(t, "HS256", updatedApp.IdTokenAlgorithm)
+		assert.Equal(t, "custom", updatedApp.IdTokenMapping)
 		assert.Equal(t, []string{"https://example.com/new-callback"}, updatedApp.RedirectUris)
 	})
 

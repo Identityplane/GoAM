@@ -10,14 +10,16 @@ type Services struct {
 	RealmService       RealmService
 	FlowService        FlowService
 	ApplicationService ApplicationService
+	SessionsService    *SessionsService
 }
 
 // DatabaseConnections holds all database connections
 type DatabaseConnections struct {
-	UserDB         db.UserDB
-	RealmDB        db.RealmDB
-	FlowDB         db.FlowDB
-	ApplicationsDB db.ApplicationDB
+	UserDB          db.UserDB
+	RealmDB         db.RealmDB
+	FlowDB          db.FlowDB
+	ApplicationsDB  db.ApplicationDB
+	ClientSessionDB db.ClientSessionDB
 }
 
 var (
@@ -36,6 +38,7 @@ func InitServices(connections DatabaseConnections) *Services {
 		RealmService:       NewRealmService(databases.RealmDB, databases.UserDB),
 		FlowService:        NewFlowService(databases.FlowDB),
 		ApplicationService: NewApplicationService(databases.ApplicationsDB),
+		SessionsService:    NewSessionsService(databases.ClientSessionDB),
 	}
 
 	return services

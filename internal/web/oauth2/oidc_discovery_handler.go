@@ -7,7 +7,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// OpenIDConfiguration represents the OpenID Connect Discovery configuration
 type OpenIDConfiguration struct {
 	Issuer                            string   `json:"issuer"`
 	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
@@ -24,7 +23,18 @@ type OpenIDConfiguration struct {
 	ClaimsSupported                   []string `json:"claims_supported"`
 }
 
-// HandleOpenIDConfiguration handles the OpenID Connect Discovery endpoint
+// HandleOpenIDConfiguration returns the OpenID Connect configuration
+// @Summary Get OpenID Connect Configuration
+// @Description Returns the OpenID Connect configuration for the specified realm
+// @Tags OpenID Connect
+// @Accept json
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Success 200 {object} OpenIDConfiguration
+// @Failure 404 {string} string "Realm not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /{tenant}/{realm}/oauth2/.well-known/openid-configuration [get]
 func HandleOpenIDConfiguration(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)

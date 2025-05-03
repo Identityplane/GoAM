@@ -14,8 +14,17 @@ type SQLiteClientSessionDB struct {
 }
 
 // NewClientSessionDB creates a new ClientSessionDB instance
-func NewClientSessionDB(db *sql.DB) db.ClientSessionDB {
-	return &SQLiteClientSessionDB{db: db}
+func NewClientSessionDB(db *sql.DB) (db.ClientSessionDB, error) {
+
+	// Check if the connection works and flows table exists by executing a query
+	_, err := db.Exec(`
+		SELECT 1 FROM client_sessions LIMIT 1
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if flows table exists: %w", err)
+	}
+
+	return &SQLiteClientSessionDB{db: db}, nil
 }
 
 func (s *SQLiteClientSessionDB) CreateClientSession(ctx context.Context, session *model.ClientSession) error {

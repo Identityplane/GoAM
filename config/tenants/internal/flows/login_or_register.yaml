@@ -1,0 +1,53 @@
+description: ''
+start: init
+nodes:
+  askPassword:
+    name: askPassword
+    use: askPassword
+    next:
+      submitted: validateUsernamePassword
+  askUsername:
+    name: askUsername
+    use: askUsername
+    next:
+      submitted: askPassword
+  authFailure:
+    name: failureResult
+    use: failureResult
+    next: {}
+  authSuccess:
+    name: successResult
+    use: successResult
+    next: {}
+  init:
+    name: init
+    use: init
+    next:
+      start: askUsername
+  validateUsernamePassword:
+    name: validateUsernamePassword
+    use: validateUsernamePassword
+    next:
+      fail: askPassword
+      locked: authFailure
+      success: authSuccess
+editor:
+  nodes:
+    askPassword:
+      x: 0
+      'y': 200
+    askUsername:
+      x: 200
+      'y': 200
+    authFailure:
+      x: 400
+      'y': 200
+    authSuccess:
+      x: 600
+      'y': 200
+    init:
+      x: 800
+      'y': 200
+    validateUsernamePassword:
+      x: 1000
+      'y': 200

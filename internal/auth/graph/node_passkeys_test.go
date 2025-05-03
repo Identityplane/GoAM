@@ -9,7 +9,7 @@ import (
 
 func TestRunPasskeyRegisterNode_HappyPath(t *testing.T) {
 	// Setup flow state with a username
-	state := &model.FlowState{
+	state := &model.AuthenticationSession{
 		Context: map[string]string{
 			"username": "alice",
 		},

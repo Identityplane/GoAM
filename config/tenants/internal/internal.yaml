@@ -1,5 +1,12 @@
 realm: internal
-base_url: http://localhost:8080/internal/interal
+base_url: http://localhost:8080/internal/internal
+
+flows:
+  login_or_register:
+    name: Login or Register
+    route: /login
+    active: yes
+    definition: login_or_register.yaml
 
 applications:
   management-ui:
@@ -14,7 +21,14 @@ applications:
       - write:flows
       - write:realms
       - write:applications
-    allowed_flows:
-      - authorization_code
+    allowed_grants:
+      - authorization_code_pkce
     redirect_uris:
-      - http://localhost:3000/callback
+      - http://localhost:3000
+    allowed_authentication_flows:
+      - login_or_register
+    access_token_lifetime: 600
+    refresh_token_lifetime: 3600
+    id_token_lifetime: 600
+    access_token_type: session
+    

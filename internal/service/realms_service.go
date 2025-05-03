@@ -48,13 +48,22 @@ type realmYaml struct {
 }
 
 type applicationYaml struct {
-	ClientSecret    string   `yaml:"client_secret"`
-	Confidential    bool     `yaml:"confidential"`
-	ConsentRequired bool     `yaml:"consent_required"`
-	Description     string   `yaml:"description"`
-	AllowedScopes   []string `yaml:"allowed_scopes"`
-	AllowedFlows    []string `yaml:"allowed_flows"`
-	RedirectUris    []string `yaml:"redirect_uris"`
+	ClientSecret               string   `yaml:"client_secret"`
+	Confidential               bool     `yaml:"confidential"`
+	ConsentRequired            bool     `yaml:"consent_required"`
+	Description                string   `yaml:"description"`
+	AllowedScopes              []string `yaml:"allowed_scopes"`
+	AllowedGrants              []string `yaml:"allowed_grants"`
+	AllowedAuthenticationFlows []string `yaml:"allowed_authentication_flows"`
+	AccessTokenLifetime        int      `yaml:"access_token_lifetime"`
+	RefreshTokenLifetime       int      `yaml:"refresh_token_lifetime"`
+	IdTokenLifetime            int      `yaml:"id_token_lifetime"`
+	AccessTokenType            string   `yaml:"access_token_type"`
+	AccessTokenAlgorithm       string   `yaml:"access_token_algorithm"`
+	AccessTokenMapping         string   `yaml:"access_token_mapping"`
+	IdTokenAlgorithm           string   `yaml:"id_token_algorithm"`
+	IdTokenMapping             string   `yaml:"id_token_mapping"`
+	RedirectUris               []string `yaml:"redirect_uris"`
 }
 
 // LoadedRealm wraps a RealmConfig with metadata for tracking its source.
@@ -252,18 +261,27 @@ func loadRealmConfigFromFilePath(path string) (*model.Realm, []model.Application
 	applications := make([]model.Application, 0, len(yamlConfig.Applications))
 	for clientID, appYaml := range yamlConfig.Applications {
 		applications = append(applications, model.Application{
-			Tenant:          tenant,
-			Realm:           yamlConfig.Realm,
-			ClientId:        clientID,
-			ClientSecret:    appYaml.ClientSecret,
-			Confidential:    appYaml.Confidential,
-			ConsentRequired: appYaml.ConsentRequired,
-			Description:     appYaml.Description,
-			AllowedScopes:   appYaml.AllowedScopes,
-			AllowedFlows:    appYaml.AllowedFlows,
-			RedirectUris:    appYaml.RedirectUris,
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
+			Tenant:                     tenant,
+			Realm:                      yamlConfig.Realm,
+			ClientId:                   clientID,
+			ClientSecret:               appYaml.ClientSecret,
+			Confidential:               appYaml.Confidential,
+			ConsentRequired:            appYaml.ConsentRequired,
+			Description:                appYaml.Description,
+			AllowedScopes:              appYaml.AllowedScopes,
+			AllowedGrants:              appYaml.AllowedGrants,
+			AllowedAuthenticationFlows: appYaml.AllowedAuthenticationFlows,
+			AccessTokenLifetime:        appYaml.AccessTokenLifetime,
+			RefreshTokenLifetime:       appYaml.RefreshTokenLifetime,
+			IdTokenLifetime:            appYaml.IdTokenLifetime,
+			AccessTokenType:            model.AccessTokenType(appYaml.AccessTokenType),
+			AccessTokenAlgorithm:       appYaml.AccessTokenAlgorithm,
+			AccessTokenMapping:         appYaml.AccessTokenMapping,
+			IdTokenAlgorithm:           appYaml.IdTokenAlgorithm,
+			IdTokenMapping:             appYaml.IdTokenMapping,
+			RedirectUris:               appYaml.RedirectUris,
+			CreatedAt:                  time.Now(),
+			UpdatedAt:                  time.Now(),
 		})
 	}
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"goiam/internal/logger"
 	"goiam/internal/model"
 	"time"
 )
@@ -36,9 +37,14 @@ func (s *SQLiteApplicationDB) CreateApplication(ctx context.Context, app model.A
 		return fmt.Errorf("failed to marshal allowed scopes: %w", err)
 	}
 
-	flowsJSON, err := json.Marshal(app.AllowedFlows)
+	grantsJSON, err := json.Marshal(app.AllowedGrants)
 	if err != nil {
-		return fmt.Errorf("failed to marshal allowed flows: %w", err)
+		return fmt.Errorf("failed to marshal allowed grants: %w", err)
+	}
+
+	authFlowsJSON, err := json.Marshal(app.AllowedAuthenticationFlows)
+	if err != nil {
+		return fmt.Errorf("failed to marshal allowed authentication flows: %w", err)
 	}
 
 	redirectUrisJSON, err := json.Marshal(app.RedirectUris)
@@ -49,8 +55,11 @@ func (s *SQLiteApplicationDB) CreateApplication(ctx context.Context, app model.A
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO applications (
 			tenant, realm, client_id, client_secret, confidential, consent_required,
-			description, allowed_scopes, allowed_flows, redirect_uris, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			description, allowed_scopes, allowed_grants, allowed_authentication_flows,
+			access_token_lifetime, refresh_token_lifetime, id_token_lifetime,
+			access_token_type, access_token_algorithm, access_token_mapping,
+			id_token_algorithm, id_token_mapping, redirect_uris, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		app.Tenant,
 		app.Realm,
@@ -60,7 +69,16 @@ func (s *SQLiteApplicationDB) CreateApplication(ctx context.Context, app model.A
 		app.ConsentRequired,
 		app.Description,
 		scopesJSON,
-		flowsJSON,
+		grantsJSON,
+		authFlowsJSON,
+		app.AccessTokenLifetime,
+		app.RefreshTokenLifetime,
+		app.IdTokenLifetime,
+		app.AccessTokenType,
+		app.AccessTokenAlgorithm,
+		app.AccessTokenMapping,
+		app.IdTokenAlgorithm,
+		app.IdTokenMapping,
 		redirectUrisJSON,
 		now.Format(time.RFC3339),
 		now.Format(time.RFC3339),
@@ -73,15 +91,20 @@ func (s *SQLiteApplicationDB) CreateApplication(ctx context.Context, app model.A
 }
 
 func (s *SQLiteApplicationDB) GetApplication(ctx context.Context, tenant, realm, id string) (*model.Application, error) {
+	logger.DebugNoContext("sql query application %s for tenant %s and realm %s", id, tenant, realm)
+
 	row := s.db.QueryRowContext(ctx, `
 		SELECT tenant, realm, client_id, client_secret, confidential, consent_required,
-		       description, allowed_scopes, allowed_flows, redirect_uris, created_at, updated_at
+		       description, allowed_scopes, allowed_grants, allowed_authentication_flows,
+		       access_token_lifetime, refresh_token_lifetime, id_token_lifetime,
+		       access_token_type, access_token_algorithm, access_token_mapping,
+		       id_token_algorithm, id_token_mapping, redirect_uris, created_at, updated_at
 		FROM applications 
 		WHERE tenant = ? AND realm = ? AND client_id = ?
 	`, tenant, realm, id)
 
 	var app model.Application
-	var scopesJSON, flowsJSON, redirectUrisJSON string
+	var scopesJSON, grantsJSON, authFlowsJSON, redirectUrisJSON string
 	var createdAt, updatedAt string
 
 	err := row.Scan(
@@ -93,7 +116,16 @@ func (s *SQLiteApplicationDB) GetApplication(ctx context.Context, tenant, realm,
 		&app.ConsentRequired,
 		&app.Description,
 		&scopesJSON,
-		&flowsJSON,
+		&grantsJSON,
+		&authFlowsJSON,
+		&app.AccessTokenLifetime,
+		&app.RefreshTokenLifetime,
+		&app.IdTokenLifetime,
+		&app.AccessTokenType,
+		&app.AccessTokenAlgorithm,
+		&app.AccessTokenMapping,
+		&app.IdTokenAlgorithm,
+		&app.IdTokenMapping,
 		&redirectUrisJSON,
 		&createdAt,
 		&updatedAt,
@@ -109,8 +141,11 @@ func (s *SQLiteApplicationDB) GetApplication(ctx context.Context, tenant, realm,
 	if err := json.Unmarshal([]byte(scopesJSON), &app.AllowedScopes); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal allowed scopes: %w", err)
 	}
-	if err := json.Unmarshal([]byte(flowsJSON), &app.AllowedFlows); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal allowed flows: %w", err)
+	if err := json.Unmarshal([]byte(grantsJSON), &app.AllowedGrants); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal allowed grants: %w", err)
+	}
+	if err := json.Unmarshal([]byte(authFlowsJSON), &app.AllowedAuthenticationFlows); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal allowed authentication flows: %w", err)
 	}
 	if err := json.Unmarshal([]byte(redirectUrisJSON), &app.RedirectUris); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal redirect uris: %w", err)
@@ -131,9 +166,14 @@ func (s *SQLiteApplicationDB) UpdateApplication(ctx context.Context, app *model.
 		return fmt.Errorf("failed to marshal allowed scopes: %w", err)
 	}
 
-	flowsJSON, err := json.Marshal(app.AllowedFlows)
+	grantsJSON, err := json.Marshal(app.AllowedGrants)
 	if err != nil {
-		return fmt.Errorf("failed to marshal allowed flows: %w", err)
+		return fmt.Errorf("failed to marshal allowed grants: %w", err)
+	}
+
+	authFlowsJSON, err := json.Marshal(app.AllowedAuthenticationFlows)
+	if err != nil {
+		return fmt.Errorf("failed to marshal allowed authentication flows: %w", err)
 	}
 
 	redirectUrisJSON, err := json.Marshal(app.RedirectUris)
@@ -148,7 +188,16 @@ func (s *SQLiteApplicationDB) UpdateApplication(ctx context.Context, app *model.
 			consent_required = ?,
 			description = ?,
 			allowed_scopes = ?,
-			allowed_flows = ?,
+			allowed_grants = ?,
+			allowed_authentication_flows = ?,
+			access_token_lifetime = ?,
+			refresh_token_lifetime = ?,
+			id_token_lifetime = ?,
+			access_token_type = ?,
+			access_token_algorithm = ?,
+			access_token_mapping = ?,
+			id_token_algorithm = ?,
+			id_token_mapping = ?,
 			redirect_uris = ?,
 			updated_at = ?
 		WHERE tenant = ? AND realm = ? AND client_id = ?
@@ -158,7 +207,16 @@ func (s *SQLiteApplicationDB) UpdateApplication(ctx context.Context, app *model.
 		app.ConsentRequired,
 		app.Description,
 		scopesJSON,
-		flowsJSON,
+		grantsJSON,
+		authFlowsJSON,
+		app.AccessTokenLifetime,
+		app.RefreshTokenLifetime,
+		app.IdTokenLifetime,
+		app.AccessTokenType,
+		app.AccessTokenAlgorithm,
+		app.AccessTokenMapping,
+		app.IdTokenAlgorithm,
+		app.IdTokenMapping,
 		redirectUrisJSON,
 		now.Format(time.RFC3339),
 		app.Tenant,
@@ -171,7 +229,10 @@ func (s *SQLiteApplicationDB) UpdateApplication(ctx context.Context, app *model.
 func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, realm string) ([]model.Application, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT tenant, realm, client_id, client_secret, confidential, consent_required,
-		       description, allowed_scopes, allowed_flows, redirect_uris, created_at, updated_at
+		       description, allowed_scopes, allowed_grants, allowed_authentication_flows,
+		       access_token_lifetime, refresh_token_lifetime, id_token_lifetime,
+		       access_token_type, access_token_algorithm, access_token_mapping,
+		       id_token_algorithm, id_token_mapping, redirect_uris, created_at, updated_at
 		FROM applications 
 		WHERE tenant = ? AND realm = ?
 	`, tenant, realm)
@@ -183,7 +244,7 @@ func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, real
 	var apps []model.Application
 	for rows.Next() {
 		var app model.Application
-		var scopesJSON, flowsJSON, redirectUrisJSON string
+		var scopesJSON, grantsJSON, authFlowsJSON, redirectUrisJSON string
 		var createdAt, updatedAt string
 
 		err := rows.Scan(
@@ -195,7 +256,16 @@ func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, real
 			&app.ConsentRequired,
 			&app.Description,
 			&scopesJSON,
-			&flowsJSON,
+			&grantsJSON,
+			&authFlowsJSON,
+			&app.AccessTokenLifetime,
+			&app.RefreshTokenLifetime,
+			&app.IdTokenLifetime,
+			&app.AccessTokenType,
+			&app.AccessTokenAlgorithm,
+			&app.AccessTokenMapping,
+			&app.IdTokenAlgorithm,
+			&app.IdTokenMapping,
 			&redirectUrisJSON,
 			&createdAt,
 			&updatedAt,
@@ -208,8 +278,11 @@ func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, real
 		if err := json.Unmarshal([]byte(scopesJSON), &app.AllowedScopes); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal allowed scopes: %w", err)
 		}
-		if err := json.Unmarshal([]byte(flowsJSON), &app.AllowedFlows); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal allowed flows: %w", err)
+		if err := json.Unmarshal([]byte(grantsJSON), &app.AllowedGrants); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal allowed grants: %w", err)
+		}
+		if err := json.Unmarshal([]byte(authFlowsJSON), &app.AllowedAuthenticationFlows); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal allowed authentication flows: %w", err)
 		}
 		if err := json.Unmarshal([]byte(redirectUrisJSON), &app.RedirectUris); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal redirect uris: %w", err)
@@ -232,7 +305,10 @@ func (s *SQLiteApplicationDB) ListApplications(ctx context.Context, tenant, real
 func (s *SQLiteApplicationDB) ListAllApplications(ctx context.Context) ([]model.Application, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT tenant, realm, client_id, client_secret, confidential, consent_required,
-		       description, allowed_scopes, allowed_flows, redirect_uris, created_at, updated_at
+		       description, allowed_scopes, allowed_grants, allowed_authentication_flows,
+		       access_token_lifetime, refresh_token_lifetime, id_token_lifetime,
+		       access_token_type, access_token_algorithm, access_token_mapping,
+		       id_token_algorithm, id_token_mapping, redirect_uris, created_at, updated_at
 		FROM applications
 	`)
 	if err != nil {
@@ -243,7 +319,7 @@ func (s *SQLiteApplicationDB) ListAllApplications(ctx context.Context) ([]model.
 	var apps []model.Application
 	for rows.Next() {
 		var app model.Application
-		var scopesJSON, flowsJSON, redirectUrisJSON string
+		var scopesJSON, grantsJSON, authFlowsJSON, redirectUrisJSON string
 		var createdAt, updatedAt string
 
 		err := rows.Scan(
@@ -255,7 +331,16 @@ func (s *SQLiteApplicationDB) ListAllApplications(ctx context.Context) ([]model.
 			&app.ConsentRequired,
 			&app.Description,
 			&scopesJSON,
-			&flowsJSON,
+			&grantsJSON,
+			&authFlowsJSON,
+			&app.AccessTokenLifetime,
+			&app.RefreshTokenLifetime,
+			&app.IdTokenLifetime,
+			&app.AccessTokenType,
+			&app.AccessTokenAlgorithm,
+			&app.AccessTokenMapping,
+			&app.IdTokenAlgorithm,
+			&app.IdTokenMapping,
 			&redirectUrisJSON,
 			&createdAt,
 			&updatedAt,
@@ -268,8 +353,11 @@ func (s *SQLiteApplicationDB) ListAllApplications(ctx context.Context) ([]model.
 		if err := json.Unmarshal([]byte(scopesJSON), &app.AllowedScopes); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal allowed scopes: %w", err)
 		}
-		if err := json.Unmarshal([]byte(flowsJSON), &app.AllowedFlows); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal allowed flows: %w", err)
+		if err := json.Unmarshal([]byte(grantsJSON), &app.AllowedGrants); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal allowed grants: %w", err)
+		}
+		if err := json.Unmarshal([]byte(authFlowsJSON), &app.AllowedAuthenticationFlows); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal allowed authentication flows: %w", err)
 		}
 		if err := json.Unmarshal([]byte(redirectUrisJSON), &app.RedirectUris); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal redirect uris: %w", err)

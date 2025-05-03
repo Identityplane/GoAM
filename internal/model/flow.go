@@ -50,18 +50,6 @@ type Flow struct {
 	UpdatedAt     time.Time       `json:"updated_at"`
 }
 
-// Represents a ongoing execution of a flow
-type FlowState struct {
-	RunID   string            `json:"run_id"`
-	Current string            `json:"current"` // active node
-	Context map[string]string `json:"context"` // dynamic values (inputs + outputs)
-	History []string          `json:"history"` // executed node names
-	Error   *string           `json:"error,omitempty"`
-	Result  *FlowResult       `json:"result,omitempty"`
-	User    *User             `json:"user,omitempty"`
-	Prompts map[string]string `json:"prompts,omitempty"` // Prompts to be shown to the user, if applicable
-}
-
 type AuthLevel string
 
 const (

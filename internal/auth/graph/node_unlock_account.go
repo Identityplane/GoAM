@@ -17,7 +17,7 @@ var UnlockAccountNode = &NodeDefinition{
 	Run:                  RunUnlockAccountNode,
 }
 
-func RunUnlockAccountNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunUnlockAccountNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 	username := state.Context["username"]
 
 	ctx := context.Background()

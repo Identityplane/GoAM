@@ -18,7 +18,7 @@ var ValidateUsernamePasswordNode = &NodeDefinition{
 	Run:                  RunValidateUsernamePasswordNode,
 }
 
-func RunValidateUsernamePasswordNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 	username := state.Context["username"]
 	password := state.Context["password"]
 

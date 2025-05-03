@@ -47,7 +47,7 @@ var PasskeysCheckUserRegistered = &NodeDefinition{
 	Run:                  RunCheckUserHasPasskeyNode,
 }
 
-func RunCheckUserHasPasskeyNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunCheckUserHasPasskeyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 	ctx := context.Background()
 	username := state.Context["username"]
 
@@ -71,7 +71,7 @@ func RunCheckUserHasPasskeyNode(state *model.FlowState, node *model.GraphNode, i
 	}
 }
 
-func RunPasskeyRegisterNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunPasskeyRegisterNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 
 	// Check if input is present, if not generate options, if present process registration
 	if _, ok := input["passkeysFinishRegistrationJson"]; !ok {
@@ -94,7 +94,7 @@ func RunPasskeyRegisterNode(state *model.FlowState, node *model.GraphNode, input
 	}
 }
 
-func RunPasskeyVerifyNode(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunPasskeyVerifyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 
 	// Check if input is present, if not generate options, if present process assertion
 	if _, ok := input["passkeysFinishLoginJson"]; !ok {
@@ -116,7 +116,7 @@ func RunPasskeyVerifyNode(state *model.FlowState, node *model.GraphNode, input m
 	}
 }
 
-func GeneratePasskeysOptions(state *model.FlowState, node *model.GraphNode) (map[string]string, error) {
+func GeneratePasskeysOptions(state *model.AuthenticationSession, node *model.GraphNode) (map[string]string, error) {
 	//ctx := context.Background()
 	username := state.Context["username"]
 
@@ -162,7 +162,7 @@ func GeneratePasskeysOptions(state *model.FlowState, node *model.GraphNode) (map
 	return *prompts, nil
 }
 
-func ProcessPasskeyRegistration(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (string, error) {
+func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (string, error) {
 
 	ctx := context.Background()
 
@@ -243,7 +243,7 @@ func ProcessPasskeyRegistration(state *model.FlowState, node *model.GraphNode, i
 	return "success", nil
 }
 
-func GeneratePasskeysLoginOptions(state *model.FlowState, node *model.GraphNode, services *repository.Repositories) (map[string]string, error) {
+func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *model.GraphNode, services *repository.Repositories) (map[string]string, error) {
 	username := state.Context["username"]
 
 	// Setup config
@@ -296,7 +296,7 @@ func GeneratePasskeysLoginOptions(state *model.FlowState, node *model.GraphNode,
 	}, nil
 }
 
-func ProcessPasskeyLogin(state *model.FlowState, node *model.GraphNode, input map[string]string, services *repository.Repositories) (string, error) {
+func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (string, error) {
 	ctx := context.Background()
 	username := state.Context["username"]
 

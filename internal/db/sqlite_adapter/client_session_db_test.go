@@ -12,14 +12,16 @@ import (
 
 func TestClientSessionCRUD(t *testing.T) {
 	sqldb := setupTestDB(t)
-	clientSessionDB := NewClientSessionDB(sqldb)
+	clientSessionDB, err := NewClientSessionDB(sqldb)
+	require.NoError(t, err)
 
 	db.TemplateTestClientSessionCRUD(t, clientSessionDB)
 }
 
 func TestClientSessionUniqueConstraints(t *testing.T) {
 	sqldb := setupTestDB(t)
-	clientSessionDB := NewClientSessionDB(sqldb)
+	clientSessionDB, err := NewClientSessionDB(sqldb)
+	require.NoError(t, err)
 
 	ctx := context.Background()
 	testTenant := "test-tenant"
@@ -43,7 +45,7 @@ func TestClientSessionUniqueConstraints(t *testing.T) {
 		Created:          now,
 		Expire:           now.Add(1 * time.Hour),
 	}
-	err := clientSessionDB.CreateClientSession(ctx, session1)
+	err = clientSessionDB.CreateClientSession(ctx, session1)
 	require.NoError(t, err)
 
 	// Try to create another session with same access token hash (should fail)

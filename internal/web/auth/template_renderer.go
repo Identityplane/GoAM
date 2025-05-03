@@ -1,4 +1,4 @@
-package web
+package auth
 
 import (
 	"bytes"
@@ -57,25 +57,12 @@ func InitTemplates() error {
 }
 
 // Render is the single public entry point
-func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.FlowState, resultNode *model.GraphNode, prompts map[string]string) {
+func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.AuthenticationSession, resultNode *model.GraphNode, prompts map[string]string) {
+
 	var templateFile string
 	var customMessage string
 
-	switch {
-	case resultNode != nil:
-		templateFile = "result.html"
-		customMessage = resultNode.CustomConfig["message"]
-
-	case prompts != nil:
-
-		currentNode := flow.Nodes[state.Current]
-		templateFile = fmt.Sprintf("%s.html", currentNode.Use)
-
-	default:
-		RenderError(ctx, "Unknown flow state")
-		return
-	}
-
+	// Debug information
 	debug := isDebugMode(ctx)
 	var stateJSON string
 	if debug {
@@ -84,17 +71,30 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.F
 		}
 	}
 
+	// Choosing the right tempalte file
+	// TODO this should be simplified so that in any case we just render the template for the node
+	if state.Result != nil {
+		templateFile = "result.html"
+		customMessage = resultNode.CustomConfig["message"]
+	} else {
+		currentNode := flow.Nodes[state.Current]
+		templateFile = fmt.Sprintf("%s.html", currentNode.Use)
+	}
+
+	// Lookup current node
 	currentGraphNode, ok := flow.Nodes[state.Current]
 	if !ok {
 		RenderError(ctx, "Did not find current graph node: "+state.Current)
 		return
 	}
 
+	// Lookup custom config of node to make it available to the tempalte
 	CustomConfig := currentGraphNode.CustomConfig
 	if CustomConfig == nil {
 		CustomConfig = make(map[string]string)
 	}
 
+	// Create the view data
 	view := &ViewData{
 		Title:        state.Current,
 		NodeName:     state.Current,
@@ -112,12 +112,14 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.F
 		FlowPath:     ctx.UserValue("path").(string),
 	}
 
+	// Clone the base template
 	tmpl, err := baseTemplates.Clone()
 	if err != nil {
 		RenderError(ctx, "Template clone error: "+err.Error())
 		return
 	}
 
+	// Parse the node template
 	filepath := filepath.Join(NodeTemplatesPath, templateFile)
 	_, err = tmpl.ParseFS(templatesFS, filepath)
 	if err != nil {
@@ -125,6 +127,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.F
 		return
 	}
 
+	// Execute the template
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, "layout", view); err != nil {
 		RenderError(ctx, "Render error: "+err.Error())
@@ -148,7 +151,7 @@ func isDebugMode(ctx *fasthttp.RequestCtx) bool {
 	return debugParam != nil
 }
 
-func resolveErrorMessage(state *model.FlowState) string {
+func resolveErrorMessage(state *model.AuthenticationSession) string {
 	if state.Error != nil {
 		return *state.Error
 	}

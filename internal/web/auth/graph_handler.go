@@ -1,14 +1,13 @@
-package web
+package auth
 
 import (
+	"fmt"
 	"goiam/internal/auth/graph"
 	"goiam/internal/auth/repository"
 	"goiam/internal/logger"
 	"goiam/internal/model"
 	"goiam/internal/service"
-	"goiam/internal/web/session"
 
-	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 )
 
@@ -43,139 +42,134 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	realm := ctx.UserValue("realm").(string)
 	flowPath := ctx.UserValue("path").(string)
 
-	svc := service.GetServices()
-
-	// TODO this should be optimized to only require one service call to be more efficient
-	// but currently we need the registry and flow seperatly
-	loadedRealm, ok := svc.RealmService.GetRealm(tenant, realm)
+	// Load the flow
+	flow, ok := service.GetServices().FlowService.GetFlowByPath(tenant, realm, flowPath)
 	if !ok {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		ctx.SetBodyString("realm not found")
-		return
-	}
-
-	flow, ok := svc.FlowService.GetFlowByPath(tenant, realm, flowPath)
-	if !ok {
-		// return 404
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		ctx.SetBodyString("flow not found")
 		return
 	}
 
+	// Process the auth request
+	_, err := ProcessAuthRequest(ctx, flow)
+
+	// If there is an error we render the error, otherwiese the ProcessAuthRequest will render the result
+	if err != nil {
+		RenderError(ctx, err.Error())
+		return
+	}
+}
+
+func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow) (*model.AuthenticationSession, error) {
+
+	tenant := flow.Tenant
+	realm := flow.Realm
+
+	// Load the realm
+	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
+	if !ok {
+		return nil, fmt.Errorf("realm not found")
+	}
+
 	// Check if service registry is initialized
 	registry := loadedRealm.Repositories
 	if registry == nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		ctx.SetBodyString("service registry not initialized")
-		return
+		return nil, fmt.Errorf("service registry not initialized")
 	}
 
 	// Check if flow definiton is available
 	if flow.Definition == nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		ctx.SetBodyString("flow definiton not found")
-		return
-	}
-
-	handler := NewGraphHandler(tenant, realm, flow.Definition, registry)
-
-	// Execute the actual handler
-	handler.Handle(ctx)
-}
-
-func NewGraphHandler(tenant string, realm string, flow *model.FlowDefinition, registry *repository.Repositories) *GraphHandler {
-	// check if tenant, realm and flow are valid
-	if tenant == "" || realm == "" || flow == nil {
-		logger.PanicNoContext("Invalid parameters: tenant=%s, realm=%s, flow=%v", tenant, realm, flow)
+		return nil, fmt.Errorf("flow definiton not found")
 	}
 
 	// load templates for rendering
-	// currently we reload this with every request, this should be improved
+	// TODO currently we reload this with every request, this should be improved
 	if err := InitTemplates(); err != nil {
-		logger.PanicNoContext("Failed to load templates: %v", err)
+		return nil, fmt.Errorf("failed to load templates")
 	}
 
-	return &GraphHandler{Flow: flow, Tenant: tenant, Realm: realm, Services: registry}
-}
+	// Create a new or load the authentication session
+	state, err := GetOrCreateAuthenticationSesssion(ctx, tenant, realm)
+	if err != nil {
 
-func (h *GraphHandler) Handle(ctx *fasthttp.RequestCtx) {
-	sessionID := h.getOrCreateSessionID(ctx)
-
-	var state *model.FlowState
-
-	if ctx.IsGet() {
-		state = graph.InitFlow(h.Flow)
-	} else {
-		state = session.Load(sessionID)
-		if state == nil {
-			state = graph.InitFlow(h.Flow)
-		}
+		return nil, fmt.Errorf("invalid session")
 	}
 
+	// Load the inputs from the request
 	var input map[string]string
 	if ctx.IsPost() {
 		step := string(ctx.PostArgs().Peek("step"))
 		if step != "" && state.Current == step {
-			input = extractPromptsFromRequest(ctx, h.Flow, step)
+			input = extractPromptsFromRequest(ctx, flow.Definition, step)
 		}
 	}
 
-	//TODO Adapt to new interface
 	// Run the flow engine with the current state and input
-	state, err := graph.Run(h.Flow, state, input, h.Services)
+	state, err = graph.Run(flow.Definition, state, input, registry)
 	if err != nil {
 		logger.DebugNoContext("flow resulted in error: %v", err)
-		RenderError(ctx, err.Error())
-		return
+		return nil, err
 	}
 
-	prompts := state.Prompts
-	session.Save(sessionID, state)
+	// Save the updated state in the session
+	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(tenant, realm, *state)
 
 	// This should be cleaned up in the future, its not beautiful to manually lookup the result node like this
-	var resultNode *model.GraphNode
+	currentNode := flow.Definition.Nodes[state.Current]
+	if currentNode == nil {
+		return nil, fmt.Errorf("result node not found")
+	}
+
+	// If the result is set we clear the session
 	if state.Result != nil {
-		resultNode = h.Flow.Nodes[state.Current]
-		if resultNode == nil {
-			logger.DebugNoContext("result node not found: %s", state.Current)
-			RenderError(ctx, "Result node not found")
-			return
-		}
+		service.GetServices().SessionsService.DeleteAuthenticationSession(state.SessionIdHash)
 	}
 
-	if err != nil {
-		logger.DebugNoContext("flow error: %v", err)
-		RenderError(ctx, err.Error())
-		return
-	}
+	// Render the result
+	Render(ctx, flow.Definition, state, currentNode, state.Prompts)
 
-	Render(ctx, h.Flow, state, resultNode, prompts)
+	return state, nil
 }
 
-func (h *GraphHandler) getOrCreateSessionID(ctx *fasthttp.RequestCtx) string {
-	cookie := ctx.Request.Header.Cookie(sessionCookieName)
-	if len(cookie) > 0 {
-		return string(cookie)
+func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, error) {
+
+	// Try load the session cookie from the request
+	cookie := string(ctx.Request.Header.Cookie(sessionCookieName))
+
+	// if present we load the session from the session service
+	session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(cookie)
+	if ok {
+		return session, nil
 	}
 
-	sessionID := uuid.New().String()
+	return CreateNewAuthenticationSession(ctx, tenant, realm)
+}
+
+func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, error) {
+
+	// if not we create a new session
+	session, sessionID := service.GetServices().SessionsService.CreateSessionObject(tenant, realm)
+
 	c := &fasthttp.Cookie{}
 	c.SetPath("/")
 	c.SetKey(sessionCookieName)
 	c.SetValue(sessionID)
 	c.SetHTTPOnly(true)
 	ctx.Response.Header.SetCookie(c)
-	return sessionID
+
+	return session, nil
 }
 
 func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, step string) map[string]string {
 	input := make(map[string]string)
 
+	// Lookup the node definiton
 	node := flow.Nodes[step]
 	if node == nil {
 		return input
 	}
 
+	// Check the definiton to see which inputs are allowed
 	def := graph.NodeDefinitions[node.Use]
 	for key := range def.PossiblePrompts {
 		val := string(ctx.PostArgs().Peek(key))

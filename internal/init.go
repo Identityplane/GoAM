@@ -87,6 +87,12 @@ func initDatabase() *service.DatabaseConnections {
 		if err != nil {
 			logger.PanicNoContext("Failed to initialize sqlite application db: %v", err)
 		}
+
+		// init client session db
+		connections.ClientSessionDB, err = sqlite_adapter.NewClientSessionDB(sqliteDB)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize sqlite client session db: %v", err)
+		}
 	}
 
 	if err != nil {

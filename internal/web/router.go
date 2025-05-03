@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"goiam/internal/web/admin_api"
+	"goiam/internal/web/auth"
 	"goiam/internal/web/debug"
 	"goiam/internal/web/oauth2"
 
@@ -17,8 +18,8 @@ func New() *router.Router {
 	r.NotFound = WrapMiddleware(handleNotFound)
 
 	// Main authentication routes
-	r.GET("/{tenant}/{realm}/auth/{path}", WrapMiddleware(HandleAuthRequest))
-	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(HandleAuthRequest))
+	r.GET("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
+	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
 
 	// Admin routes
 	admin := r.Group("/admin")
@@ -79,7 +80,7 @@ func New() *router.Router {
 
 	// Oauth + OIDC
 	r.GET("/{tenant}/{realm}/oauth2/.well-known/openid-configuration", WrapMiddleware(oauth2.HandleOpenIDConfiguration))
-
+	r.GET("/{tenant}/{realm}/oauth2/authorize", WrapMiddleware(oauth2.HandleAuthorize))
 	return r
 }
 
