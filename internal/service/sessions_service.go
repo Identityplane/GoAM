@@ -102,7 +102,7 @@ func (s *SessionsService) CreateClientSession(ctx context.Context, session *mode
 }
 
 // CreateAuthCodeSession creates a new client session with an auth code
-func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string) (string, error) {
+func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string) (string, error) {
 	// Generate a new auth code
 	sessionID := lib.GenerateSessionID()
 	authCode := lib.GenerateSessionID()
@@ -110,16 +110,18 @@ func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, rea
 
 	// Create a new client session
 	session := &model.ClientSession{
-		Tenant:          tenant,
-		Realm:           realm,
-		ClientSessionID: sessionID,
-		ClientID:        clientID,
-		GrantType:       grantType,
-		AuthCodeHash:    authCodeHash,
-		UserID:          userID,
-		Scope:           strings.Join(scope, " "),
-		Created:         time.Now(),
-		Expire:          time.Now().Add(10 * time.Minute), // Auth codes typically expire in 10 minutes recommended by OAuth 2.1
+		Tenant:              tenant,
+		Realm:               realm,
+		ClientSessionID:     sessionID,
+		ClientID:            clientID,
+		GrantType:           grantType,
+		AuthCodeHash:        authCodeHash,
+		UserID:              userID,
+		Scope:               strings.Join(scope, " "),
+		CodeChallenge:       codeChallenge,
+		CodeChallengeMethod: codeChallengeMethod,
+		Created:             time.Now(),
+		Expire:              time.Now().Add(10 * time.Minute), // Auth codes typically expire in 10 minutes recommended by OAuth 2.1
 	}
 
 	// Store the session in the database

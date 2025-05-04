@@ -55,6 +55,32 @@ type OAuth2Error struct {
 	ErrorURI         string `json:"error_uri,omitempty"`
 }
 
+// Oauth2 token request
+type Oauth2TokenRequest struct {
+	Code         string `json:"code"`
+	CodeVerifier string `json:"code_verifier"`
+	ClientID     string `json:"client_id"`
+	GrantType    string `json:"grant_type"`
+	RefreshToken string `json:"refresh_token"`
+	RedirectURI  string `json:"redirect_uri"`
+}
+
+// Oauth2 client authentication
+type Oauth2ClientAuthentication struct {
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+}
+
+// Oauth2 token response
+type Oauth2TokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	IDToken      string `json:"id_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	Scope        string `json:"scope"`
+	TokenType    string `json:"token_type"`
+}
+
 func NewOAuth2Error(errorCode string, errorDescription string) *OAuth2Error {
 	errorResponse := OAuth2Error{
 		Error:            errorCode,
@@ -91,6 +117,11 @@ func (s *OAuth2Service) ValidateOAuth2AuthorizationRequest(oauth2request *model.
 	// if the application is public is must have a code_challenge and code_challenge_method for the pkce flow
 	if !application.Confidential && (oauth2request.CodeChallenge == "" || oauth2request.CodeChallengeMethod == "") {
 		return oauth2.NewOAuth2Error(oauth2.ErrorInvalidRequest, "Code challenge and code challenge method are required for public applications")
+	}
+
+	// if the application is public the code challenge must be S256
+	if !application.Confidential && oauth2request.CodeChallengeMethod != "S256" {
+		return oauth2.NewOAuth2Error(oauth2.ErrorInvalidRequest, "Only CodeChallengeMethod S256 is supported")
 	}
 
 	// Check if all requested scopes are allowed for each request scope
@@ -169,7 +200,9 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 		session.Oauth2SessionInformation.AuthorizeRequest.ClientID,
 		session.Result.UserID,
 		scope,
-		"authorization_code")
+		"authorization_code",
+		session.Oauth2SessionInformation.AuthorizeRequest.CodeChallenge,
+		session.Oauth2SessionInformation.AuthorizeRequest.CodeChallengeMethod)
 
 	if err != nil {
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not create session")
@@ -183,6 +216,91 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 	}
 
 	return &response, nil
+}
+
+func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication) (*Oauth2TokenResponse, *OAuth2Error) {
+
+	// Ensure that client_id in token request and clientAuthentication are the same
+	if tokenRequest.ClientID != clientAuthentication.ClientID {
+		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Client ID mismatch")
+	}
+
+	// First we need to validate the client authentication if the client is confidential
+	application, ok := GetServices().ApplicationService.GetApplication(tenant, realm, tokenRequest.ClientID)
+	if !ok {
+		return nil, NewOAuth2Error(oauth2.ErrorUnauthorizedClient, "Invalid client ID")
+	}
+
+	if application.Confidential {
+
+		valid, err := GetServices().ApplicationService.VerifyClientSecret(tenant, realm, clientAuthentication.ClientID, clientAuthentication.ClientSecret)
+		if err != nil {
+			return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not verify client secret")
+		}
+
+		if !valid {
+			return nil, NewOAuth2Error(oauth2.ErrorUnauthorizedClient, "Invalid client authentication")
+		}
+	}
+
+	// if the grant type is authorization_code we need to create an access token by looking up the auth code in the client sessions
+	switch tokenRequest.GrantType {
+	case "authorization_code":
+
+		session, err := GetServices().SessionsService.LoadAndDeleteAuthCodeSession(context.Background(), tokenRequest.Code)
+		if err != nil {
+			return nil, NewOAuth2Error(oauth2.ErrorAccessDenied, "Invalid authorization code")
+		}
+
+		// Check if the session is valid
+		if session == nil {
+			return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid authorization code")
+		}
+
+		if tenant != session.Tenant || realm != session.Realm || clientAuthentication.ClientID != session.ClientID {
+			return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid authorization code")
+		}
+
+		if !application.Confidential {
+
+			// Else if the client is public we need to check if the code verifier is correct
+			if tokenRequest.CodeVerifier == "" {
+				return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Code verifier is required for public clients")
+			}
+
+			// Check if the code verifier is correct
+			valid, err := oauth2.VerifyCodeChallenge(tokenRequest.CodeVerifier, session.CodeChallenge)
+			if err != nil {
+				return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not verify code verifier")
+			}
+
+			if !valid {
+				return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid code verifier")
+			}
+		}
+
+		tokenResponse := generateTokenResponse(session)
+		return tokenResponse, nil
+	case "refresh_token":
+
+		panic("Not implemented")
+	}
+
+	return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid grant type")
+}
+
+func generateTokenResponse(session *model.ClientSession) *Oauth2TokenResponse {
+
+	tokenResponse := Oauth2TokenResponse{
+		AccessToken:  "mock_access_token",
+		IDToken:      "mock_id_token",
+		RefreshToken: "",
+		ExpiresIn:    3600,
+		Scope:        "mock_scope",
+		TokenType:    "Bearer",
+	}
+
+	return &tokenResponse
 }
 
 // ToQueryString converts the AuthorizationResponse to a URL query string

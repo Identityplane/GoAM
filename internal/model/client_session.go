@@ -34,6 +34,12 @@ type ClientSession struct {
 	// Scope is the OAuth scope for this session
 	Scope string `json:"scope"`
 
+	// CodeChallenge is the code challenge for PKCE flow
+	CodeChallenge string `json:"code_challenge"`
+
+	// CodeChallengeMethod is the code challenge method for PKCE flow
+	CodeChallengeMethod string `json:"code_challenge_method"`
+
 	// Created is the timestamp when the session was created
 	Created time.Time `json:"created"`
 

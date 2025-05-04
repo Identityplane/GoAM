@@ -32,8 +32,8 @@ func (s *SQLiteClientSessionDB) CreateClientSession(ctx context.Context, session
 		INSERT INTO client_sessions (
 			tenant, realm, client_session_id, client_id, grant_type,
 			access_token_hash, refresh_token_hash, auth_code_hash,
-			user_id, scope, created, expire
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			user_id, scope, code_challenge, code_challenge_method, created, expire
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	_, err := s.db.ExecContext(ctx, query,
@@ -47,6 +47,8 @@ func (s *SQLiteClientSessionDB) CreateClientSession(ctx context.Context, session
 		session.AuthCodeHash,
 		session.UserID,
 		session.Scope,
+		session.CodeChallenge,
+		session.CodeChallengeMethod,
 		session.Created.Format(time.RFC3339),
 		session.Expire.Format(time.RFC3339),
 	)
@@ -61,7 +63,7 @@ func (s *SQLiteClientSessionDB) GetClientSessionByID(ctx context.Context, tenant
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, created, expire
+		       user_id, scope, code_challenge, code_challenge_method, created, expire
 		FROM client_sessions
 		WHERE tenant = ? AND realm = ? AND client_session_id = ?
 	`
@@ -80,6 +82,8 @@ func (s *SQLiteClientSessionDB) GetClientSessionByID(ctx context.Context, tenant
 		&session.AuthCodeHash,
 		&session.UserID,
 		&session.Scope,
+		&session.CodeChallenge,
+		&session.CodeChallengeMethod,
 		&createdStr,
 		&expireStr,
 	)
@@ -101,7 +105,7 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Contex
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, created, expire
+		       user_id, scope, code_challenge, code_challenge_method, created, expire
 		FROM client_sessions
 		WHERE access_token_hash = ?
 	`
@@ -120,6 +124,8 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Contex
 		&session.AuthCodeHash,
 		&session.UserID,
 		&session.Scope,
+		&session.CodeChallenge,
+		&session.CodeChallengeMethod,
 		&createdStr,
 		&expireStr,
 	)
@@ -141,7 +147,7 @@ func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Conte
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, created, expire
+		       user_id, scope, code_challenge, code_challenge_method, created, expire
 		FROM client_sessions
 		WHERE refresh_token_hash = ?
 	`
@@ -160,6 +166,8 @@ func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Conte
 		&session.AuthCodeHash,
 		&session.UserID,
 		&session.Scope,
+		&session.CodeChallenge,
+		&session.CodeChallengeMethod,
 		&createdStr,
 		&expireStr,
 	)
@@ -181,7 +189,7 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, 
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, created, expire
+		       user_id, scope, code_challenge, code_challenge_method, created, expire
 		FROM client_sessions
 		WHERE auth_code_hash = ?
 	`
@@ -200,6 +208,8 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, 
 		&session.AuthCodeHash,
 		&session.UserID,
 		&session.Scope,
+		&session.CodeChallenge,
+		&session.CodeChallengeMethod,
 		&createdStr,
 		&expireStr,
 	)
@@ -221,7 +231,7 @@ func (s *SQLiteClientSessionDB) ListClientSessions(ctx context.Context, tenant, 
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, created, expire
+		       user_id, scope, code_challenge, code_challenge_method, created, expire
 		FROM client_sessions
 		WHERE tenant = ? AND realm = ? AND client_id = ?
 	`
@@ -248,6 +258,8 @@ func (s *SQLiteClientSessionDB) ListClientSessions(ctx context.Context, tenant, 
 			&session.AuthCodeHash,
 			&session.UserID,
 			&session.Scope,
+			&session.CodeChallenge,
+			&session.CodeChallengeMethod,
 			&createdStr,
 			&expireStr,
 		)
@@ -269,7 +281,7 @@ func (s *SQLiteClientSessionDB) ListUserClientSessions(ctx context.Context, tena
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, created, expire
+		       user_id, scope, code_challenge, code_challenge_method, created, expire
 		FROM client_sessions
 		WHERE tenant = ? AND realm = ? AND user_id = ?
 	`
@@ -296,6 +308,8 @@ func (s *SQLiteClientSessionDB) ListUserClientSessions(ctx context.Context, tena
 			&session.AuthCodeHash,
 			&session.UserID,
 			&session.Scope,
+			&session.CodeChallenge,
+			&session.CodeChallengeMethod,
 			&createdStr,
 			&expireStr,
 		)
@@ -318,7 +332,8 @@ func (s *SQLiteClientSessionDB) UpdateClientSession(ctx context.Context, session
 		UPDATE client_sessions
 		SET client_id = ?, grant_type = ?,
 		    access_token_hash = ?, refresh_token_hash = ?, auth_code_hash = ?,
-		    user_id = ?, scope = ?, created = ?, expire = ?
+		    user_id = ?, scope = ?, code_challenge = ?, code_challenge_method = ?,
+		    created = ?, expire = ?
 		WHERE tenant = ? AND realm = ? AND client_session_id = ?
 	`
 
@@ -330,6 +345,8 @@ func (s *SQLiteClientSessionDB) UpdateClientSession(ctx context.Context, session
 		session.AuthCodeHash,
 		session.UserID,
 		session.Scope,
+		session.CodeChallenge,
+		session.CodeChallengeMethod,
 		session.Created.Format(time.RFC3339),
 		session.Expire.Format(time.RFC3339),
 		session.Tenant,

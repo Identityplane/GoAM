@@ -134,6 +134,8 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.Set("Pragma", "no-cache")
 }
 
+// FinishOauth2AuthorizationEndpoint finishes the OAuth2 authorization endpoint
+// This endpoint is called by the login page after the flow has been completed
 func FinsishOauth2AuthorizationEndpoint(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
@@ -169,8 +171,47 @@ func HandleTokenEndpoint(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 
-	// TODO
-	service.GetServices().OAuth2Service.HandleTokenEndpoint(ctx, tenant, realm)
+	tokenRequest := &service.Oauth2TokenRequest{}
+
+	// parse request parameter from application/x-www-form-urlencoded
+	body := ctx.PostBody()
+	bodyParams, err := url.ParseQuery(string(body))
+	if err != nil {
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Invalid request body", nil, "")
+		return
+	}
+
+	// parse the body parameters to the token request
+	tokenRequest.Code = bodyParams.Get("code")
+	tokenRequest.CodeVerifier = bodyParams.Get("code_verifier")
+	tokenRequest.ClientID = bodyParams.Get("client_id")
+	tokenRequest.GrantType = bodyParams.Get("grant_type")
+	tokenRequest.RefreshToken = bodyParams.Get("refresh_token")
+
+	// Parse the client authentication
+	clientAuthentication := &service.Oauth2ClientAuthentication{}
+	clientAuthentication.ClientID = bodyParams.Get("client_id")
+	clientAuthentication.ClientSecret = bodyParams.Get("client_secret")
+
+	// Process the token request
+	tokenResponse, oauthError := service.GetServices().OAuth2Service.ProcessTokenRequest(tenant, realm, tokenRequest, clientAuthentication)
+	if oauthError != nil {
+		RenderOauth2ErrorWithoutRedirect(ctx, oauthError.Error, oauthError.ErrorDescription)
+		return
+	}
+
+	// Set the response headers
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.SetContentType("application/json")
+
+	// Set the body to the token response
+	jsonData, err := json.MarshalIndent(tokenResponse, "", "  ")
+	if err != nil {
+		RenderOauth2ErrorWithoutRedirect(ctx, oauth2.ErrorServerError, "Internal server error. Cannot marshal token response")
+		return
+	}
+
+	ctx.SetBody(jsonData)
 }
 
 func RenderOauth2ErrorWithoutRedirect(ctx *fasthttp.RequestCtx, errorCode string, errorDescription string) {
