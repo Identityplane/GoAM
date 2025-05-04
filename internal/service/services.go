@@ -12,6 +12,7 @@ type Services struct {
 	ApplicationService         ApplicationService
 	SessionsService            *SessionsService
 	StaticConfigurationService StaticConfigurationService
+	OAuth2Service              *OAuth2Service
 }
 
 // DatabaseConnections holds all database connections
@@ -41,6 +42,7 @@ func InitServices(connections DatabaseConnections) *Services {
 		ApplicationService:         NewApplicationService(databases.ApplicationsDB),
 		SessionsService:            NewSessionsService(databases.ClientSessionDB),
 		StaticConfigurationService: NewStaticConfigurationService(),
+		OAuth2Service:              NewOAuth2Service(),
 	}
 
 	return services

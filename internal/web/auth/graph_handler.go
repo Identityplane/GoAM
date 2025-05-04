@@ -50,17 +50,53 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
+	if !ok {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		ctx.SetBodyString("realm not found")
+		return
+	}
+
+	// Create a new or load the authentication session
+	session, err := GetOrCreateAuthenticationSesssion(ctx, tenant, realm, loadedRealm.Config.BaseUrl, flow)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		ctx.SetBodyString("Could not create session")
+		return
+	}
+
 	// Process the auth request
-	_, err := ProcessAuthRequest(ctx, flow)
+	newSession, err := ProcessAuthRequest(ctx, flow, *session)
 
 	// If there is an error we render the error, otherwiese the ProcessAuthRequest will render the result
 	if err != nil {
 		RenderError(ctx, err.Error())
 		return
 	}
+
+	// Save the updated state in the session
+	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(tenant, realm, *newSession)
+
+	// If we are in an oauth2 flow we need to use the finish function to finish the oaith2 flow
+	if newSession.Result != nil && newSession.Oauth2SessionInformation != nil {
+
+		// We forward to the finish authorization endpoint
+		url := fmt.Sprintf("%s/oauth2/finishauthorize", loadedRealm.Config.BaseUrl)
+		ctx.Redirect(url, fasthttp.StatusFound)
+		return
+	}
+
+	if newSession.Result != nil {
+		// If the result is set we clear the session
+		service.GetServices().SessionsService.DeleteAuthenticationSession(session.SessionIdHash)
+	}
+
+	// Render the result
+	currentNode := flow.Definition.Nodes[newSession.Current]
+	Render(ctx, flow.Definition, newSession, currentNode, session.Prompts, loadedRealm.Config.BaseUrl)
 }
 
-func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow) (*model.AuthenticationSession, error) {
+func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session model.AuthenticationSession) (*model.AuthenticationSession, error) {
 
 	tenant := flow.Tenant
 	realm := flow.Realm
@@ -88,67 +124,55 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow) (*model.Auth
 		return nil, fmt.Errorf("failed to load templates")
 	}
 
-	// Create a new or load the authentication session
-	state, err := GetOrCreateAuthenticationSesssion(ctx, tenant, realm)
-	if err != nil {
-
-		return nil, fmt.Errorf("invalid session")
-	}
-
 	// Load the inputs from the request
 	var input map[string]string
 	if ctx.IsPost() {
 		step := string(ctx.PostArgs().Peek("step"))
-		if step != "" && state.Current == step {
+		if step != "" && session.Current == step {
 			input = extractPromptsFromRequest(ctx, flow.Definition, step)
 		}
 	}
 
 	// Run the flow engine with the current state and input
-	state, err = graph.Run(flow.Definition, state, input, registry)
+	newSession, err := graph.Run(flow.Definition, &session, input, registry)
 	if err != nil {
 		logger.DebugNoContext("flow resulted in error: %v", err)
 		return nil, err
 	}
 
-	// Save the updated state in the session
-	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(tenant, realm, *state)
-
 	// This should be cleaned up in the future, its not beautiful to manually lookup the result node like this
-	currentNode := flow.Definition.Nodes[state.Current]
+	currentNode := flow.Definition.Nodes[session.Current]
 	if currentNode == nil {
 		return nil, fmt.Errorf("result node not found")
 	}
 
-	// If the result is set we clear the session
-	if state.Result != nil {
-		service.GetServices().SessionsService.DeleteAuthenticationSession(state.SessionIdHash)
-	}
-
-	// Render the result
-	Render(ctx, flow.Definition, state, currentNode, state.Prompts)
-
-	return state, nil
+	return newSession, nil
 }
 
-func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, error) {
-
+func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, bool) {
 	// Try load the session cookie from the request
 	cookie := string(ctx.Request.Header.Cookie(sessionCookieName))
 
 	// if present we load the session from the session service
-	session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(cookie)
-	if ok {
+	session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(tenant, realm, cookie)
+	return session, ok
+}
+
+func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow) (*model.AuthenticationSession, error) {
+	// Try to get existing session first
+	if session, ok := GetAuthenticationSession(ctx, tenant, realm); ok {
 		return session, nil
 	}
 
-	return CreateNewAuthenticationSession(ctx, tenant, realm)
+	// If no session exists, create new one
+	return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow)
 }
 
-func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, error) {
+func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow) (*model.AuthenticationSession, error) {
 
 	// if not we create a new session
-	session, sessionID := service.GetServices().SessionsService.CreateSessionObject(tenant, realm)
+	loginUri := baseUrl + "/auth/" + flow.Route
+	session, sessionID := service.GetServices().SessionsService.CreateSessionObject(tenant, realm, flow.Id, loginUri)
 
 	c := &fasthttp.Cookie{}
 	c.SetPath("/")

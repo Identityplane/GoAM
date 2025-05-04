@@ -1,4 +1,4 @@
-description: ''
+description: 'Login or register with username and password'
 start: init
 nodes:
   askPassword:
@@ -10,7 +10,7 @@ nodes:
     name: askUsername
     use: askUsername
     next:
-      submitted: askPassword
+      submitted: node_c29533d5
   authFailure:
     name: failureResult
     use: failureResult
@@ -31,23 +31,68 @@ nodes:
       fail: askPassword
       locked: authFailure
       success: authSuccess
+  node_c29533d5:
+    name: checkUsernameAvailable
+    use: checkUsernameAvailable
+    next:
+      taken: askPassword
+      available: node_a1e9d8fa
+  node_26e37459:
+    name: askPassword
+    use: askPassword
+    next:
+      submitted: node_e0d0650f
+  node_e0d0650f:
+    name: createUser
+    use: createUser
+    next:
+      success: authSuccess
+      fail: node_e7f24f80
+  node_e7f24f80:
+    name: failureResult
+    use: failureResult
+    next: {}
+  node_a1e9d8fa:
+    name: messageConfirmation
+    use: messageConfirmation
+    custom_config:
+      message: We did not found an account. Should we create a new one for you?
+      message_title: Account not found
+      button_text: Create Account
+    next:
+      submitted: node_26e37459
 editor:
   nodes:
     askPassword:
-      x: 0
-      'y': 200
+      x: 547.8758620689656
+      'y': 314.3393103448276
     askUsername:
-      x: 200
-      'y': 200
+      x: -133.4896551724138
+      'y': -138.25379310344826
     authFailure:
-      x: 400
-      'y': 200
+      x: 1226.8806180351849
+      'y': 571.3382253477163
     authSuccess:
-      x: 600
-      'y': 200
+      x: 1798.5018168635538
+      'y': 113.16576446449545
     init:
-      x: 800
-      'y': 200
+      x: -250.49241379310342
+      'y': 71.36827586206894
     validateUsernamePassword:
-      x: 1000
-      'y': 200
+      x: 892.8068965517239
+      'y': 311.9572413793104
+    node_c29533d5:
+      x: 220.6662068965519
+      'y': -164.8289655172414
+    node_26e37459:
+      x: 875.17
+      'y': -144.99967714156776
+    node_e0d0650f:
+      x: 1189.093250553476
+      'y': -180.07883370231724
+    node_e7f24f80:
+      x: 1486.2767484329013
+      'y': -12.326167169916488
+    node_a1e9d8fa:
+      x: 541.0047015352252
+      'y': -178.4953700847626

@@ -35,6 +35,7 @@ type ViewData struct {
 	Tenant       string
 	Realm        string
 	FlowPath     string
+	LoginUri     string
 }
 
 //go:embed templates/*
@@ -57,7 +58,7 @@ func InitTemplates() error {
 }
 
 // Render is the single public entry point
-func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.AuthenticationSession, resultNode *model.GraphNode, prompts map[string]string) {
+func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.AuthenticationSession, resultNode *model.GraphNode, prompts map[string]string, baseUrl string) {
 
 	var templateFile string
 	var customMessage string
@@ -94,6 +95,15 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		CustomConfig = make(map[string]string)
 	}
 
+	flowPath := ""
+	if ctx.UserValue("path") != nil {
+		flowPath = ctx.UserValue("path").(string)
+	}
+
+	loginUri := state.LoginUri
+	stylePath := baseUrl + "/static/style.css"
+	scriptPath := baseUrl + "/static/style.js"
+
 	// Create the view data
 	view := &ViewData{
 		Title:        state.Current,
@@ -104,12 +114,13 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		StateJSON:    stateJSON,
 		FlowName:     currentGraphNode.Name,
 		Message:      customMessage,
-		StylePath:    "../static/style.css",
-		ScriptPath:   "../static/script.js",
+		StylePath:    stylePath,
+		ScriptPath:   scriptPath,
 		CustomConfig: CustomConfig,
 		Tenant:       ctx.UserValue("tenant").(string),
 		Realm:        ctx.UserValue("realm").(string),
-		FlowPath:     ctx.UserValue("path").(string),
+		FlowPath:     flowPath,
+		LoginUri:     loginUri,
 	}
 
 	// Clone the base template

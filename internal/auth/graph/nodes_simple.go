@@ -44,6 +44,21 @@ func RunAuthFailureNode(state *model.AuthenticationSession, node *model.GraphNod
 	}, nil
 }
 
+var MessageConfirmationNode = &NodeDefinition{
+	Name:            "messageConfirmation",
+	PrettyName:      "Conformation Dialog",
+	Description:     "Display a message to the user and ask for confirmation",
+	Category:        "Information",
+	Type:            model.NodeTypeQuery,
+	RequiredContext: []string{},
+	OutputContext:   []string{},
+	PossiblePrompts: map[string]string{
+		"confirmation": "boolean",
+	},
+	PossibleResultStates: []string{"submitted"},
+	CustomConfigOptions:  []string{"message", "message_title", "button_text"},
+}
+
 var AskUsernameNode = &NodeDefinition{
 	Name:            "askUsername",
 	Type:            model.NodeTypeQuery,

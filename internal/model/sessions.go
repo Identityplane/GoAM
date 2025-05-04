@@ -6,6 +6,7 @@ import "time"
 type AuthenticationSession struct {
 	RunID                    string            `json:"run_id"`
 	SessionIdHash            string            `json:"session_id_hash"`
+	FlowId                   string            `json:"flow_id"`
 	Current                  string            `json:"current"` // active node
 	Context                  map[string]string `json:"context"` // dynamic values (inputs + outputs)
 	History                  []string          `json:"history"` // executed node names
@@ -15,10 +16,11 @@ type AuthenticationSession struct {
 	Prompts                  map[string]string `json:"prompts,omitempty"` // Prompts to be shown to the user, if applicable
 	Oauth2SessionInformation *Oauth2Session    `json:"oauth2_request,omitempty"`
 	ExpiresAt                time.Time         `json:"expires_at"`
+	LoginUri                 string            `json:"login_uri"` // Uri of the login flow
 }
 
 type Oauth2Session struct {
-	AuthorizeRequest AuthorizeRequest `json:"authorize_request"`
+	AuthorizeRequest *AuthorizeRequest `json:"authorize_request"`
 }
 
 // AuthorizeRequest represents the parameters for the authorization request

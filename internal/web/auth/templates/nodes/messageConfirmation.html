@@ -1,0 +1,11 @@
+{{ define "content" }}
+<form method="POST" class="login-form" action="{{ .LoginUri}}">
+  <h2>{{index .CustomConfig "message_title"}}</h2>
+  <p>{{index .CustomConfig "message"}}</p>
+
+  <input type="hidden" name="step" value="{{ .NodeName }}">
+  <input type="hidden" name="confirmation" value="true">
+  <button type="submit">{{index .CustomConfig "button_text"}}</button>
+
+</form>
+{{ end }}
