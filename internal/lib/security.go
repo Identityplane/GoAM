@@ -15,8 +15,8 @@ func HashString(input string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// GenerateSessionID creates a new UUID v4 string
-func GenerateSessionID() string {
+// GenerateSecureSessionID creates a new UUID v4 string
+func GenerateSecureSessionID() string {
 	return uuid.New().String()
 }
 

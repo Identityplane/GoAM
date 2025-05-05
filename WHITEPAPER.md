@@ -1,4 +1,4 @@
-# GoIAM Whitepaper
+# Whitepaper
 
 ## Concept Overview
 
@@ -20,6 +20,24 @@ Authentication is modeled as flexible flow graphs, where:
 - **Flows**: Linked nodes with conditional transitions
 - **Configuration**: Flows are defined in YAML, version-controlled, and can be visualized and edited via a simple GUI
 
+
+Below is an example flow showing a typical authentication journey:
+
+![Example Flow](docs/images/example_flow.png)
+
+The flow demonstrates:
+1. Username collection
+2. Passkey discovery and verification
+3. Password fallback if no passkey exists
+4. Success/failure handling
+
+Each node represents an atomic operation with clear inputs and outputs. The graph structure allows for:
+- Conditional branching based on user state
+- Parallel authentication paths
+- Fallback mechanisms
+- Clear visualization of the journey
+
+
 Custom Nodes can be written in Go, enabling extensions without waiting for platform updates.
 
 This is designed to support:
@@ -30,27 +48,6 @@ This is designed to support:
 - Device linking
 - And more — not just standard username/password
 
-## Architecture and Deployment
-
-GoIAM is implemented as a standalone Go executable. It is intended to run:
-
-- As a containerized service in Kubernetes clusters (preferred for production)
-- As a standalone binary on VM infrastructure (flexible for legacy or edge deployments)
-
-### Configuration Models
-
-1. **Immutable Configuration**
-   - YAML-based configuration injected into containers at runtime
-   - Recommended for enterprise GitOps flows
-   - Enables rollbacks, A/B testing, version control, and performance optimization
-   - Flows are memory-resident
-
-2. **Dynamic Configuration**
-   - Configuration stored in the database
-   - Mutable at runtime via Admin API or Terraform provider
-   - Provides operational flexibility
-
-For on-premise deployments, the immutable configuration is the recommended approach if the organization has GitOps capabilities. The dynamic configuration option is suitable for SaaS models or development environments.
 
 ## Performance and Scalability
 
@@ -84,6 +81,7 @@ GoIAM is built with zero-trust internal principles:
 - Secrets integration with external managers (Vault, AWS Secrets Manager)
 - Rate limiting and abuse prevention integrated at API level
 - Security-critical events (e.g., password changes) are immediately logged and auditable
+- Native ELK stack support
 
 ## Database and Storage
 
@@ -109,3 +107,25 @@ GoIAM implements a two-layer multi-tenancy system:
    - Security boundaries under each tenant (e.g., Development, Production realms)
 
 Admin access and security boundaries are enforced separately at the tenant and realm levels. This model scales across SaaS, hybrid, and on-premises deployments with strong isolation guarantees.
+
+## Architecture and Deployment
+
+GoIAM is implemented as a standalone Go executable. It is intended to run:
+
+- As a containerized service in Kubernetes clusters (preferred for production)
+- As a standalone binary on VM infrastructure (flexible for legacy or edge deployments)
+
+### Configuration Models
+
+1. **Immutable Configuration**
+   - YAML-based configuration injected into containers at runtime
+   - Recommended for enterprise GitOps flows
+   - Enables rollbacks, A/B testing, version control, and performance optimization
+   - Flows are memory-resident
+
+2. **Dynamic Configuration**
+   - Configuration stored in the database
+   - Mutable at runtime via Admin API or Terraform provider
+   - Provides operational flexibility
+
+For on-premise deployments, the immutable configuration is the recommended approach if the organization has GitOps capabilities. The dynamic configuration option is suitable for SaaS models or development environments.

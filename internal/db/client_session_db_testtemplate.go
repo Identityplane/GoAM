@@ -32,6 +32,7 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 		AuthCodeHash:     "auth-code-hash",
 		UserID:           testUserID,
 		Scope:            "openid profile",
+		LoginSessionJson: `{"state":"test-state","nonce":"test-nonce"}`,
 		Created:          now,
 		Expire:           now.Add(1 * time.Hour),
 	}
@@ -53,6 +54,7 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 		assert.Equal(t, testSession.AuthCodeHash, session.AuthCodeHash)
 		assert.Equal(t, testSession.UserID, session.UserID)
 		assert.Equal(t, testSession.Scope, session.Scope)
+		assert.Equal(t, testSession.LoginSessionJson, session.LoginSessionJson)
 		assert.Equal(t, testSession.Created.Truncate(time.Second), session.Created.Truncate(time.Second))
 		assert.Equal(t, testSession.Expire.Truncate(time.Second), session.Expire.Truncate(time.Second))
 	})
@@ -130,6 +132,7 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 			AuthCodeHash:     "expired-auth-code-hash",
 			UserID:           testUserID,
 			Scope:            "openid profile",
+			LoginSessionJson: `{"state":"expired-state","nonce":"expired-nonce"}`,
 			Created:          now.Add(-2 * time.Hour),
 			Expire:           now.Add(-1 * time.Hour),
 		}

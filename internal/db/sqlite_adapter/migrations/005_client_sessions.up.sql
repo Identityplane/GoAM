@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS client_sessions (
     auth_code_hash TEXT,
     user_id TEXT,
     scope TEXT,
+    login_session_state_json TEXT,
     code_challenge TEXT,
     code_challenge_method TEXT,
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

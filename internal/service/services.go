@@ -13,6 +13,7 @@ type Services struct {
 	SessionsService            *SessionsService
 	StaticConfigurationService StaticConfigurationService
 	OAuth2Service              *OAuth2Service
+	JWTService                 *JWTService
 }
 
 // DatabaseConnections holds all database connections
@@ -43,6 +44,7 @@ func InitServices(connections DatabaseConnections) *Services {
 		SessionsService:            NewSessionsService(databases.ClientSessionDB),
 		StaticConfigurationService: NewStaticConfigurationService(),
 		OAuth2Service:              NewOAuth2Service(),
+		JWTService:                 NewJWTService(),
 	}
 
 	return services

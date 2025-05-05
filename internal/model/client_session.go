@@ -40,6 +40,9 @@ type ClientSession struct {
 	// CodeChallengeMethod is the code challenge method for PKCE flow
 	CodeChallengeMethod string `json:"code_challenge_method"`
 
+	// LoginSessionStateJson (json) is the resulting state of the login flow
+	LoginSessionJson string `json:"login_session_state"`
+
 	// Created is the timestamp when the session was created
 	Created time.Time `json:"created"`
 

@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -31,7 +33,7 @@ func NewSessionsService(clientSessionDB db.ClientSessionDB) *SessionsService {
 // returns the session object and session id
 func (s *SessionsService) CreateSessionObject(tenant, realm, flowId, loginUri string) (*model.AuthenticationSession, string) {
 
-	sessionID := lib.GenerateSessionID()
+	sessionID := lib.GenerateSecureSessionID()
 
 	session := &model.AuthenticationSession{
 		RunID:                    uuid.New().String(),
@@ -102,11 +104,17 @@ func (s *SessionsService) CreateClientSession(ctx context.Context, session *mode
 }
 
 // CreateAuthCodeSession creates a new client session with an auth code
-func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string) (string, error) {
+func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession) (string, error) {
 	// Generate a new auth code
-	sessionID := lib.GenerateSessionID()
-	authCode := lib.GenerateSessionID()
+	sessionID := lib.GenerateSecureSessionID()
+	authCode := lib.GenerateSecureSessionID()
 	authCodeHash := lib.HashString(authCode)
+
+	// json encode the login session
+	loginSessionJSON, err := json.Marshal(loginSession)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal login session: %w", err)
+	}
 
 	// Create a new client session
 	session := &model.ClientSession{
@@ -120,12 +128,13 @@ func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, rea
 		Scope:               strings.Join(scope, " "),
 		CodeChallenge:       codeChallenge,
 		CodeChallengeMethod: codeChallengeMethod,
+		LoginSessionJson:    string(loginSessionJSON),
 		Created:             time.Now(),
 		Expire:              time.Now().Add(10 * time.Minute), // Auth codes typically expire in 10 minutes recommended by OAuth 2.1
 	}
 
 	// Store the session in the database
-	err := s.clientSessionDB.CreateClientSession(ctx, session)
+	err = s.clientSessionDB.CreateClientSession(ctx, session)
 	if err != nil {
 		return "", err
 	}
@@ -133,25 +142,59 @@ func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, rea
 	return authCode, nil
 }
 
+func (s *SessionsService) CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int) (string, error) {
+
+	sessionID := lib.GenerateSecureSessionID()
+	accessToken := lib.GenerateSecureSessionID()
+	accessTokenHash := lib.HashString(accessToken)
+
+	session := &model.ClientSession{
+		Tenant:          tenant,
+		Realm:           realm,
+		ClientSessionID: sessionID,
+		ClientID:        clientID,
+		GrantType:       grantType,
+		AccessTokenHash: accessTokenHash,
+		UserID:          userID,
+		Scope:           strings.Join(scope, " "),
+		Created:         time.Now(),
+		Expire:          time.Now().Add(time.Duration(lifetime) * time.Second),
+	}
+
+	err := s.clientSessionDB.CreateClientSession(ctx, session)
+	if err != nil {
+		return "", fmt.Errorf("failed to create access token session: %w", err)
+	}
+
+	return accessToken, nil
+}
+
 // LoadAndDeleteAuthCodeSession retrieves a client session by auth code and deletes it
-func (s *SessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, authCode string) (*model.ClientSession, error) {
+func (s *SessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, authCode string) (*model.ClientSession, *model.AuthenticationSession, error) {
 	// Hash the auth code
 	authCodeHash := lib.HashString(authCode)
 
 	// Get the session by auth code hash
 	session, err := s.clientSessionDB.GetClientSessionByAuthCode(ctx, authCodeHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if session == nil {
-		return nil, nil
+		return nil, nil, nil
+	}
+
+	// json decode the login session
+	var loginSession model.AuthenticationSession
+	err = json.Unmarshal([]byte(session.LoginSessionJson), &loginSession)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal login session: %w", err)
 	}
 
 	// Delete the session
 	err = s.clientSessionDB.DeleteClientSession(ctx, session.Tenant, session.Realm, session.ClientSessionID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return session, nil
+	return session, &loginSession, nil
 }

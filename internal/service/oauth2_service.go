@@ -2,11 +2,15 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"goiam/internal/auth/graph"
+	"goiam/internal/lib"
 	"goiam/internal/lib/oauth2"
 	"goiam/internal/model"
 	"net/url"
 	"slices"
+	"strings"
+	"time"
 )
 
 // OAuth2Service handles OAuth2 related operations
@@ -74,11 +78,11 @@ type Oauth2ClientAuthentication struct {
 // Oauth2 token response
 type Oauth2TokenResponse struct {
 	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	IDToken      string `json:"id_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	IDToken      string `json:"id_token,omitempty"`
 	ExpiresIn    int    `json:"expires_in"`
-	Scope        string `json:"scope"`
-	TokenType    string `json:"token_type"`
+	Scope        string `json:"scope,omitempty"`
+	TokenType    string `json:"token_type,omitempty"`
 }
 
 func NewOAuth2Error(errorCode string, errorDescription string) *OAuth2Error {
@@ -202,7 +206,8 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 		scope,
 		"authorization_code",
 		session.Oauth2SessionInformation.AuthorizeRequest.CodeChallenge,
-		session.Oauth2SessionInformation.AuthorizeRequest.CodeChallengeMethod)
+		session.Oauth2SessionInformation.AuthorizeRequest.CodeChallengeMethod,
+		session)
 
 	if err != nil {
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not create session")
@@ -247,7 +252,7 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 	switch tokenRequest.GrantType {
 	case "authorization_code":
 
-		session, err := GetServices().SessionsService.LoadAndDeleteAuthCodeSession(context.Background(), tokenRequest.Code)
+		session, loginSession, err := GetServices().SessionsService.LoadAndDeleteAuthCodeSession(context.Background(), tokenRequest.Code)
 		if err != nil {
 			return nil, NewOAuth2Error(oauth2.ErrorAccessDenied, "Invalid authorization code")
 		}
@@ -255,6 +260,10 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 		// Check if the session is valid
 		if session == nil {
 			return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid authorization code")
+		}
+
+		if loginSession == nil {
+			return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not load login session")
 		}
 
 		if tenant != session.Tenant || realm != session.Realm || clientAuthentication.ClientID != session.ClientID {
@@ -279,9 +288,13 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 			}
 		}
 
-		tokenResponse := generateTokenResponse(session)
+		tokenResponse := generateTokenResponse(session, loginSession, application)
 		return tokenResponse, nil
 	case "refresh_token":
+
+		panic("Not implemented")
+
+	case "client_credentials":
 
 		panic("Not implemented")
 	}
@@ -289,18 +302,88 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 	return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid grant type")
 }
 
-func generateTokenResponse(session *model.ClientSession) *Oauth2TokenResponse {
+func generateTokenResponse(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) *Oauth2TokenResponse {
+
+	// first we generate the access token
+	accessToken, expiresIn, scopes, tokenType := generateAccessToken(session, loginSession, application)
+
+	// if the appliaction as refresh_token grant enabled we need to generate a refresh token
+	var refreshToken string
+	if slices.Contains(application.AllowedGrants, string(oauth2.Oauth2_RefreshToken)) {
+		refreshToken = generateRefreshToken(session, loginSession, application)
+	}
+
+	// If this is a oidc flow we need to generate an id token by checking the scopes from the session
+	var idToken string
+	if slices.Contains(application.AllowedScopes, "openid") {
+		var err error
+		idToken, err = generateIdToken(session, loginSession, application)
+		if err != nil {
+			// Log the error but continue with the response
+			// The ID token will be empty in this case
+			fmt.Printf("Failed to generate ID token: %v\n", err)
+		}
+	}
 
 	tokenResponse := Oauth2TokenResponse{
-		AccessToken:  "mock_access_token",
-		IDToken:      "mock_id_token",
-		RefreshToken: "",
-		ExpiresIn:    3600,
-		Scope:        "mock_scope",
-		TokenType:    "Bearer",
+		AccessToken:  accessToken,
+		IDToken:      idToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    expiresIn,
+		Scope:        scopes,
+		TokenType:    tokenType,
 	}
 
 	return &tokenResponse
+}
+
+func generateIdToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, error) {
+	// TODO later we use the id token mapping but for now we just map the claims directly
+	now := time.Now().Unix()
+	exp := now + int64(application.AccessTokenLifetime)
+
+	// We need to load the realm to load the signing key
+	realm, ok := GetServices().RealmService.GetRealm(session.Tenant, session.Realm)
+	if !ok {
+		return "", fmt.Errorf("internal server error. Could not get realm")
+	}
+
+	claims := map[string]interface{}{
+		"sub": session.UserID,
+		"iss": realm.Config.BaseUrl,
+		"aud": application.ClientId,
+		"exp": exp,
+	}
+
+	// Sign the token using the JWT service
+	token, err := GetServices().JWTService.SignJWT(session.Tenant, session.Realm, claims)
+	if err != nil {
+		return "", fmt.Errorf("internal server error. Could not sign token: %w", err)
+	}
+
+	return token, nil
+}
+
+func generateAccessToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, int, string, string) {
+
+	// First we generate the access token
+	accessToken := lib.GenerateSecureSessionID()
+	expiredIn := application.AccessTokenLifetime
+	scopes := session.Scope
+	tokenType := "Bearer"
+	tenant := session.Tenant
+	realm := session.Realm
+
+	scopesArray := strings.Split(scopes, " ")
+
+	// Then we store it into the client sessions database using the service
+	GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiredIn)
+
+	return accessToken, expiredIn, scopes, tokenType
+}
+
+func generateRefreshToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) string {
+	panic("unimplemented")
 }
 
 // ToQueryString converts the AuthorizationResponse to a URL query string
