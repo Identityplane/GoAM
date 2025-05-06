@@ -15,6 +15,11 @@ flows:
     route: /unlock-account
     active: no
     definition_location: unlock_account.yaml
+  login_or_register:
+    name: Login or Register
+    route: /login-or-register
+    active: yes
+    definition_location: login_or_register.yaml
 
 applications:
   customers-app:

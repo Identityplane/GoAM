@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/fasthttp/router"
@@ -23,7 +24,6 @@ import (
 var (
 	DefaultTenant = "acme"
 	DefaultRealm  = "customers"
-	ConfigPath    = "../../config"
 )
 
 var Router *router.Router = nil
@@ -34,7 +34,9 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	pwd, _ := os.Getwd()
 	fmt.Println("Current working directory:", pwd)
 
-	config.ConfigPath = ConfigPath
+	projectRoot := findProjectRoot("README.md")
+
+	config.ConfigPath = filepath.Join(projectRoot, "test/integration/config")
 	config.DBConnString = ":memory:?_foreign_keys=on"
 
 	// Call init function
@@ -74,6 +76,10 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 				return ln.Dial()
 			},
 		},
+		// Configure client to not follow redirects
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	e := httpexpect.WithConfig(httpexpect.Config{
@@ -86,4 +92,18 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	})
 
 	return e
+}
+
+func findProjectRoot(markerFile string) string {
+	dir, _ := os.Getwd()
+	for {
+		if _, err := os.Stat(filepath.Join(dir, markerFile)); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			panic("Project root not found")
+		}
+		dir = parent
+	}
 }
