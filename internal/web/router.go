@@ -83,6 +83,9 @@ func New() *router.Router {
 	r.GET("/{tenant}/{realm}/oauth2/authorize", WrapMiddleware(oauth2.HandleAuthorizeEndpoint))
 	r.GET("/{tenant}/{realm}/oauth2/finishauthorize", WrapMiddleware(oauth2.FinsishOauth2AuthorizationEndpoint))
 	r.POST("/{tenant}/{realm}/oauth2/token", WrapMiddleware(oauth2.HandleTokenEndpoint))
+	r.GET("/{tenant}/{realm}/oauth2/userinfo", WrapMiddleware(oauth2.HandleUserinfoEndpoint))
+	r.POST("/{tenant}/{realm}/oauth2/userinfo", WrapMiddleware(oauth2.HandleUserinfoEndpoint))
+
 	return r
 }
 

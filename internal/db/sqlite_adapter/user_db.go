@@ -133,6 +133,11 @@ func (s *SQLiteUserDB) GetUserByUsername(ctx context.Context, tenant, realm, use
 		WHERE tenant = ? AND realm = ? AND username = ?
 	`, tenant, realm, username)
 
+	return s.scanUserFromRow(row)
+}
+
+// scanUserFromRow scans a user from a database row
+func (s *SQLiteUserDB) scanUserFromRow(row *sql.Row) (*model.User, error) {
 	var user model.User
 	var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON string
 	var createdAt, updatedAt string
@@ -207,9 +212,34 @@ func (s *SQLiteUserDB) GetUserByUsername(ctx context.Context, tenant, realm, use
 		user.Attributes = map[string]string{}
 	}
 
-	user.TrustedDevices = trustedDevicesJSON
+	if trustedDevicesJSON != "" && trustedDevicesJSON != "null" {
+		_ = json.Unmarshal([]byte(trustedDevicesJSON), &user.TrustedDevices)
+	} else {
+		user.TrustedDevices = ""
+	}
 
 	return &user, nil
+}
+
+func (s *SQLiteUserDB) GetUserByID(ctx context.Context, tenant, realm, userID string) (*model.User, error) {
+	row := s.db.QueryRowContext(ctx, `
+		SELECT id, tenant, realm, username,
+		       status,
+		       display_name, given_name, family_name,
+		       email, phone, email_verified, phone_verified,
+		       locale,
+		       password_credential, webauthn_credential, mfa_credential,
+		       password_locked, webauthn_locked, mfa_locked,
+		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
+		       roles, groups, attributes,
+		       created_at, updated_at, last_login_at,
+		       federated_idp, federated_id,
+		       trusted_devices
+		FROM users 
+		WHERE tenant = ? AND realm = ? AND id = ?
+	`, tenant, realm, userID)
+
+	return s.scanUserFromRow(row)
 }
 
 func (s *SQLiteUserDB) UpdateUser(ctx context.Context, user *model.User) error {

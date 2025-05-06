@@ -18,6 +18,7 @@ type UserAdminService interface {
 	// List users with pagination, returns usersn, total count and users
 	ListUsers(ctx context.Context, tenant, realm string, pagination PaginationParams) ([]model.User, int64, error)
 	GetUser(ctx context.Context, tenant, realm, username string) (*model.User, error)
+	GetUserByID(ctx context.Context, tenant, realm, userID string) (*model.User, error)
 	UpdateUser(ctx context.Context, tenant, realm, username string, updateUser model.User) (*model.User, error)
 	DeleteUser(ctx context.Context, tenant, realm, username string) error
 	// Get user statistics
@@ -59,6 +60,10 @@ func (s *userServiceImpl) ListUsers(ctx context.Context, tenant, realm string, p
 
 func (s *userServiceImpl) GetUser(ctx context.Context, tenant, realm, username string) (*model.User, error) {
 	return s.userDB.GetUserByUsername(ctx, tenant, realm, username)
+}
+
+func (s *userServiceImpl) GetUserByID(ctx context.Context, tenant, realm, userID string) (*model.User, error) {
+	return s.userDB.GetUserByID(ctx, tenant, realm, userID)
 }
 
 func (s *userServiceImpl) UpdateUser(ctx context.Context, tenant, realm, username string, updateUser model.User) (*model.User, error) {

@@ -160,6 +160,14 @@ func TemplateTestUserCRUD(t *testing.T, db UserDB) {
 		assert.NotNil(t, user)
 		assert.Equal(t, testUser.Username, user.Username)
 		assert.Equal(t, testUser.Email, user.Email)
+		testUser.ID = user.ID
+	})
+
+	t.Run("GetUserByID", func(t *testing.T) {
+		user, err := db.GetUserByID(ctx, testTenant, testRealm, testUser.ID)
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.Equal(t, testUser.Username, user.Username)
 	})
 
 	t.Run("UpdateUser", func(t *testing.T) {

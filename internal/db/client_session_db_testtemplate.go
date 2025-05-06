@@ -38,7 +38,7 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 	}
 
 	t.Run("CreateClientSession", func(t *testing.T) {
-		err := db.CreateClientSession(ctx, testSession)
+		err := db.CreateClientSession(ctx, testTenant, testRealm, testSession)
 		assert.NoError(t, err)
 	})
 
@@ -60,21 +60,21 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 	})
 
 	t.Run("GetClientSessionByAccessToken", func(t *testing.T) {
-		session, err := db.GetClientSessionByAccessToken(ctx, testSession.AccessTokenHash)
+		session, err := db.GetClientSessionByAccessToken(ctx, testTenant, testRealm, testSession.AccessTokenHash)
 		assert.NoError(t, err)
 		assert.NotNil(t, session)
 		assert.Equal(t, testSession.ClientSessionID, session.ClientSessionID)
 	})
 
 	t.Run("GetClientSessionByRefreshToken", func(t *testing.T) {
-		session, err := db.GetClientSessionByRefreshToken(ctx, testSession.RefreshTokenHash)
+		session, err := db.GetClientSessionByRefreshToken(ctx, testTenant, testRealm, testSession.RefreshTokenHash)
 		assert.NoError(t, err)
 		assert.NotNil(t, session)
 		assert.Equal(t, testSession.ClientSessionID, session.ClientSessionID)
 	})
 
 	t.Run("GetClientSessionByAuthCode", func(t *testing.T) {
-		session, err := db.GetClientSessionByAuthCode(ctx, testSession.AuthCodeHash)
+		session, err := db.GetClientSessionByAuthCode(ctx, testTenant, testRealm, testSession.AuthCodeHash)
 		assert.NoError(t, err)
 		assert.NotNil(t, session)
 		assert.Equal(t, testSession.ClientSessionID, session.ClientSessionID)
@@ -101,7 +101,7 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 
 		session.Scope = "openid profile email"
 		session.Expire = now.Add(2 * time.Hour)
-		err = db.UpdateClientSession(ctx, session)
+		err = db.UpdateClientSession(ctx, testTenant, testRealm, session)
 		assert.NoError(t, err)
 
 		updatedSession, err := db.GetClientSessionByID(ctx, testTenant, testRealm, testSession.ClientSessionID)
@@ -137,16 +137,103 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 			Expire:           now.Add(-1 * time.Hour),
 		}
 
-		err := db.CreateClientSession(ctx, expiredSession)
+		err := db.CreateClientSession(ctx, testTenant, testRealm, expiredSession)
 		assert.NoError(t, err)
 
 		// Delete expired sessions
-		err = db.DeleteExpiredClientSessions(ctx)
+		err = db.DeleteExpiredClientSessions(ctx, testTenant, testRealm)
 		assert.NoError(t, err)
 
 		// Verify expired session is deleted
 		session, err := db.GetClientSessionByID(ctx, testTenant, testRealm, expiredSession.ClientSessionID)
 		assert.NoError(t, err)
 		assert.Nil(t, session)
+	})
+
+	t.Run("CreateAndQueryByAuthCodeHash", func(t *testing.T) {
+		// Create a new session with a specific auth code hash
+		authCodeSession := &model.ClientSession{
+			Tenant:           testTenant,
+			Realm:            testRealm,
+			ClientSessionID:  "auth-code-session",
+			ClientID:         testClientID,
+			GrantType:        "authorization_code",
+			AccessTokenHash:  "new-access-token-hash",
+			RefreshTokenHash: "new-refresh-token-hash",
+			AuthCodeHash:     "new-auth-code-hash",
+			UserID:           testUserID,
+			Scope:            "openid profile",
+			LoginSessionJson: `{"state":"auth-code-state","nonce":"auth-code-nonce"}`,
+			Created:          now,
+			Expire:           now.Add(1 * time.Hour),
+		}
+
+		err := db.CreateClientSession(ctx, testTenant, testRealm, authCodeSession)
+		assert.NoError(t, err)
+
+		// Query by auth code hash
+		session, err := db.GetClientSessionByAuthCode(ctx, testTenant, testRealm, authCodeSession.AuthCodeHash)
+		assert.NoError(t, err)
+		assert.NotNil(t, session)
+		assert.Equal(t, authCodeSession.ClientSessionID, session.ClientSessionID)
+		assert.Equal(t, authCodeSession.AuthCodeHash, session.AuthCodeHash)
+	})
+
+	t.Run("CreateAndQueryByAccessTokenHash", func(t *testing.T) {
+		// Create a new session with a specific access token hash
+		accessTokenSession := &model.ClientSession{
+			Tenant:           testTenant,
+			Realm:            testRealm,
+			ClientSessionID:  "access-token-session",
+			ClientID:         testClientID,
+			GrantType:        "authorization_code",
+			AccessTokenHash:  "unique-access-token-hash",
+			RefreshTokenHash: "unique-refresh-token-hash",
+			AuthCodeHash:     "unique-auth-code-hash",
+			UserID:           testUserID,
+			Scope:            "openid profile",
+			LoginSessionJson: `{"state":"access-token-state","nonce":"access-token-nonce"}`,
+			Created:          now,
+			Expire:           now.Add(1 * time.Hour),
+		}
+
+		err := db.CreateClientSession(ctx, testTenant, testRealm, accessTokenSession)
+		assert.NoError(t, err)
+
+		// Query by access token hash
+		session, err := db.GetClientSessionByAccessToken(ctx, testTenant, testRealm, accessTokenSession.AccessTokenHash)
+		assert.NoError(t, err)
+		assert.NotNil(t, session)
+		assert.Equal(t, accessTokenSession.ClientSessionID, session.ClientSessionID)
+		assert.Equal(t, accessTokenSession.AccessTokenHash, session.AccessTokenHash)
+	})
+
+	t.Run("CreateAndQueryByRefreshTokenHash", func(t *testing.T) {
+		// Create a new session with a specific refresh token hash
+		refreshTokenSession := &model.ClientSession{
+			Tenant:           testTenant,
+			Realm:            testRealm,
+			ClientSessionID:  "refresh-token-session",
+			ClientID:         testClientID,
+			GrantType:        "authorization_code",
+			AccessTokenHash:  "special-access-token-hash",
+			RefreshTokenHash: "special-refresh-token-hash",
+			AuthCodeHash:     "special-auth-code-hash",
+			UserID:           testUserID,
+			Scope:            "openid profile",
+			LoginSessionJson: `{"state":"refresh-token-state","nonce":"refresh-token-nonce"}`,
+			Created:          now,
+			Expire:           now.Add(1 * time.Hour),
+		}
+
+		err := db.CreateClientSession(ctx, testTenant, testRealm, refreshTokenSession)
+		assert.NoError(t, err)
+
+		// Query by refresh token hash
+		session, err := db.GetClientSessionByRefreshToken(ctx, testTenant, testRealm, refreshTokenSession.RefreshTokenHash)
+		assert.NoError(t, err)
+		assert.NotNil(t, session)
+		assert.Equal(t, refreshTokenSession.ClientSessionID, session.ClientSessionID)
+		assert.Equal(t, refreshTokenSession.RefreshTokenHash, session.RefreshTokenHash)
 	})
 }

@@ -10,6 +10,7 @@ import (
 
 	"goiam/internal/db"
 	"goiam/internal/lib"
+	"goiam/internal/logger"
 	"goiam/internal/model"
 
 	"github.com/google/uuid"
@@ -91,6 +92,26 @@ func (s *SessionsService) GetAuthenticationSession(tenant, realm, sessionIDHash 
 	return session, true
 }
 
+// GetClientSessionByAccessToken retrieves a client session by its access token
+func (s *SessionsService) GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessToken string) (*model.ClientSession, error) {
+
+	accessTokenHash := lib.HashString(accessToken)
+
+	logger.DebugNoContext("Getting client session by access token tenant=%s realm=%s hash=%s", tenant, realm, accessTokenHash[:8])
+
+	session, err := s.clientSessionDB.GetClientSessionByAccessToken(ctx, tenant, realm, accessTokenHash)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if session has expired
+	if time.Now().After(session.Expire) {
+		return nil, fmt.Errorf("session expired")
+	}
+
+	return session, nil
+}
+
 // DeleteAuthenticationSession removes an authentication session
 func (s *SessionsService) DeleteAuthenticationSession(sessionIDHash string) {
 	s.mu.Lock()
@@ -99,8 +120,11 @@ func (s *SessionsService) DeleteAuthenticationSession(sessionIDHash string) {
 }
 
 // CreateClientSession creates a new client session
-func (s *SessionsService) CreateClientSession(ctx context.Context, session *model.ClientSession) error {
-	return s.clientSessionDB.CreateClientSession(ctx, session)
+func (s *SessionsService) CreateClientSession(ctx context.Context, tenant, realm string, session *model.ClientSession) error {
+
+	panic("not implemented")
+
+	return s.clientSessionDB.CreateClientSession(ctx, tenant, realm, session)
 }
 
 // CreateAuthCodeSession creates a new client session with an auth code
@@ -134,7 +158,7 @@ func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, rea
 	}
 
 	// Store the session in the database
-	err = s.clientSessionDB.CreateClientSession(ctx, session)
+	err = s.clientSessionDB.CreateClientSession(ctx, tenant, realm, session)
 	if err != nil {
 		return "", err
 	}
@@ -161,21 +185,23 @@ func (s *SessionsService) CreateAccessTokenSession(ctx context.Context, tenant, 
 		Expire:          time.Now().Add(time.Duration(lifetime) * time.Second),
 	}
 
-	err := s.clientSessionDB.CreateClientSession(ctx, session)
+	err := s.clientSessionDB.CreateClientSession(ctx, tenant, realm, session)
 	if err != nil {
 		return "", fmt.Errorf("failed to create access token session: %w", err)
 	}
+
+	logger.InfoNoContext("Creating client session tenant=%s realm=%s id=%s hash=%s", tenant, realm, sessionID[:8], accessTokenHash[:8])
 
 	return accessToken, nil
 }
 
 // LoadAndDeleteAuthCodeSession retrieves a client session by auth code and deletes it
-func (s *SessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, authCode string) (*model.ClientSession, *model.AuthenticationSession, error) {
+func (s *SessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, tenant, realm, authCode string) (*model.ClientSession, *model.AuthenticationSession, error) {
 	// Hash the auth code
 	authCodeHash := lib.HashString(authCode)
 
 	// Get the session by auth code hash
-	session, err := s.clientSessionDB.GetClientSessionByAuthCode(ctx, authCodeHash)
+	session, err := s.clientSessionDB.GetClientSessionByAuthCode(ctx, tenant, realm, authCodeHash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -191,7 +217,7 @@ func (s *SessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, auth
 	}
 
 	// Delete the session
-	err = s.clientSessionDB.DeleteClientSession(ctx, session.Tenant, session.Realm, session.ClientSessionID)
+	err = s.clientSessionDB.DeleteClientSession(ctx, tenant, realm, session.ClientSessionID)
 	if err != nil {
 		return nil, nil, err
 	}

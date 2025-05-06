@@ -32,4 +32,5 @@ type AuthorizeRequest struct {
 	State               string   `json:"state"`
 	CodeChallenge       string   `json:"code_challenge"`
 	CodeChallengeMethod string   `json:"code_challenge_method"`
+	Nonce               string   `json:"nonce"`
 }

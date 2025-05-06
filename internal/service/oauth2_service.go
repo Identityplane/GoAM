@@ -7,6 +7,7 @@ import (
 	"goiam/internal/lib"
 	"goiam/internal/lib/oauth2"
 	"goiam/internal/model"
+	"maps"
 	"net/url"
 	"slices"
 	"strings"
@@ -252,7 +253,7 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 	switch tokenRequest.GrantType {
 	case "authorization_code":
 
-		session, loginSession, err := GetServices().SessionsService.LoadAndDeleteAuthCodeSession(context.Background(), tokenRequest.Code)
+		session, loginSession, err := GetServices().SessionsService.LoadAndDeleteAuthCodeSession(context.Background(), tenant, realm, tokenRequest.Code)
 		if err != nil {
 			return nil, NewOAuth2Error(oauth2.ErrorAccessDenied, "Invalid authorization code")
 		}
@@ -288,7 +289,11 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 			}
 		}
 
-		tokenResponse := generateTokenResponse(session, loginSession, application)
+		tokenResponse, err := s.generateTokenResponse(session, loginSession, application)
+		if err != nil {
+			return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not generate token response")
+		}
+
 		return tokenResponse, nil
 	case "refresh_token":
 
@@ -302,22 +307,26 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 	return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid grant type")
 }
 
-func generateTokenResponse(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) *Oauth2TokenResponse {
+func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (*Oauth2TokenResponse, error) {
 
 	// first we generate the access token
-	accessToken, expiresIn, scopes, tokenType := generateAccessToken(session, loginSession, application)
+	accessToken, expiresIn, scopes, tokenType, err := s.generateAccessToken(session, loginSession, application)
+
+	if err != nil {
+		return nil, fmt.Errorf("internal server error. Could not generate access token: %w", err)
+	}
 
 	// if the appliaction as refresh_token grant enabled we need to generate a refresh token
 	var refreshToken string
 	if slices.Contains(application.AllowedGrants, string(oauth2.Oauth2_RefreshToken)) {
-		refreshToken = generateRefreshToken(session, loginSession, application)
+		refreshToken = s.generateRefreshToken(session, loginSession, application)
 	}
 
 	// If this is a oidc flow we need to generate an id token by checking the scopes from the session
 	var idToken string
 	if slices.Contains(application.AllowedScopes, "openid") {
 		var err error
-		idToken, err = generateIdToken(session, loginSession, application)
+		idToken, err = s.generateIdToken(session, loginSession, application)
 		if err != nil {
 			// Log the error but continue with the response
 			// The ID token will be empty in this case
@@ -334,25 +343,25 @@ func generateTokenResponse(session *model.ClientSession, loginSession *model.Aut
 		TokenType:    tokenType,
 	}
 
-	return &tokenResponse
+	return &tokenResponse, nil
 }
 
-func generateIdToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, error) {
+func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, error) {
 	// TODO later we use the id token mapping but for now we just map the claims directly
-	now := time.Now().Unix()
-	exp := now + int64(application.AccessTokenLifetime)
-
-	// We need to load the realm to load the signing key
-	realm, ok := GetServices().RealmService.GetRealm(session.Tenant, session.Realm)
-	if !ok {
-		return "", fmt.Errorf("internal server error. Could not get realm")
+	userClaims, err := s.GetUserClaims(session)
+	if err != nil {
+		return "", fmt.Errorf("internal server error. Could not get user claims")
 	}
 
-	claims := map[string]interface{}{
-		"sub": session.UserID,
-		"iss": realm.Config.BaseUrl,
-		"aud": application.ClientId,
-		"exp": exp,
+	otherClaims, err := s.GetOtherJwtClaims(session, loginSession, application)
+	if err != nil {
+		return "", fmt.Errorf("internal server error. Could not get other claims")
+	}
+
+	// Merge the claims into the final set
+	claims := maps.Clone(userClaims)
+	for k, v := range otherClaims {
+		claims[k] = v
 	}
 
 	// Sign the token using the JWT service
@@ -364,10 +373,9 @@ func generateIdToken(session *model.ClientSession, loginSession *model.Authentic
 	return token, nil
 }
 
-func generateAccessToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, int, string, string) {
+func (s *OAuth2Service) generateAccessToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, int, string, string, error) {
 
 	// First we generate the access token
-	accessToken := lib.GenerateSecureSessionID()
 	expiredIn := application.AccessTokenLifetime
 	scopes := session.Scope
 	tokenType := "Bearer"
@@ -377,13 +385,103 @@ func generateAccessToken(session *model.ClientSession, loginSession *model.Authe
 	scopesArray := strings.Split(scopes, " ")
 
 	// Then we store it into the client sessions database using the service
-	GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiredIn)
+	accessToken, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiredIn)
 
-	return accessToken, expiredIn, scopes, tokenType
+	if err != nil {
+		return "", 0, "", "", fmt.Errorf("internal server error. Could not create access token session: %w", err)
+	}
+
+	return accessToken, expiredIn, scopes, tokenType, nil
 }
 
-func generateRefreshToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) string {
+func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) string {
 	panic("unimplemented")
+}
+
+func (s *OAuth2Service) GetUserClaims(session *model.ClientSession) (map[string]interface{}, error) {
+
+	// If userid is empty we return an error. This might be the case if a client uses the client_credentials grant and then accesses the userinfo endpoint
+	if session.UserID == "" {
+		return nil, fmt.Errorf("internal server error. User ID is empty")
+	}
+
+	// First we need to load the user
+	user, err := GetServices().UserService.GetUserByID(context.Background(), session.Tenant, session.Realm, session.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("internal server error. Could not get user")
+	}
+
+	if user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	// now we map the user attributes into claims
+	// we need to check the sesssion scopes and map the attributes accordingly
+	claims := make(map[string]interface{})
+	scopes := strings.Split(session.Scope, " ")
+
+	// if scopes contain openid we need to add the sub claim
+	if slices.Contains(scopes, "openid") {
+		claims["sub"] = user.ID
+	}
+
+	if slices.Contains(scopes, "email") {
+		claims["email"] = user.Email
+		claims["email_verified"] = user.EmailVerified
+	}
+
+	if slices.Contains(scopes, "profile") {
+		claims["username"] = user.Username
+		claims["name"] = user.DisplayName
+		claims["given_name"] = user.GivenName
+		claims["family_name"] = user.FamilyName
+	}
+
+	if slices.Contains(scopes, "phone") {
+		claims["phone"] = user.Phone
+		claims["phone_verified"] = user.PhoneVerified
+	}
+
+	if slices.Contains(scopes, "groups") {
+		claims["groups"] = user.Groups
+	}
+
+	if slices.Contains(scopes, "roles") {
+		claims["roles"] = user.Roles
+	}
+
+	return claims, nil
+}
+
+func (s *OAuth2Service) GetOtherJwtClaims(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (map[string]interface{}, error) {
+
+	// Issuer
+	claims := make(map[string]interface{})
+
+	// We need to load the realm to load the signing key
+	realm, ok := GetServices().RealmService.GetRealm(session.Tenant, session.Realm)
+	if !ok {
+		return nil, fmt.Errorf("internal server error. Could not get realm")
+	}
+
+	now := time.Now()
+
+	claims["iss"] = realm.Config.BaseUrl
+	claims["aud"] = application.ClientId
+	claims["exp"] = now.Add(time.Duration(application.AccessTokenLifetime) * time.Second).Unix()
+	claims["iat"] = now.Unix()
+	claims["nbf"] = now.Unix()
+	claims["jti"] = lib.GenerateSecureSessionID()
+
+	// if we have a nonce in the login session we add it to the claims
+	if loginSession.Oauth2SessionInformation.AuthorizeRequest.Nonce != "" {
+		claims["nonce"] = loginSession.Oauth2SessionInformation.AuthorizeRequest.Nonce
+	}
+
+	// if we have a auth_time in the login session we add it to the claims
+	claims["acr"] = loginSession.Result.AuthLevel
+
+	return claims, nil
 }
 
 // ToQueryString converts the AuthorizationResponse to a URL query string

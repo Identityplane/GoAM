@@ -119,13 +119,7 @@ func (p *PostgresUserDB) CreateUser(ctx context.Context, user model.User) error 
 }
 
 func (p *PostgresUserDB) GetUserByUsername(ctx context.Context, tenant, realm, username string) (*model.User, error) {
-	var user model.User
-	var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON string
-	var createdAt, updatedAt string
-	var lastLoginAt *string
-	var emailVerified, phoneVerified, passwordLocked, webauthnLocked, mfaLocked bool
-
-	err := p.db.QueryRow(ctx, `
+	row := p.db.QueryRow(ctx, `
 		SELECT id, tenant, realm, username,
 		       status,
 		       display_name, given_name, family_name,
@@ -140,86 +134,9 @@ func (p *PostgresUserDB) GetUserByUsername(ctx context.Context, tenant, realm, u
 		       trusted_devices
 		FROM users 
 		WHERE tenant = $1 AND realm = $2 AND username = $3
-	`, tenant, realm, username).Scan(
-		&user.ID,
-		&user.Tenant,
-		&user.Realm,
-		&user.Username,
-		&user.Status,
-		&user.DisplayName,
-		&user.GivenName,
-		&user.FamilyName,
-		&user.Email,
-		&user.Phone,
-		&emailVerified,
-		&phoneVerified,
-		&user.Locale,
-		&user.PasswordCredential,
-		&user.WebAuthnCredential,
-		&user.MFACredential,
-		&passwordLocked,
-		&webauthnLocked,
-		&mfaLocked,
-		&user.FailedLoginAttemptsPassword,
-		&user.FailedLoginAttemptsWebAuthn,
-		&user.FailedLoginAttemptsMFA,
-		&rolesJSON,
-		&groupsJSON,
-		&attributesJSON,
-		&createdAt,
-		&updatedAt,
-		&lastLoginAt,
-		&user.FederatedIDP,
-		&user.FederatedID,
-		&trustedDevicesJSON,
-	)
+	`, tenant, realm, username)
 
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil // not found
-		}
-		return nil, err
-	}
-
-	// Set boolean fields
-	user.EmailVerified = emailVerified
-	user.PhoneVerified = phoneVerified
-	user.PasswordLocked = passwordLocked
-	user.WebAuthnLocked = webauthnLocked
-	user.MFALocked = mfaLocked
-
-	// Parse timestamps
-	user.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
-	user.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
-	if lastLoginAt != nil {
-		lastLogin, _ := time.Parse(time.RFC3339, *lastLoginAt)
-		user.LastLoginAt = &lastLogin
-	}
-
-	// Parse JSON fields
-	user.Roles = []string{}
-	user.Groups = []string{}
-	user.Attributes = map[string]string{}
-
-	if rolesJSON != "" && rolesJSON != "null" {
-		_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
-	} else {
-		user.Roles = []string{}
-	}
-	if groupsJSON != "" && groupsJSON != "null" {
-		_ = json.Unmarshal([]byte(groupsJSON), &user.Groups)
-	} else {
-		user.Groups = []string{}
-	}
-	if attributesJSON != "" && attributesJSON != "null" {
-		_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
-	} else {
-		user.Attributes = map[string]string{}
-	}
-
-	user.TrustedDevices = trustedDevicesJSON
-
-	return &user, nil
+	return p.scanUserFromRow(row)
 }
 
 func (p *PostgresUserDB) UpdateUser(ctx context.Context, user *model.User) error {
@@ -586,4 +503,114 @@ func (p *PostgresUserDB) DeleteUser(ctx context.Context, tenant, realm, username
 
 	// No error if user doesn't exist (idempotent)
 	return nil
+}
+
+// scanUserFromRow scans a user from a database row
+func (p *PostgresUserDB) scanUserFromRow(row pgx.Row) (*model.User, error) {
+	var user model.User
+	var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON string
+	var createdAt, updatedAt string
+	var lastLoginAt *string
+	var emailVerified, phoneVerified, passwordLocked, webauthnLocked, mfaLocked bool
+
+	err := row.Scan(
+		&user.ID,
+		&user.Tenant,
+		&user.Realm,
+		&user.Username,
+		&user.Status,
+		&user.DisplayName,
+		&user.GivenName,
+		&user.FamilyName,
+		&user.Email,
+		&user.Phone,
+		&emailVerified,
+		&phoneVerified,
+		&user.Locale,
+		&user.PasswordCredential,
+		&user.WebAuthnCredential,
+		&user.MFACredential,
+		&passwordLocked,
+		&webauthnLocked,
+		&mfaLocked,
+		&user.FailedLoginAttemptsPassword,
+		&user.FailedLoginAttemptsWebAuthn,
+		&user.FailedLoginAttemptsMFA,
+		&rolesJSON,
+		&groupsJSON,
+		&attributesJSON,
+		&createdAt,
+		&updatedAt,
+		&lastLoginAt,
+		&user.FederatedIDP,
+		&user.FederatedID,
+		&trustedDevicesJSON,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil // not found
+		}
+		return nil, err
+	}
+
+	// Set boolean fields
+	user.EmailVerified = emailVerified
+	user.PhoneVerified = phoneVerified
+	user.PasswordLocked = passwordLocked
+	user.WebAuthnLocked = webauthnLocked
+	user.MFALocked = mfaLocked
+
+	// Parse timestamps
+	user.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
+	user.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
+	if lastLoginAt != nil {
+		lastLogin, _ := time.Parse(time.RFC3339, *lastLoginAt)
+		user.LastLoginAt = &lastLogin
+	}
+
+	// Parse JSON fields
+	user.Roles = []string{}
+	user.Groups = []string{}
+	user.Attributes = map[string]string{}
+
+	if rolesJSON != "" && rolesJSON != "null" {
+		_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
+	} else {
+		user.Roles = []string{}
+	}
+	if groupsJSON != "" && groupsJSON != "null" {
+		_ = json.Unmarshal([]byte(groupsJSON), &user.Groups)
+	} else {
+		user.Groups = []string{}
+	}
+	if attributesJSON != "" && attributesJSON != "null" {
+		_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
+	} else {
+		user.Attributes = map[string]string{}
+	}
+
+	user.TrustedDevices = trustedDevicesJSON
+
+	return &user, nil
+}
+
+func (p *PostgresUserDB) GetUserByID(ctx context.Context, tenant, realm, userID string) (*model.User, error) {
+	row := p.db.QueryRow(ctx, `
+		SELECT id, tenant, realm, username,
+		       status,
+		       display_name, given_name, family_name,
+		       email, phone, email_verified, phone_verified,
+		       locale,
+		       password_credential, webauthn_credential, mfa_credential,
+		       password_locked, webauthn_locked, mfa_locked,
+		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
+		       roles, groups, attributes,
+		       created_at, updated_at, last_login_at,
+		       federated_idp, federated_id,
+		       trusted_devices
+		FROM users 
+		WHERE tenant = $1 AND realm = $2 AND id = $3
+	`, tenant, realm, userID)
+
+	return p.scanUserFromRow(row)
 }

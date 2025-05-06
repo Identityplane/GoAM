@@ -27,7 +27,13 @@ func NewClientSessionDB(db *sql.DB) (db.ClientSessionDB, error) {
 	return &SQLiteClientSessionDB{db: db}, nil
 }
 
-func (s *SQLiteClientSessionDB) CreateClientSession(ctx context.Context, session *model.ClientSession) error {
+func (s *SQLiteClientSessionDB) CreateClientSession(ctx context.Context, tenant, realm string, session *model.ClientSession) error {
+
+	// Esnure realm and tenant are matching
+	if session.Tenant != tenant || session.Realm != realm {
+		return fmt.Errorf("tenant and realm do not match")
+	}
+
 	query := `
 		INSERT INTO client_sessions (
 			tenant, realm, client_session_id, client_id, grant_type,
@@ -103,19 +109,19 @@ func (s *SQLiteClientSessionDB) GetClientSessionByID(ctx context.Context, tenant
 	return &session, nil
 }
 
-func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Context, accessTokenHash string) (*model.ClientSession, error) {
+func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessTokenHash string) (*model.ClientSession, error) {
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
 		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
 		FROM client_sessions
-		WHERE access_token_hash = ?
+		WHERE tenant = ? AND realm = ? AND access_token_hash = ?
 	`
 
 	var session model.ClientSession
 	var createdStr, expireStr string
 
-	err := s.db.QueryRowContext(ctx, query, accessTokenHash).Scan(
+	err := s.db.QueryRowContext(ctx, query, tenant, realm, accessTokenHash).Scan(
 		&session.Tenant,
 		&session.Realm,
 		&session.ClientSessionID,
@@ -146,19 +152,19 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Contex
 	return &session, nil
 }
 
-func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Context, refreshTokenHash string) (*model.ClientSession, error) {
+func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Context, tenant, realm, refreshTokenHash string) (*model.ClientSession, error) {
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
 		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
 		FROM client_sessions
-		WHERE refresh_token_hash = ?
+		WHERE tenant = ? AND realm = ? AND refresh_token_hash = ?
 	`
 
 	var session model.ClientSession
 	var createdStr, expireStr string
 
-	err := s.db.QueryRowContext(ctx, query, refreshTokenHash).Scan(
+	err := s.db.QueryRowContext(ctx, query, tenant, realm, refreshTokenHash).Scan(
 		&session.Tenant,
 		&session.Realm,
 		&session.ClientSessionID,
@@ -189,19 +195,19 @@ func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Conte
 	return &session, nil
 }
 
-func (s *SQLiteClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, authCodeHash string) (*model.ClientSession, error) {
+func (s *SQLiteClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, tenant, realm, authCodeHash string) (*model.ClientSession, error) {
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
 		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
 		FROM client_sessions
-		WHERE auth_code_hash = ?
+		WHERE tenant = ? AND realm = ? AND auth_code_hash = ?
 	`
 
 	var session model.ClientSession
 	var createdStr, expireStr string
 
-	err := s.db.QueryRowContext(ctx, query, authCodeHash).Scan(
+	err := s.db.QueryRowContext(ctx, query, tenant, realm, authCodeHash).Scan(
 		&session.Tenant,
 		&session.Realm,
 		&session.ClientSessionID,
@@ -334,7 +340,13 @@ func (s *SQLiteClientSessionDB) ListUserClientSessions(ctx context.Context, tena
 	return sessions, nil
 }
 
-func (s *SQLiteClientSessionDB) UpdateClientSession(ctx context.Context, session *model.ClientSession) error {
+func (s *SQLiteClientSessionDB) UpdateClientSession(ctx context.Context, tenant, realm string, session *model.ClientSession) error {
+
+	// Esnure realm and tenant are matching
+	if session.Tenant != tenant || session.Realm != realm {
+		return fmt.Errorf("tenant and realm do not match")
+	}
+
 	query := `
 		UPDATE client_sessions
 		SET client_id = ?, grant_type = ?,
@@ -382,13 +394,13 @@ func (s *SQLiteClientSessionDB) DeleteClientSession(ctx context.Context, tenant,
 	return nil
 }
 
-func (s *SQLiteClientSessionDB) DeleteExpiredClientSessions(ctx context.Context) error {
+func (s *SQLiteClientSessionDB) DeleteExpiredClientSessions(ctx context.Context, tenant, realm string) error {
 	query := `
 		DELETE FROM client_sessions
-		WHERE expire < ?
+		WHERE tenant = ? AND realm = ? AND expire < ?
 	`
 
-	_, err := s.db.ExecContext(ctx, query, time.Now().Format(time.RFC3339))
+	_, err := s.db.ExecContext(ctx, query, tenant, realm, time.Now().Format(time.RFC3339))
 	if err != nil {
 		return fmt.Errorf("failed to delete expired client sessions: %w", err)
 	}
