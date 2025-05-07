@@ -16,17 +16,36 @@ import (
 	"github.com/google/uuid"
 )
 
+// TimeProvider defines an interface for getting the current time
+type TimeProvider interface {
+	Now() time.Time
+}
+
+// RealTimeProvider implements TimeProvider using the system clock
+type RealTimeProvider struct{}
+
+func (r *RealTimeProvider) Now() time.Time {
+	return time.Now()
+}
+
 type SessionsService struct {
 	mu              sync.RWMutex
 	sessions        map[string]*model.AuthenticationSession
 	clientSessionDB db.ClientSessionDB
+	timeProvider    TimeProvider
 }
 
 func NewSessionsService(clientSessionDB db.ClientSessionDB) *SessionsService {
 	return &SessionsService{
 		sessions:        make(map[string]*model.AuthenticationSession),
 		clientSessionDB: clientSessionDB,
+		timeProvider:    &RealTimeProvider{},
 	}
+}
+
+// SetTimeProvider sets a custom time provider for testing
+func (s *SessionsService) SetTimeProvider(provider TimeProvider) {
+	s.timeProvider = provider
 }
 
 // Creates a new session object but does not store it in the database yet
@@ -82,7 +101,7 @@ func (s *SessionsService) GetAuthenticationSession(tenant, realm, sessionIDHash 
 	}
 
 	// Check if session has expired
-	if time.Now().After(session.ExpiresAt) {
+	if s.timeProvider.Now().After(session.ExpiresAt) {
 		s.mu.Lock()
 		delete(s.sessions, cashKey)
 		s.mu.Unlock()
@@ -90,26 +109,6 @@ func (s *SessionsService) GetAuthenticationSession(tenant, realm, sessionIDHash 
 	}
 
 	return session, true
-}
-
-// GetClientSessionByAccessToken retrieves a client session by its access token
-func (s *SessionsService) GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessToken string) (*model.ClientSession, error) {
-
-	accessTokenHash := lib.HashString(accessToken)
-
-	logger.DebugNoContext("Getting client session by access token tenant=%s realm=%s hash=%s", tenant, realm, accessTokenHash[:8])
-
-	session, err := s.clientSessionDB.GetClientSessionByAccessToken(ctx, tenant, realm, accessTokenHash)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if session has expired
-	if time.Now().After(session.Expire) {
-		return nil, fmt.Errorf("session expired")
-	}
-
-	return session, nil
 }
 
 // DeleteAuthenticationSession removes an authentication session
@@ -190,9 +189,58 @@ func (s *SessionsService) CreateAccessTokenSession(ctx context.Context, tenant, 
 		return "", fmt.Errorf("failed to create access token session: %w", err)
 	}
 
-	logger.InfoNoContext("Creating client session tenant=%s realm=%s id=%s hash=%s", tenant, realm, sessionID[:8], accessTokenHash[:8])
+	logger.InfoNoContext("Creating client access token session tenant=%s realm=%s id=%s hash=%s", tenant, realm, sessionID[:8], accessTokenHash[:8])
 
 	return accessToken, nil
+}
+
+// CreateRefreshTokenSession creates a new refresh token session
+func (s *SessionsService) CreateRefreshTokenSession(context context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int) (string, error) {
+
+	sessionID := lib.GenerateSecureSessionID()
+	refreshToken := lib.GenerateSecureSessionID()
+	refreshTokenHash := lib.HashString(refreshToken)
+
+	session := &model.ClientSession{
+		Tenant:           tenant,
+		Realm:            realm,
+		ClientSessionID:  sessionID,
+		ClientID:         clientID,
+		GrantType:        grantType,
+		RefreshTokenHash: refreshTokenHash,
+		UserID:           userID,
+		Scope:            strings.Join(scope, " "),
+		Created:          time.Now(),
+		Expire:           time.Now().Add(time.Duration(expiresIn) * time.Second),
+	}
+
+	err := s.clientSessionDB.CreateClientSession(context, tenant, realm, session)
+	if err != nil {
+		return "", fmt.Errorf("failed to create refresh token session: %w", err)
+	}
+
+	logger.InfoNoContext("Creating client refresh token session tenant=%s realm=%s id=%s hash=%s", tenant, realm, sessionID[:8], refreshTokenHash[:8])
+
+	return refreshToken, nil
+}
+
+// GetClientSessionByAccessToken retrieves a client session by its access token
+func (s *SessionsService) GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessToken string) (*model.ClientSession, error) {
+	accessTokenHash := lib.HashString(accessToken)
+
+	logger.DebugNoContext("Getting client session by access token tenant=%s realm=%s hash=%s", tenant, realm, accessTokenHash[:8])
+
+	session, err := s.clientSessionDB.GetClientSessionByAccessToken(ctx, tenant, realm, accessTokenHash)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if session has expired
+	if s.timeProvider.Now().After(session.Expire) {
+		return nil, fmt.Errorf("session expired")
+	}
+
+	return session, nil
 }
 
 // LoadAndDeleteAuthCodeSession retrieves a client session by auth code and deletes it
@@ -209,6 +257,17 @@ func (s *SessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, tena
 		return nil, nil, nil
 	}
 
+	// Delete the session
+	err = s.clientSessionDB.DeleteClientSession(ctx, tenant, realm, session.ClientSessionID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Check if the session has expired
+	if s.timeProvider.Now().After(session.Expire) {
+		return nil, nil, fmt.Errorf("session expired")
+	}
+
 	// json decode the login session
 	var loginSession model.AuthenticationSession
 	err = json.Unmarshal([]byte(session.LoginSessionJson), &loginSession)
@@ -216,11 +275,34 @@ func (s *SessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, tena
 		return nil, nil, fmt.Errorf("failed to unmarshal login session: %w", err)
 	}
 
-	// Delete the session
-	err = s.clientSessionDB.DeleteClientSession(ctx, tenant, realm, session.ClientSessionID)
+	return session, &loginSession, nil
+}
+
+// LoadAndDeleteRefreshTokenSession retrieves a client session by refresh token and deletes it
+func (s *SessionsService) LoadAndDeleteRefreshTokenSession(ctx context.Context, tenant, realm, refreshToken string) (*model.ClientSession, error) {
+
+	// Hash the refresh token
+	refreshTokenHash := lib.HashString(refreshToken)
+
+	// Get the session by refresh token hash
+	session, err := s.clientSessionDB.GetClientSessionByRefreshToken(ctx, tenant, realm, refreshTokenHash)
 	if err != nil {
-		return nil, nil, err
+		return nil, fmt.Errorf("failed to get client session by refresh token: %w", err)
 	}
 
-	return session, &loginSession, nil
+	if session == nil {
+		return nil, nil
+	}
+
+	err = s.clientSessionDB.DeleteClientSession(ctx, tenant, realm, session.ClientSessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete client session: %w", err)
+	}
+
+	// Check if the session has expired
+	if time.Now().After(session.Expire) {
+		return nil, nil
+	}
+
+	return session, nil
 }

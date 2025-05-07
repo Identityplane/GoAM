@@ -108,6 +108,7 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 		})
 
 		var accessToken string
+		var refreshToken string
 		// Test token exchange
 		t.Run("Exchange Code for Token", func(t *testing.T) {
 			resp := e.POST("/acme/customers/oauth2/token").
@@ -127,7 +128,7 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 			resp.HasValue("token_type", "Bearer")
 			resp.Value("id_token").String().NotEmpty()
 			accessToken = resp.Value("access_token").String().NotEmpty().Raw()
-			//resp.Value("refresh_token").String().NotEmpty()
+			refreshToken = resp.Value("refresh_token").String().NotEmpty().Raw()
 		})
 
 		// Test getting user info
@@ -142,5 +143,40 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 				Object().
 				Value("sub").String().NotEmpty()
 		})
+
+		// Test refreshing the access token
+		t.Run("Refresh Access Token", func(t *testing.T) {
+			resp := e.POST("/acme/customers/oauth2/token").
+				WithHeader("Content-Type", "application/x-www-form-urlencoded").
+				WithFormField("grant_type", "refresh_token").
+				WithFormField("refresh_token", refreshToken).
+				WithFormField("client_id", clientID).
+				WithCookie("session_id", sessionCookie.Value().Raw()).
+				Expect().
+				Status(http.StatusOK).
+				JSON().
+				Object()
+
+			// Verify token response
+			resp.HasValue("token_type", "Bearer")
+
+			// Check that the id token is empty when refreshing the access token
+			resp.NotContainsKey("id_token")
+
+			new_accessToken := resp.Value("access_token").String().NotEmpty().Raw()
+			new_refreshToken := resp.Value("refresh_token").String().NotEmpty().Raw()
+
+			// Check that the new access token is different from the old one
+			if new_accessToken == accessToken {
+				t.Fatal("New access token is the same as the old one")
+			}
+
+			// Check that the new refresh token is different from the old one
+			if new_refreshToken == refreshToken {
+				t.Fatal("New refresh token is the same as the old one")
+			}
+
+		})
+
 	})
 }

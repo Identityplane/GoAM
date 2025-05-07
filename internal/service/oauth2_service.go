@@ -226,11 +226,6 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 
 func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication) (*Oauth2TokenResponse, *OAuth2Error) {
 
-	// Ensure that client_id in token request and clientAuthentication are the same
-	if tokenRequest.ClientID != clientAuthentication.ClientID {
-		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Client ID mismatch")
-	}
-
 	// First we need to validate the client authentication if the client is confidential
 	application, ok := GetServices().ApplicationService.GetApplication(tenant, realm, tokenRequest.ClientID)
 	if !ok {
@@ -249,55 +244,19 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 		}
 	}
 
+	// Ensure that client_id in token request and clientAuthentication are the same
+	if tokenRequest.ClientID != clientAuthentication.ClientID {
+		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Client ID mismatch")
+	}
+
 	// if the grant type is authorization_code we need to create an access token by looking up the auth code in the client sessions
 	switch tokenRequest.GrantType {
 	case "authorization_code":
 
-		session, loginSession, err := GetServices().SessionsService.LoadAndDeleteAuthCodeSession(context.Background(), tenant, realm, tokenRequest.Code)
-		if err != nil {
-			return nil, NewOAuth2Error(oauth2.ErrorAccessDenied, "Invalid authorization code")
-		}
-
-		// Check if the session is valid
-		if session == nil {
-			return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid authorization code")
-		}
-
-		if loginSession == nil {
-			return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not load login session")
-		}
-
-		if tenant != session.Tenant || realm != session.Realm || clientAuthentication.ClientID != session.ClientID {
-			return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid authorization code")
-		}
-
-		if !application.Confidential {
-
-			// Else if the client is public we need to check if the code verifier is correct
-			if tokenRequest.CodeVerifier == "" {
-				return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Code verifier is required for public clients")
-			}
-
-			// Check if the code verifier is correct
-			valid, err := oauth2.VerifyCodeChallenge(tokenRequest.CodeVerifier, session.CodeChallenge)
-			if err != nil {
-				return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not verify code verifier")
-			}
-
-			if !valid {
-				return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid code verifier")
-			}
-		}
-
-		tokenResponse, err := s.generateTokenResponse(session, loginSession, application)
-		if err != nil {
-			return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not generate token response")
-		}
-
-		return tokenResponse, nil
+		return s.processTokenRequestForAuthorizationCodeGrant(tenant, realm, tokenRequest, clientAuthentication, application)
 	case "refresh_token":
 
-		panic("Not implemented")
+		return s.processTokenRequestForRefreshTokenGrant(tenant, realm, tokenRequest, clientAuthentication, application)
 
 	case "client_credentials":
 
@@ -307,7 +266,74 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 	return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid grant type")
 }
 
-func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (*Oauth2TokenResponse, error) {
+func (s *OAuth2Service) processTokenRequestForRefreshTokenGrant(tenant string, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication, application *model.Application) (*Oauth2TokenResponse, *OAuth2Error) {
+
+	// Load the refresh token session
+	session, err := GetServices().SessionsService.LoadAndDeleteRefreshTokenSession(context.Background(), tenant, realm, tokenRequest.RefreshToken)
+	if err != nil {
+		return nil, NewOAuth2Error(oauth2.ErrorAccessDenied, "Invalid refresh token")
+	}
+
+	// Check if the session is valid
+	if session == nil {
+		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid refresh token")
+	}
+
+	// Issue new access token and new refresh token
+	tokenResponse, err := s.generateTokenResponse(session, nil, application, oauth2.Oauth2_RefreshToken)
+	if err != nil {
+		return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not generate token response")
+	}
+
+	return tokenResponse, nil
+}
+
+func (s *OAuth2Service) processTokenRequestForAuthorizationCodeGrant(tenant string, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication, application *model.Application) (*Oauth2TokenResponse, *OAuth2Error) {
+	session, loginSession, err := GetServices().SessionsService.LoadAndDeleteAuthCodeSession(context.Background(), tenant, realm, tokenRequest.Code)
+	if err != nil {
+		return nil, NewOAuth2Error(oauth2.ErrorAccessDenied, "Invalid authorization code")
+	}
+
+	// Check if the session is valid
+	if session == nil {
+		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid authorization code")
+	}
+
+	if loginSession == nil {
+		return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not load login session")
+	}
+
+	if tenant != session.Tenant || realm != session.Realm || clientAuthentication.ClientID != session.ClientID {
+		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid authorization code")
+	}
+
+	if !application.Confidential {
+
+		// Else if the client is public we need to check if the code verifier is correct
+		if tokenRequest.CodeVerifier == "" {
+			return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Code verifier is required for public clients")
+		}
+
+		// Check if the code verifier is correct
+		valid, err := oauth2.VerifyCodeChallenge(tokenRequest.CodeVerifier, session.CodeChallenge)
+		if err != nil {
+			return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not verify code verifier")
+		}
+
+		if !valid {
+			return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid code verifier")
+		}
+	}
+
+	tokenResponse, err := s.generateTokenResponse(session, loginSession, application, oauth2.Oauth2_AuthorizationCode)
+	if err != nil {
+		return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not generate token response")
+	}
+
+	return tokenResponse, nil
+}
+
+func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application, grantType oauth2.OAuth2GrantType) (*Oauth2TokenResponse, error) {
 
 	// first we generate the access token
 	accessToken, expiresIn, scopes, tokenType, err := s.generateAccessToken(session, loginSession, application)
@@ -319,12 +345,22 @@ func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, logi
 	// if the appliaction as refresh_token grant enabled we need to generate a refresh token
 	var refreshToken string
 	if slices.Contains(application.AllowedGrants, string(oauth2.Oauth2_RefreshToken)) {
-		refreshToken = s.generateRefreshToken(session, loginSession, application)
+		refreshToken, err = s.generateRefreshToken(session, loginSession, application)
+		if err != nil {
+			return nil, fmt.Errorf("internal server error. Could not generate refresh token: %w", err)
+		}
 	}
 
 	// If this is a oidc flow we need to generate an id token by checking the scopes from the session
+	// Only during the authorization code flow we need to generate an id token
 	var idToken string
-	if slices.Contains(application.AllowedScopes, "openid") {
+	if slices.Contains(application.AllowedScopes, "openid") && grantType == oauth2.Oauth2_AuthorizationCode {
+
+		// Check that the login session is not nil
+		if loginSession == nil {
+			return nil, fmt.Errorf("internal server error. Login session is nil but an id token is generated")
+		}
+
 		var err error
 		idToken, err = s.generateIdToken(session, loginSession, application)
 		if err != nil {
@@ -376,7 +412,7 @@ func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSessi
 func (s *OAuth2Service) generateAccessToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, int, string, string, error) {
 
 	// First we generate the access token
-	expiredIn := application.AccessTokenLifetime
+	expiresIn := application.AccessTokenLifetime
 	scopes := session.Scope
 	tokenType := "Bearer"
 	tenant := session.Tenant
@@ -385,17 +421,37 @@ func (s *OAuth2Service) generateAccessToken(session *model.ClientSession, loginS
 	scopesArray := strings.Split(scopes, " ")
 
 	// Then we store it into the client sessions database using the service
-	accessToken, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiredIn)
+	accessToken, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn)
 
 	if err != nil {
 		return "", 0, "", "", fmt.Errorf("internal server error. Could not create access token session: %w", err)
 	}
 
-	return accessToken, expiredIn, scopes, tokenType, nil
+	return accessToken, expiresIn, scopes, tokenType, nil
 }
 
-func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) string {
-	panic("unimplemented")
+func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, error) {
+
+	expiresIn := application.RefreshTokenLifetime
+
+	if expiresIn == 0 {
+		expiresIn = 60 * 60 * 24 * 365 * 100 // 100 years
+	}
+
+	scopes := session.Scope
+	tenant := session.Tenant
+	realm := session.Realm
+
+	scopesArray := strings.Split(scopes, " ")
+
+	// Create the refresh token
+	refreshToken, err := GetServices().SessionsService.CreateRefreshTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn)
+
+	if err != nil {
+		return "", fmt.Errorf("internal server error. Could not create refresh token session: %w", err)
+	}
+
+	return refreshToken, nil
 }
 
 func (s *OAuth2Service) GetUserClaims(session *model.ClientSession) (map[string]interface{}, error) {
