@@ -3,7 +3,9 @@ package oauth2
 import (
 	"encoding/json"
 	"fmt"
+	"goiam/internal/auth/graph"
 	"goiam/internal/lib/oauth2"
+	"goiam/internal/logger"
 	"goiam/internal/model"
 	"goiam/internal/service"
 	"goiam/internal/web/auth"
@@ -46,6 +48,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		State:               string(ctx.QueryArgs().Peek("state")),
 		CodeChallenge:       string(ctx.QueryArgs().Peek("code_challenge")),
 		CodeChallengeMethod: string(ctx.QueryArgs().Peek("code_challenge_method")),
+		Prompt:              string(ctx.QueryArgs().Peek("prompt")),
 	}
 
 	var redirectUri string = ""
@@ -89,7 +92,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	// Load the flow
 	flow, ok := service.GetServices().FlowService.GetFlowById(tenant, realm, flowId)
 	if !ok {
-		RenderOauth2Error(ctx, oauth2.ErrorServerError, "Flow not found: "+flowId, oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Flow not found: "+flowId, oauth2request, redirectUri)
 		return
 	}
 
@@ -113,25 +116,67 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	session.Oauth2SessionInformation = &model.Oauth2Session{}
 	session.Oauth2SessionInformation.AuthorizeRequest = oauth2request
 
+	session, oauth2error = peekGraphExecutionForPromptParameter(session, flow, loadedRealm)
+
+	if oauth2error != nil {
+		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri)
+		return
+	}
+
+	// If the resulting state is a result node we directly process the FinsishOauth2AuthorizationEndpoint
+	if session.Result != nil {
+		ctx.SetUserValue("session", session)
+		FinsishOauth2AuthorizationEndpoint(ctx)
+		return
+	}
+
+	// Otherwise we redirect to the login page where the user will be prompted
+	loginUrl := fmt.Sprintf("%s/auth/%s", loadedRealm.Config.BaseUrl, flow.Route)
+
 	// Save the session
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(tenant, realm, *session)
-
-	// For now we just redirect the user to the login page.
-	// TODO later we should optimize this by calculting the first iteration of the graph directly
-	// this allows us to peek if the user is prompted, complying with OIDC prompt paramter
-
-	loginUrl := fmt.Sprintf("%s/auth/%s", loadedRealm.Config.BaseUrl, flow.Route)
 
 	// If the debug paramter is set we add it to the login url
 	if ctx.QueryArgs().Has("debug") {
 		loginUrl += "?debug"
 	}
-
 	// Set the response headers
 	ctx.SetStatusCode(fasthttp.StatusFound)
 	ctx.Response.Header.Set("Location", loginUrl)
 	ctx.Response.Header.Set("Cache-Control", "no-store")
 	ctx.Response.Header.Set("Pragma", "no-cache")
+}
+
+// This functions starts the graph execution and peeks if there is a prompt
+// This is needed for the OIDC prompt parameter to check if the user is prompted or not
+func peekGraphExecutionForPromptParameter(session *model.AuthenticationSession, flow *model.Flow, loadedRealm *service.LoadedRealm) (*model.AuthenticationSession, *oauth2.OAuth2Error) {
+
+	// Check if service registry is initialized
+	registry := loadedRealm.Repositories
+	if registry == nil {
+		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorServerError, ErrorDescription: "Internal server error. Service registry not initialized"}
+	}
+
+	// Run the flow engine with the current state and input
+	newSession, err := graph.Run(flow.Definition, session, nil, registry)
+	if err != nil {
+		logger.DebugNoContext("flow resulted in error: %v", err)
+		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorServerError, ErrorDescription: "Internal server error. Flow resulted in error"}
+	}
+
+	// Check if there is prompt of a result
+	asksForPrompts := (newSession.Prompts != nil)
+
+	// If prompt parameter is set to none but there is prompt to the user we return an error
+	if session.Oauth2SessionInformation.AuthorizeRequest.Prompt == "none" && asksForPrompts {
+		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorLoginRequired, ErrorDescription: "Login required"}
+	}
+
+	if session.Oauth2SessionInformation.AuthorizeRequest.Prompt == "login" && !asksForPrompts {
+		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorServerError, ErrorDescription: "No login required but prompt parameter is set to login"}
+	}
+
+	return newSession, nil
 }
 
 // FinishOauth2AuthorizationEndpoint finishes the OAuth2 authorization endpoint
@@ -140,10 +185,25 @@ func FinsishOauth2AuthorizationEndpoint(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 
-	session, ok := auth.GetAuthenticationSession(ctx, tenant, realm)
-	if !ok {
-		RenderOauth2ErrorWithoutRedirect(ctx, oauth2.ErrorServerError, "Internal server error. No session")
-		return
+	// Load session from contex if available
+	var session *model.AuthenticationSession
+	sessionAny := ctx.UserValue("session")
+	if sessionAny != nil {
+		session = ctx.UserValue("session").(*model.AuthenticationSession)
+	}
+
+	// Otherwise load session from cookie
+	if session == nil {
+		// if the session is not already set we try to get it from the session service
+		var ok bool
+		session, ok = auth.GetAuthenticationSession(ctx, tenant, realm)
+
+		// If no session is found we return an error as finish authrotize needs a session
+		// as this should never happen we return it as internal error so that we can log it
+		if !ok {
+			RenderOauth2ErrorWithoutRedirect(ctx, oauth2.ErrorServerError, "Internal server error. No session")
+			return
+		}
 	}
 
 	// We can use it here as it was validated before in the authorize endpoint, otherwise no session would be created

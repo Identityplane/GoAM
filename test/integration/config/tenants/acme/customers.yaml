@@ -20,8 +20,32 @@ flows:
     route: /login-or-register
     active: yes
     definition_location: login_or_register.yaml
+  noprompt:
+    name: No Prompt
+    route: /noprompt
+    active: yes
+    definition_location: test_noprompt.yaml
 
 applications:
-  customers-app:
-    client_id: customers-app
-    client_secret: customers-app-secret
+  management-ui:
+    confidential: false
+    consent_required: false
+    description: Management UI Application
+    allowed_scopes:
+      - openid
+      - profile
+      - write:user
+      - write:flows
+      - write:realms
+      - write:applications
+    allowed_grants:
+      - authorization_code_pkce
+    redirect_uris:
+      - http://localhost:3000
+    allowed_authentication_flows:
+      - login_or_register
+      - noprompt
+    access_token_lifetime: 600
+    refresh_token_lifetime: 3600
+    id_token_lifetime: 600
+    access_token_type: session

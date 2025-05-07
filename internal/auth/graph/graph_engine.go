@@ -104,7 +104,7 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 
 	// Return error if present
 	if err != nil {
-		logger.DebugNoContext("Error processing node '%s': %v", node.Name, err)
+		logger.DebugNoContext("Error processing node id=%s of type %s: %v", node.Name, def.Type, err)
 		return nil, err
 	}
 

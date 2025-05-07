@@ -15,6 +15,9 @@ var NodeDefinitions = map[string]*NodeDefinition{
 	UnlockAccountNode.Name:            UnlockAccountNode,
 	PasskeysCheckUserRegistered.Name:  PasskeysCheckUserRegistered,
 	MessageConfirmationNode.Name:      MessageConfirmationNode,
+
+	// User Management
+	LoadUserByUsernameNode.Name: LoadUserByUsernameNode,
 }
 
 func GetNodeDefinitionByName(name string) *NodeDefinition {

@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"fmt"
 	"goiam/internal/auth/repository"
 	"goiam/internal/model"
 )
@@ -87,6 +88,7 @@ var SetVariableNode = &NodeDefinition{
 	RequiredContext:      []string{},
 	OutputContext:        []string{},
 	PossibleResultStates: []string{"done"},
+	CustomConfigOptions:  []string{"key(required)", "value(required)"},
 	Run:                  RunSetVariableNode,
 }
 
@@ -96,6 +98,16 @@ func RunInitNode(state *model.AuthenticationSession, node *model.GraphNode, inpu
 }
 
 func RunSetVariableNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+
+	// check if key is set
+	if node.CustomConfig["key"] == "" {
+		return nil, fmt.Errorf("key is not set")
+	}
+
+	// check if value is set
+	if node.CustomConfig["value"] == "" {
+		return nil, fmt.Errorf("value is not set")
+	}
 
 	key := node.CustomConfig["key"]
 	value := node.CustomConfig["value"]

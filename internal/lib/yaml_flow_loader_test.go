@@ -137,3 +137,59 @@ func TestConvertFlowToYAML(t *testing.T) {
 	assert.Contains(t, yamlStr, "description: test flow")
 	assert.Contains(t, yamlStr, "start: init")
 }
+
+func TestLoadFlowWithCustomConfig(t *testing.T) {
+	yamlContent := `
+description: Test flow with custom config
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    next:
+      start: setVariable
+  setVariable:
+    name: setVariable
+    use: setVariable
+    next:
+      done: loadUser
+    custom_config:
+      key: username
+      value: admin
+  loadUser:
+    name: loadUserByUsername
+    use: loadUserByUsername
+    next:
+      loaded: success
+      not_found: failure
+  success:
+    name: successResult
+    use: successResult
+    next: {}
+  failure:
+    name: failureResult
+    use: failureResult
+    next: {}`
+
+	flow, err := LoadFlowDefinitonFromString(yamlContent)
+	assert.NoError(t, err)
+	assert.NotNil(t, flow)
+	assert.Equal(t, "Test flow with custom config", flow.Description)
+	assert.Equal(t, "init", flow.Start)
+	assert.Len(t, flow.Nodes, 5)
+
+	// Verify custom configuration
+	setVariableNode := flow.Nodes["setVariable"]
+	assert.NotNil(t, setVariableNode)
+	assert.Equal(t, "setVariable", setVariableNode.Name)
+	assert.Equal(t, "setVariable", setVariableNode.Use)
+
+	// Verify custom config values
+	assert.Equal(t, "username", setVariableNode.CustomConfig["key"])
+	assert.Equal(t, "admin", setVariableNode.CustomConfig["value"])
+
+	// Verify next nodes
+	assert.Equal(t, "loadUser", setVariableNode.Next["done"])
+	assert.Equal(t, "success", flow.Nodes["loadUser"].Next["loaded"])
+	assert.Equal(t, "failure", flow.Nodes["loadUser"].Next["not_found"])
+}

@@ -33,4 +33,5 @@ type AuthorizeRequest struct {
 	CodeChallenge       string   `json:"code_challenge"`
 	CodeChallengeMethod string   `json:"code_challenge_method"`
 	Nonce               string   `json:"nonce"`
+	Prompt              string   `json:"prompt"`
 }

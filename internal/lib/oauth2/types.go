@@ -21,6 +21,7 @@ const (
 	ErrorInvalidScope            = "invalid_scope"
 	ErrorServerError             = "server_error"
 	ErrorTemporarilyUnavailable  = "temporarily_unavailable"
+	ErrorLoginRequired           = "login_required"
 )
 
 // AuthorizationResponse represents the OAuth2 authorization response

@@ -38,16 +38,16 @@ type FlowDefinition struct {
 // This is a flow together with meta information such as route, realm and tenant.
 // It contains the flow defition which is a yaml file
 type Flow struct {
-	Tenant             string          `json:"tenant"`                        // e.g. "acme"
-	Realm              string          `json:"realm"`                         // e.g. "customers"
-	Id                 string          `json:"id"`                            // e.g. "login"
-	Route              string          `json:"route"`                         // e.g. "/login"
-	Active             bool            `json:"active"`                        // whether the flow is active
-	Definition         *FlowDefinition `json:"-"`                             // pre-loaded flow definition
-	DefinitionYaml     string          `json:"-"`                             // original yaml content, we keep that in order to perserve the exactly same yaml
-	DefinitionLocation string          `json:"definition_location,omitempty"` // path to the yaml file
-	CreatedAt          time.Time       `json:"created_at"`
-	UpdatedAt          time.Time       `json:"updated_at"`
+	Tenant             string          `json:"tenant" yaml:"tenant"`                                               // e.g. "acme"
+	Realm              string          `json:"realm" yaml:"realm"`                                                 // e.g. "customers"
+	Id                 string          `json:"id" yaml:"id"`                                                       // e.g. "login"
+	Route              string          `json:"route" yaml:"route"`                                                 // e.g. "/login"
+	Active             bool            `json:"active" yaml:"active"`                                               // whether the flow is active
+	Definition         *FlowDefinition `json:"-" yaml:"-"`                                                         // pre-loaded flow definition
+	DefinitionYaml     string          `json:"-" yaml:"-"`                                                         // original yaml content, we keep that in order to perserve the exactly same yaml
+	DefinitionLocation string          `json:"definition_location,omitempty" yaml:"definition_location,omitempty"` // path to the yaml file
+	CreatedAt          time.Time       `json:"created_at" yaml:"-"`
+	UpdatedAt          time.Time       `json:"updated_at" yaml:"-"`
 }
 
 type AuthLevel string

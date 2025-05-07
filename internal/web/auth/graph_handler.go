@@ -159,13 +159,21 @@ func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*
 }
 
 func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow) (*model.AuthenticationSession, error) {
+
 	// Try to get existing session first
-	if session, ok := GetAuthenticationSession(ctx, tenant, realm); ok {
-		return session, nil
+	session, ok := GetAuthenticationSession(ctx, tenant, realm)
+	if !ok {
+		return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow)
+	}
+
+	// If the session if from a different flow we delete it and create a new one by overwriting it
+	if session != nil && session.FlowId != flow.Id {
+		service.GetServices().SessionsService.DeleteAuthenticationSession(session.SessionIdHash)
+		return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow)
 	}
 
 	// If no session exists, create new one
-	return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow)
+	return session, nil
 }
 
 func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow) (*model.AuthenticationSession, error) {

@@ -185,7 +185,7 @@ func loadRealmConfigFromFilePath(path string) (*realmYaml, error) {
 
 	// For each flow, we need to read the flow definition yaml
 	for id, flow := range yamlConfig.Flows {
-		flowDef, err := os.ReadFile(filepath.Join(filepath.Dir(path), realm, "flows", id+".yaml"))
+		flowDef, err := os.ReadFile(filepath.Join(filepath.Dir(path), realm, "flows", flow.DefinitionLocation))
 		if err != nil {
 			return nil, fmt.Errorf("failed to read flow definition for %s: %w", id, err)
 		}

@@ -16,10 +16,11 @@ type yamlFlowDefinition struct {
 }
 
 type yamlGraphNode struct {
-	Name         string            `yaml:"name"`
-	Use          string            `yaml:"use"`
-	Next         map[string]string `yaml:"next"`
-	CustomConfig map[string]string `yaml:"custom_config"`
+	Name                string            `yaml:"name"`
+	Use                 string            `yaml:"use"`
+	Next                map[string]string `yaml:"next"`
+	CustomConfig        map[string]string `yaml:"custom_config,omitempty"`
+	CustomConfigLeggacy map[string]string `yaml:"customConfig,omitempty"`
 }
 
 func LoadFlowDefinitonFromString(content string) (*model.FlowDefinition, error) {
@@ -27,12 +28,25 @@ func LoadFlowDefinitonFromString(content string) (*model.FlowDefinition, error) 
 	if err := yaml.Unmarshal([]byte(content), &yflow); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML content: %w", err)
 	}
-	return yflow.convertToFlowDefinition(), nil
+
+	flow, err := yflow.convertToFlowDefinition()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return flow, nil
 }
 
-func (y *yamlFlowDefinition) convertToFlowDefinition() *model.FlowDefinition {
+func (y *yamlFlowDefinition) convertToFlowDefinition() (*model.FlowDefinition, error) {
 	nodes := make(map[string]*model.GraphNode, len(y.Nodes))
 	for name, yn := range y.Nodes {
+
+		// if any node has the old customConfig we return an error that custom_config should be used instead
+		if len(yn.CustomConfigLeggacy) > 0 {
+			return nil, fmt.Errorf("customConfig is deprecated, use custom_config instead")
+		}
+
 		nodes[name] = &model.GraphNode{
 			Name:         yn.Name,
 			Use:          yn.Use,
@@ -45,7 +59,7 @@ func (y *yamlFlowDefinition) convertToFlowDefinition() *model.FlowDefinition {
 		Description: y.Description,
 		Start:       y.Start,
 		Nodes:       nodes,
-	}
+	}, nil
 }
 
 func LoadFlowDefinitonsFromDir(dir string) ([]*model.FlowDefinition, error) {

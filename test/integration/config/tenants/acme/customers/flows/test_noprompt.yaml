@@ -1,0 +1,30 @@
+description: 'For testing this flow does load a user and directly returns in without authentication'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    next:
+      start: node_64a2a477
+  node_75e21c1d:
+    name: failureResult
+    use: failureResult
+    next: {}
+  node_8840e55b:
+    name: successResult
+    use: successResult
+    next: {}
+  node_64a2a477:
+    name: setVariable
+    use: setVariable
+    next:
+      done: node_290895ef
+    custom_config:
+      key: username
+      value: admin
+  node_290895ef:
+    name: loadUserByUsername
+    use: loadUserByUsername
+    next:
+      loaded: node_8840e55b
+      not_found: node_75e21c1d

@@ -30,37 +30,6 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 	scope := "openid profile write:flows write:realms write:applications write:user"
 	codeVerifier := "4f13a3d4d18440e490c0ebab1831820eba8d51cbfe4444e5b2d34423fdddbb6b00def2eb5b9e4712b453fe4f71230fa5"
 
-	// Create the management-ui application
-	t.Run("Create Management UI Application", func(t *testing.T) {
-		appData := map[string]interface{}{
-			"tenant":                       "acme",
-			"realm":                        "customers",
-			"client_id":                    clientID,
-			"confidential":                 false,
-			"consent_required":             false,
-			"description":                  "Management UI Application",
-			"allowed_scopes":               []string{"openid", "profile", "write:user", "write:flows", "write:realms", "write:applications"},
-			"allowed_grants":               []string{"authorization_code_pkce"},
-			"allowed_authentication_flows": []string{"login_or_register"},
-			"access_token_lifetime":        600,
-			"refresh_token_lifetime":       3600,
-			"id_token_lifetime":            600,
-			"access_token_type":            "session",
-			"access_token_algorithm":       "",
-			"access_token_mapping":         "",
-			"id_token_algorithm":           "",
-			"id_token_mapping":             "",
-			"redirect_uris":                []string{redirectURI},
-			"created_at":                   "2025-05-03T13:39:12+05:30",
-			"updated_at":                   "2025-05-06T00:59:35+08:00",
-		}
-
-		e.POST("/admin/acme/customers/applications/" + clientID).
-			WithJSON(appData).
-			Expect().
-			Status(http.StatusCreated)
-	})
-
 	// Test starting OAuth2 authorization
 	t.Run("Start OAuth2 Authorization", func(t *testing.T) {
 		resp := e.GET("/acme/customers/oauth2/authorize").
