@@ -17,57 +17,55 @@ func New() *router.Router {
 	// Set the NotFound handler
 	r.NotFound = WrapMiddleware(handleNotFound)
 
-	// Main authentication routes
-	r.GET("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
-	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
-
 	// Admin routes
 	admin := r.Group("/admin")
-	admin.GET("/{tenant}/{realm}/users", WrapMiddleware(admin_api.HandleListUsers))
-	admin.GET("/{tenant}/{realm}/users/stats", WrapMiddleware(admin_api.HandleGetUserStats))
-	admin.GET("/{tenant}/{realm}/users/{username}", WrapMiddleware(admin_api.HandleGetUser))
-	admin.POST("/{tenant}/{realm}/users/{username}", WrapMiddleware(admin_api.HandleCreateUser))
-	admin.PUT("/{tenant}/{realm}/users/{username}", WrapMiddleware(admin_api.HandleUpdateUser))
-	admin.DELETE("/{tenant}/{realm}/users/{username}", WrapMiddleware(admin_api.HandleDeleteUser))
+	admin.OPTIONS("/{name:*}", WrapMiddleware(handleOptions)) // Cors for options requests requests
 
-	admin.GET("/{tenant}/{realm}/dashboard", WrapMiddleware(admin_api.HandleDashboard))
+	admin.GET("/{tenant}/{realm}/users", adminMiddleware(admin_api.HandleListUsers))
+	admin.GET("/{tenant}/{realm}/users/stats", adminMiddleware(admin_api.HandleGetUserStats))
+	admin.GET("/{tenant}/{realm}/users/{username}", adminMiddleware(admin_api.HandleGetUser))
+	admin.POST("/{tenant}/{realm}/users/{username}", adminMiddleware(admin_api.HandleCreateUser))
+	admin.PUT("/{tenant}/{realm}/users/{username}", adminMiddleware(admin_api.HandleUpdateUser))
+	admin.DELETE("/{tenant}/{realm}/users/{username}", adminMiddleware(admin_api.HandleDeleteUser))
 
-	admin.GET("/realms", WrapMiddleware(admin_api.HandleListRealms))
-	admin.GET("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleGetRealm))
-	admin.POST("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleCreateRealm))
-	admin.PATCH("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleUpdateRealm))
-	admin.DELETE("/{tenant}/{realm}/", WrapMiddleware(admin_api.HandleDeleteRealm))
+	admin.GET("/{tenant}/{realm}/dashboard", adminMiddleware(admin_api.HandleDashboard))
+
+	admin.GET("/realms", adminMiddleware(admin_api.HandleListRealms))
+	admin.GET("/{tenant}/{realm}/", adminMiddleware(admin_api.HandleGetRealm))
+	admin.POST("/{tenant}/{realm}/", adminMiddleware(admin_api.HandleCreateRealm))
+	admin.PATCH("/{tenant}/{realm}/", adminMiddleware(admin_api.HandleUpdateRealm))
+	admin.DELETE("/{tenant}/{realm}/", adminMiddleware(admin_api.HandleDeleteRealm))
 
 	// Application management routes
-	admin.GET("/{tenant}/{realm}/applications", WrapMiddleware(admin_api.HandleListApplications))
-	admin.GET("/{tenant}/{realm}/applications/{client_id}", WrapMiddleware(admin_api.HandleGetApplication))
-	admin.POST("/{tenant}/{realm}/applications/{client_id}", WrapMiddleware(admin_api.HandleCreateApplication))
-	admin.PUT("/{tenant}/{realm}/applications/{client_id}", WrapMiddleware(admin_api.HandleUpdateApplication))
-	admin.DELETE("/{tenant}/{realm}/applications/{client_id}", WrapMiddleware(admin_api.HandleDeleteApplication))
-	admin.POST("/{tenant}/{realm}/applications/{client_id}/regenerate-secret", WrapMiddleware(admin_api.HandleRegenerateClientSecret))
+	admin.GET("/{tenant}/{realm}/applications", adminMiddleware(admin_api.HandleListApplications))
+	admin.GET("/{tenant}/{realm}/applications/{client_id}", adminMiddleware(admin_api.HandleGetApplication))
+	admin.POST("/{tenant}/{realm}/applications/{client_id}", adminMiddleware(admin_api.HandleCreateApplication))
+	admin.PUT("/{tenant}/{realm}/applications/{client_id}", adminMiddleware(admin_api.HandleUpdateApplication))
+	admin.DELETE("/{tenant}/{realm}/applications/{client_id}", adminMiddleware(admin_api.HandleDeleteApplication))
+	admin.POST("/{tenant}/{realm}/applications/{client_id}/regenerate-secret", adminMiddleware(admin_api.HandleRegenerateClientSecret))
 
 	// Flow management routes
-	admin.GET("/{tenant}/{realm}/flows", WrapMiddleware(admin_api.HandleListFlows))
-	admin.GET("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleGetFlow))
-	admin.POST("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleCreateFlow))
-	admin.PATCH("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleUpdateFlow))
-	admin.DELETE("/{tenant}/{realm}/flows/{flow}", WrapMiddleware(admin_api.HandleDeleteFlow))
+	admin.GET("/{tenant}/{realm}/flows", adminMiddleware(admin_api.HandleListFlows))
+	admin.GET("/{tenant}/{realm}/flows/{flow}", adminMiddleware(admin_api.HandleGetFlow))
+	admin.POST("/{tenant}/{realm}/flows/{flow}", adminMiddleware(admin_api.HandleCreateFlow))
+	admin.PATCH("/{tenant}/{realm}/flows/{flow}", adminMiddleware(admin_api.HandleUpdateFlow))
+	admin.DELETE("/{tenant}/{realm}/flows/{flow}", adminMiddleware(admin_api.HandleDeleteFlow))
 
 	// Flow defintion routes
-	admin.POST("/{tenant}/{realm}/flows/validate", WrapMiddleware(admin_api.HandleValidateFlowDefinition))
-	admin.GET("/{tenant}/{realm}/flows/{flow}/definition", WrapMiddleware(admin_api.HandleGetFlowDefintion))
-	admin.PUT("/{tenant}/{realm}/flows/{flow}/definition", WrapMiddleware(admin_api.HandlePutFlowDefintion))
+	admin.POST("/{tenant}/{realm}/flows/validate", adminMiddleware(admin_api.HandleValidateFlowDefinition))
+	admin.GET("/{tenant}/{realm}/flows/{flow}/definition", adminMiddleware(admin_api.HandleGetFlowDefintion))
+	admin.PUT("/{tenant}/{realm}/flows/{flow}/definition", adminMiddleware(admin_api.HandlePutFlowDefintion))
 
 	// Node management routes
-	admin.GET("/nodes", WrapMiddleware(admin_api.HandleListNodes))
+	admin.GET("/nodes", adminMiddleware(admin_api.HandleListNodes))
 
 	// Debug routes
-	r.GET("/debug/flows/all", WrapMiddleware(debug.HandleListAllFlows))
-	r.GET("/{tenant}/{realm}/debug/flows", WrapMiddleware(debug.HandleListFlows))
-	r.GET("/{tenant}/{realm}/debug/{flow}/graph.svg", WrapMiddleware(debug.HandleFlowGraphSVG))
+	r.GET("/debug/flows/all", adminMiddleware(debug.HandleListAllFlows))
+	r.GET("/{tenant}/{realm}/debug/flows", adminMiddleware(debug.HandleListFlows))
+	r.GET("/{tenant}/{realm}/debug/{flow}/graph.svg", adminMiddleware(debug.HandleFlowGraphSVG))
 
 	// Static files
-	r.GET("/{tenant}/{realm}/static/{filename}", WrapMiddleware(StaticHandler))
+	r.GET("/{tenant}/{realm}/static/{filename}", adminMiddleware(StaticHandler))
 
 	// Health endpoints
 	r.GET("/healthz", WrapMiddleware(handleLiveness))
@@ -78,13 +76,21 @@ func New() *router.Router {
 	r.GET("/swagger/", WrapMiddleware(HandleSwaggerUI))
 	r.GET("/swagger/{*path}", WrapMiddleware(HandleSwaggerUI))
 
+	// Main authentication routes
+	r.GET("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
+	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
+
 	// Oauth + OIDC
-	r.GET("/{tenant}/{realm}/oauth2/.well-known/openid-configuration", WrapMiddleware(oauth2.HandleOpenIDConfiguration))
 	r.GET("/{tenant}/{realm}/oauth2/authorize", WrapMiddleware(oauth2.HandleAuthorizeEndpoint))
 	r.GET("/{tenant}/{realm}/oauth2/finishauthorize", WrapMiddleware(oauth2.FinsishOauth2AuthorizationEndpoint))
-	r.POST("/{tenant}/{realm}/oauth2/token", WrapMiddleware(oauth2.HandleTokenEndpoint))
-	r.GET("/{tenant}/{realm}/oauth2/userinfo", WrapMiddleware(oauth2.HandleUserinfoEndpoint))
-	r.POST("/{tenant}/{realm}/oauth2/userinfo", WrapMiddleware(oauth2.HandleUserinfoEndpoint))
+
+	r.GET("/{tenant}/{realm}/oauth2/.well-known/openid-configuration", cors(WrapMiddleware(oauth2.HandleOpenIDConfiguration)))
+	r.POST("/{tenant}/{realm}/oauth2/token", cors(WrapMiddleware(oauth2.HandleTokenEndpoint)))
+
+	// OIDC Userinfo endpoint
+	r.GET("/{tenant}/{realm}/oauth2/userinfo", cors(WrapMiddleware(oauth2.HandleUserinfoEndpoint)))
+	r.POST("/{tenant}/{realm}/oauth2/userinfo", cors(WrapMiddleware(oauth2.HandleUserinfoEndpoint)))
+	r.OPTIONS("/{tenant}/{realm}/oauth2/userinfo", WrapMiddleware(handleOptions))
 
 	return r
 }

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // This test performs a complete end-to-end test of the OAuth2 PKCE flow.
@@ -42,6 +44,8 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 			WithQuery("code_challenge_method", codeChallengeMethod).
 			Expect().
 			Status(http.StatusFound)
+
+		assert.Empty(t, resp.Header("Access-Control-Allow-Origin").Raw(), "CORS header should not exist")
 
 		// Get session cookie
 		sessionCookie := resp.Cookie("session_id")
@@ -120,28 +124,44 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 				WithFormField("client_id", clientID).
 				WithCookie("session_id", sessionCookie.Value().Raw()).
 				Expect().
-				Status(http.StatusOK).
-				JSON().
-				Object()
+				Status(http.StatusOK)
+
+			// Check cors
+			assert.NotEmpty(t, resp.Header("Access-Control-Allow-Origin").Raw(), "CORS header should exist")
+
+			tokenResp := resp.JSON().Object()
 
 			// Verify token response
-			resp.HasValue("token_type", "Bearer")
-			resp.Value("id_token").String().NotEmpty()
-			accessToken = resp.Value("access_token").String().NotEmpty().Raw()
-			refreshToken = resp.Value("refresh_token").String().NotEmpty().Raw()
+			tokenResp.HasValue("token_type", "Bearer")
+			tokenResp.Value("id_token").String().NotEmpty()
+			accessToken = tokenResp.Value("access_token").String().NotEmpty().Raw()
+			refreshToken = tokenResp.Value("refresh_token").String().NotEmpty().Raw()
 		})
 
 		// Test getting user info
 		t.Run("Get User Info", func(t *testing.T) {
 
-			e.GET("/acme/customers/oauth2/userinfo").
+			// userinfo must support OPTIONS request and Access-Control-Allow-Headers: Content-Type, Authorization
+			resp := e.OPTIONS("/acme/customers/oauth2/userinfo").
+				WithHeader("Access-Control-Request-Headers", "Content-Type, Authorization").
+				Expect().
+				Status(http.StatusOK)
+
+			assert.NotEmpty(t, resp.Header("Access-Control-Allow-Headers").Raw(), "CORS header should exist")
+
+			resp = e.GET("/acme/customers/oauth2/userinfo").
 				WithHeader("Authorization", "Bearer "+accessToken).
 				WithCookie("session_id", sessionCookie.Value().Raw()).
 				Expect().
-				Status(http.StatusOK).
-				JSON().
-				Object().
-				Value("sub").String().NotEmpty()
+				Status(http.StatusOK)
+
+			// Check cors
+			assert.NotEmpty(t, resp.Header("Access-Control-Allow-Origin").Raw(), "CORS header should exist")
+
+			userInfoResp := resp.JSON().Object()
+
+			userInfoResp.Value("sub").String().NotEmpty()
+
 		})
 
 		// Test refreshing the access token

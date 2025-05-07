@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"goiam/internal/logger"
-	"goiam/internal/service"
 	"runtime/debug"
 
 	"github.com/google/uuid"
@@ -16,12 +15,7 @@ import (
 func TopLevelMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 
-		// We need to handle OPTIONS requests here, because the router doesn't handle them
-		if string(ctx.Method()) == "OPTIONS" {
-			handleOptions(ctx)
-			return
-		}
-
+		// here we can handle request before the router
 		next(ctx)
 	}
 }
@@ -91,30 +85,23 @@ func recoveryMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 func setCorsHeaders(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
-	ctx.Response.Header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH,DELETE, OPTIONS")
+	ctx.Response.Header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 	ctx.Response.Header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	ctx.Response.Header.Set("Access-Control-Max-Age", "86400") // 24 hours
+	ctx.Response.Header.Set("Access-Control-Max-Age", "3600") // 1 hour
 }
 
 // handleOptions is a minimal handler for OPTIONS requests
 func handleOptions(ctx *fasthttp.RequestCtx) {
+
 	setCorsHeaders(ctx)
-	ctx.SetStatusCode(fasthttp.StatusNoContent)
+	ctx.SetStatusCode(fasthttp.StatusOK)
 }
 
 // corsMiddleware handles CORS headers
-func corsMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+func cors(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		// Set CORS headers
 		setCorsHeaders(ctx)
-		next(ctx)
-	}
-}
-
-// serviceMiddleware injects services into the request context
-func serviceMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
-	return func(ctx *fasthttp.RequestCtx) {
-		ctx.SetUserValue("flowService", service.GetServices().FlowService)
 		next(ctx)
 	}
 }
@@ -124,12 +111,17 @@ func WrapMiddleware(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return TopLevelMiddleware(
 		traceIDMiddleware(
 			loggingMiddleware(
-				recoveryMiddleware(
-					corsMiddleware(
-						serviceMiddleware(h),
-					),
-				),
+				recoveryMiddleware(h),
 			),
+		),
+	)
+}
+
+func adminMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+
+	return WrapMiddleware(
+		cors(
+			next,
 		),
 	)
 }
