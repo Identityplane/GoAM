@@ -51,6 +51,9 @@ func New() *router.Router {
 	admin.PATCH("/{tenant}/{realm}/flows/{flow}", adminMiddleware(admin_api.HandleUpdateFlow))
 	admin.DELETE("/{tenant}/{realm}/flows/{flow}", adminMiddleware(admin_api.HandleDeleteFlow))
 
+	// System stats routes
+	admin.GET("/system/stats", adminMiddleware(admin_api.HandleSystemStats))
+
 	// Flow defintion routes
 	admin.POST("/{tenant}/{realm}/flows/validate", adminMiddleware(admin_api.HandleValidateFlowDefinition))
 	admin.GET("/{tenant}/{realm}/flows/{flow}/definition", adminMiddleware(admin_api.HandleGetFlowDefintion))
@@ -60,8 +63,6 @@ func New() *router.Router {
 	admin.GET("/nodes", adminMiddleware(admin_api.HandleListNodes))
 
 	// Debug routes
-	r.GET("/debug/flows/all", adminMiddleware(debug.HandleListAllFlows))
-	r.GET("/{tenant}/{realm}/debug/flows", adminMiddleware(debug.HandleListFlows))
 	r.GET("/{tenant}/{realm}/debug/{flow}/graph.svg", adminMiddleware(debug.HandleFlowGraphSVG))
 
 	// Static files

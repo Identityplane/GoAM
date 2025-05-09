@@ -14,6 +14,7 @@ type Services struct {
 	StaticConfigurationService StaticConfigurationService
 	OAuth2Service              *OAuth2Service
 	JWTService                 *JWTService
+	CacheService               CacheService
 }
 
 // DatabaseConnections holds all database connections
@@ -33,18 +34,24 @@ var (
 
 // InitServices initializes all services with their dependencies
 func InitServices(connections DatabaseConnections) *Services {
-
 	databases = &connections
+
+	// Initialize cache service first
+	cacheService, err := NewCacheService()
+	if err != nil {
+		panic("failed to initialize cache service: " + err.Error())
+	}
 
 	services = &Services{
 		UserService:                NewUserService(databases.UserDB),
-		RealmService:               NewRealmService(databases.RealmDB, databases.UserDB),
-		FlowService:                NewFlowService(databases.FlowDB),
+		RealmService:               NewCachedRealmService(NewRealmService(databases.RealmDB, databases.UserDB), cacheService),
+		FlowService:                NewCachedFlowService(NewFlowService(databases.FlowDB), cacheService),
 		ApplicationService:         NewApplicationService(databases.ApplicationsDB),
 		SessionsService:            NewSessionsService(databases.ClientSessionDB),
 		StaticConfigurationService: NewStaticConfigurationService(),
 		OAuth2Service:              NewOAuth2Service(),
 		JWTService:                 NewJWTService(),
+		CacheService:               cacheService,
 	}
 
 	return services
