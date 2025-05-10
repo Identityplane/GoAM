@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"goiam/internal/lib/jwt_ec256"
 	"sync"
@@ -69,7 +70,24 @@ func (s *JWTService) LoadPublicKeys(tenant, realm string) (string, error) {
 		return "", fmt.Errorf("failed to extract public key: %w", err)
 	}
 
-	return publicKey, nil
+	// Parse the public key JSON
+	var keyMap map[string]interface{}
+	if err := json.Unmarshal([]byte(publicKey), &keyMap); err != nil {
+		return "", fmt.Errorf("failed to parse public key JSON: %w", err)
+	}
+
+	// Create a JWKS set with a single key
+	jwks := map[string]interface{}{
+		"keys": []interface{}{keyMap},
+	}
+
+	// Marshal the JWKS set to JSON
+	jwksJSON, err := json.MarshalIndent(jwks, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal JWKS: %w", err)
+	}
+
+	return string(jwksJSON), nil
 }
 
 // SignJWT signs a JWT token with the key for the given tenant and realm

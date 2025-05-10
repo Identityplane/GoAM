@@ -78,3 +78,31 @@ func HandleOpenIDConfiguration(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 	ctx.SetBody(jsonData)
 }
+
+// HandleJWKs returns the JWKs for the specified realm
+// @Summary Get JWKs
+// @Description Returns the JWKs for the specified realm
+// @Tags OpenID Connect
+// @Accept json
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Success 200 {object} object "JSON Web Key Set"
+// @Failure 404 {string} string "Realm not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /{tenant}/{realm}/oauth2/.well-known/jwks.json [get]
+func HandleJWKs(ctx *fasthttp.RequestCtx) {
+	tenant := ctx.UserValue("tenant").(string)
+	realm := ctx.UserValue("realm").(string)
+
+	jwks, err := service.GetServices().JWTService.LoadPublicKeys(tenant, realm)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		ctx.SetBodyString("failed to get JWKs")
+		return
+	}
+
+	// Set response headers and body
+	ctx.SetContentType("application/json")
+	ctx.SetBody([]byte(jwks))
+}

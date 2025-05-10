@@ -93,6 +93,9 @@ func New() *router.Router {
 	r.POST("/{tenant}/{realm}/oauth2/userinfo", cors(WrapMiddleware(oauth2.HandleUserinfoEndpoint)))
 	r.OPTIONS("/{tenant}/{realm}/oauth2/userinfo", WrapMiddleware(handleOptions))
 
+	// OIDC JWKS endpoint
+	r.GET("/{tenant}/{realm}/oauth2/.well-known/jwks.json", cors(WrapMiddleware(oauth2.HandleJWKs)))
+
 	return r
 }
 

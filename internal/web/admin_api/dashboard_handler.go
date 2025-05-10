@@ -5,6 +5,7 @@ import (
 	"goiam/internal/model"
 	"goiam/internal/service"
 	"net/http"
+	"runtime"
 
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/valyala/fasthttp"
@@ -109,6 +110,7 @@ func HandleDashboard(ctx *fasthttp.RequestCtx) {
 type SystemStats struct {
 	CacheMetrics service.CacheMetrics `json:"cache_metrics"`
 	MemoryUsage  MemoryUsage          `json:"memory_usage"`
+	GoMemory     GoMemoryStats        `json:"go_memory"`
 }
 
 type MemoryUsage struct {
@@ -116,6 +118,13 @@ type MemoryUsage struct {
 	Used        uint64  `json:"used"`
 	Free        uint64  `json:"free"`
 	UsedPercent float64 `json:"used_percent"`
+}
+
+type GoMemoryStats struct {
+	Alloc      uint64 `json:"alloc"`       // bytes allocated and not yet freed
+	TotalAlloc uint64 `json:"total_alloc"` // bytes allocated (even if freed)
+	Sys        uint64 `json:"sys"`         // bytes obtained from system
+	NumGC      uint32 `json:"num_gc"`      // number of garbage collections
 }
 
 // HandleSystemStats returns system-wide statistics including cache metrics and memory usage
@@ -128,12 +137,10 @@ type MemoryUsage struct {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /admin/system/stats [get]
 func HandleSystemStats(ctx *fasthttp.RequestCtx) {
-
 	cacheMetrics := service.GetServices().CacheService.GetMetrics()
 
 	// Calculate current memory usage of the server
 	v, err := mem.VirtualMemory()
-
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to get memory usage: " + err.Error())
@@ -147,9 +154,20 @@ func HandleSystemStats(ctx *fasthttp.RequestCtx) {
 		UsedPercent: v.UsedPercent,
 	}
 
+	// Get Go runtime memory stats
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	goMemory := GoMemoryStats{
+		Alloc:      m.Alloc,
+		TotalAlloc: m.TotalAlloc,
+		Sys:        m.Sys,
+		NumGC:      m.NumGC,
+	}
+
 	response := SystemStats{
 		CacheMetrics: cacheMetrics,
 		MemoryUsage:  memoryUsage,
+		GoMemory:     goMemory,
 	}
 
 	jsonData, err := json.MarshalIndent(response, "", "  ")

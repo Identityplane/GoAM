@@ -6,7 +6,10 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // This test performs a complete end-to-end test of the OAuth2 PKCE flow.
@@ -113,6 +116,7 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 
 		var accessToken string
 		var refreshToken string
+		var idToken string
 		// Test token exchange
 		t.Run("Exchange Code for Token", func(t *testing.T) {
 			resp := e.POST("/acme/customers/oauth2/token").
@@ -136,6 +140,65 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 			tokenResp.Value("id_token").String().NotEmpty()
 			accessToken = tokenResp.Value("access_token").String().NotEmpty().Raw()
 			refreshToken = tokenResp.Value("refresh_token").String().NotEmpty().Raw()
+			idToken = tokenResp.Value("id_token").String().NotEmpty().Raw()
+		})
+
+		// Test validating ID token with JWKS
+		t.Run("Validate ID Token with JWKS", func(t *testing.T) {
+
+			// Then get the JWKS
+			jwksResp := e.GET("/acme/customers/oauth2/.well-known/jwks.json").
+				Expect().
+				Status(http.StatusOK)
+
+			// Check CORS headers on actual response
+			assert.NotEmpty(t, jwksResp.Header("Access-Control-Allow-Origin").Raw(), "CORS header should exist")
+
+			// Verify JWKS response structure
+			jwksObj := jwksResp.JSON().Object()
+			jwksObj.ContainsKey("keys")
+			keys := jwksObj.Value("keys").Array()
+			keys.Length().IsEqual(1) // We expect exactly one key for now
+
+			// Verify the key has the required properties
+			key := keys.Element(0).Object()
+			key.ContainsKey("kty")
+			key.ContainsKey("kid")
+			key.ContainsKey("use")
+			key.ContainsKey("crv")
+			key.ContainsKey("x")
+			key.ContainsKey("y")
+
+			// Verify key type and usage
+			key.Value("kty").String().IsEqual("EC")
+			key.Value("use").String().IsEqual("sig")
+			key.Value("crv").String().IsEqual("P-256")
+
+			// Verify ID token format
+			assert.NotEmpty(t, idToken, "ID token should not be empty")
+			assert.Contains(t, idToken, ".", "ID token should be in JWT format")
+
+			// Parse the JWKS response
+			jwksJSON := jwksResp.Body().Raw()
+			keySet, err := jwk.ParseString(jwksJSON)
+			require.NoError(t, err, "Failed to parse JWKS")
+
+			// Parse and validate the ID token using the JWKS
+			token, err := jwt.ParseString(idToken,
+				jwt.WithKeySet(keySet),
+				jwt.WithValidate(true),
+				jwt.WithIssuer("http://localhost:8080/acme/customers"),
+				jwt.WithAudience(clientID),
+			)
+			require.NoError(t, err, "Failed to parse and validate ID token")
+
+			// Verify token claims
+			assert.NotEmpty(t, token.Subject(), "Subject claim should not be empty")
+			assert.Equal(t, "http://localhost:8080/acme/customers", token.Issuer(), "Issuer should match")
+			assert.Contains(t, token.Audience(), clientID, "Audience should contain client ID")
+			assert.NotEmpty(t, token.Expiration(), "Expiration time should be set")
+			assert.NotEmpty(t, token.IssuedAt(), "Issued at time should be set")
+			assert.NotEmpty(t, token.JwtID(), "JWT ID should be set")
 		})
 
 		// Test getting user info
