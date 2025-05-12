@@ -46,6 +46,31 @@ func TestOAuth2ClientCredentials_E2E(t *testing.T) {
 		// Store the access token for later use
 		accessToken := tokenResp.Value("access_token").String().Raw()
 		assert.NotEmpty(t, accessToken)
+
+		// Test token introspection
+		t.Run("Introspect Access Token", func(t *testing.T) {
+
+			// Test introspection with valid token
+			resp = e.POST("/acme/customers/oauth2/introspect").
+				WithHeader("Content-Type", "application/x-www-form-urlencoded").
+				WithFormField("token", accessToken).
+				WithFormField("token_type_hint", "access_token").
+				Expect().
+				Status(http.StatusOK)
+
+			// Check CORS headers
+			assert.NotEmpty(t, resp.Header("Access-Control-Allow-Origin").Raw(), "CORS header should exist")
+
+			introspectionResp := resp.JSON().Object()
+			introspectionResp.HasValue("active", true)
+			introspectionResp.HasValue("token_type", "Bearer")
+			introspectionResp.HasValue("client_id", clientID)
+			introspectionResp.HasValue("scope", scope)
+			introspectionResp.Value("exp").Number().Gt(0)
+			introspectionResp.Value("iat").Number().Gt(0)
+			introspectionResp.Value("nbf").Number().Gt(0)
+			introspectionResp.Value("jti").String().NotEmpty()
+		})
 	})
 }
 

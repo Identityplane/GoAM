@@ -87,6 +87,28 @@ type Oauth2TokenResponse struct {
 	TokenType    string `json:"token_type,omitempty"`
 }
 
+// TokenIntrospectionRequest represents the request to the introspection endpoint
+type TokenIntrospectionRequest struct {
+	Token         string `json:"token"`
+	TokenTypeHint string `json:"token_type_hint,omitempty"`
+}
+
+// TokenIntrospectionResponse represents the response from the introspection endpoint
+type TokenIntrospectionResponse struct {
+	Active    bool   `json:"active"`
+	Scope     string `json:"scope,omitempty"`
+	ClientID  string `json:"client_id,omitempty"`
+	Username  string `json:"username,omitempty"`
+	TokenType string `json:"token_type,omitempty"`
+	Exp       int64  `json:"exp,omitempty"`
+	Iat       int64  `json:"iat,omitempty"`
+	Nbf       int64  `json:"nbf,omitempty"`
+	Sub       string `json:"sub,omitempty"`
+	Aud       string `json:"aud,omitempty"`
+	Iss       string `json:"iss,omitempty"`
+	Jti       string `json:"jti,omitempty"`
+}
+
 func NewOAuth2Error(errorCode string, errorDescription string) *OAuth2Error {
 	errorResponse := OAuth2Error{
 		Error:            errorCode,
@@ -252,7 +274,10 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 
 	// Ensure that the grant_type is allowed for the application, we check this already in the validateOAuth2AuthorizationRequest
 	// but for the token request or refresh token we need to check if again
-	if !slices.Contains(application.AllowedGrants, tokenRequest.GrantType) {
+
+	if slices.Contains(application.AllowedGrants, string(oauth2.Oauth2_AuthorizationCodePKCE)) && tokenRequest.GrantType == "authorization_code" {
+		// special case for the pkce flow
+	} else if !slices.Contains(application.AllowedGrants, tokenRequest.GrantType) {
 		return nil, NewOAuth2Error(oauth2.ErrorUnauthorizedClient, "Grant type not allowed")
 	}
 
@@ -621,4 +646,58 @@ func (s *OAuth2Service) ToQueryString(response *oauth2.AuthorizationResponse) st
 		params.Add("iss", response.Iss)
 	}
 	return params.Encode()
+}
+
+// IntrospectAccessToken introspects an OAuth2 access token and returns information about it
+func (s *OAuth2Service) IntrospectAccessToken(tenant, realm string, tokenIntrospectionRequest *TokenIntrospectionRequest) (*TokenIntrospectionResponse, *OAuth2Error) {
+
+	// Load the session from the token
+	session, err := GetServices().SessionsService.GetClientSessionByAccessToken(context.Background(), tenant, realm, tokenIntrospectionRequest.Token)
+	if err != nil {
+		return nil, NewOAuth2Error(oauth2.ErrorServerError, "internal server error. Could not get client session")
+	}
+
+	// If no session found, token is not active
+	if session == nil {
+		return &TokenIntrospectionResponse{Active: false}, nil
+	}
+
+	loadedRealm, ok := GetServices().RealmService.GetRealm(tenant, realm)
+	if !ok {
+		return nil, NewOAuth2Error(oauth2.ErrorServerError, "internal server error. Could not get realm")
+	}
+
+	issuer := loadedRealm.Config.BaseUrl
+
+	// Create the introspection response
+	response := &TokenIntrospectionResponse{
+		Active:    true,
+		Scope:     session.Scope,
+		ClientID:  session.ClientID,
+		TokenType: "Bearer",
+		Exp:       session.Expire.Unix(),
+		Iat:       session.Created.Unix(),
+		Nbf:       session.Created.Unix(),
+		Aud:       session.ClientID,
+		Iss:       issuer,
+		Jti:       session.ClientSessionID,
+	}
+
+	// If we have a user ID, add user-related fields
+	if session.UserID != "" {
+		user, err := GetServices().UserService.GetUserByID(context.Background(), tenant, realm, session.UserID)
+
+		if err != nil {
+			return nil, NewOAuth2Error(oauth2.ErrorServerError, "internal server error. Could not get user")
+		}
+
+		if user == nil {
+			return nil, NewOAuth2Error(oauth2.ErrorServerError, "internal server error. Invalid token")
+		}
+
+		response.Sub = user.ID
+
+	}
+
+	return response, nil
 }

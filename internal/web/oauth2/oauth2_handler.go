@@ -181,6 +181,7 @@ func peekGraphExecutionForPromptParameter(session *model.AuthenticationSession, 
 
 // FinishOauth2AuthorizationEndpoint finishes the OAuth2 authorization endpoint
 // This endpoint is called by the login page after the flow has been completed
+
 func FinsishOauth2AuthorizationEndpoint(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
@@ -227,6 +228,25 @@ func FinsishOauth2AuthorizationEndpoint(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.Set("Pragma", "no-cache")
 }
 
+// HandleTokenEndpoint handles the OAuth2 token endpoint
+// @Summary OAuth2 Token Endpoint
+// @Description Handles the OAuth2 token request and returns a token response
+// @Tags OAuth2
+// @Accept x-www-form-urlencoded
+// @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
+// @Param code formData string false "Authorization code"
+// @Param code_verifier formData string false "Code verifier"
+// @Param client_id formData string true "Client ID"
+// @Param client_secret formData string true "Client Secret"
+// @Param grant_type formData string true "Grant Type"
+// @Param refresh_token formData string false "Refresh Token"
+// @Param scope formData string false "Scope"
+// @Success 200 {object} service.Oauth2TokenResponse "Token response"
+// @Failure 400 {string} string "Bad Request - Invalid request body"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /{tenant}/{realm}/oauth2/token [post]
 func HandleTokenEndpoint(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
