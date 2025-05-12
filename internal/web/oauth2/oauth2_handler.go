@@ -247,6 +247,7 @@ func HandleTokenEndpoint(ctx *fasthttp.RequestCtx) {
 	tokenRequest.ClientID = bodyParams.Get("client_id")
 	tokenRequest.GrantType = bodyParams.Get("grant_type")
 	tokenRequest.RefreshToken = bodyParams.Get("refresh_token")
+	tokenRequest.Scope = bodyParams.Get("scope")
 
 	// Parse the client authentication
 	clientAuthentication := &service.Oauth2ClientAuthentication{}

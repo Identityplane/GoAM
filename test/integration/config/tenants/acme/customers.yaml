@@ -50,3 +50,26 @@ applications:
     refresh_token_lifetime: 3600
     id_token_lifetime: 600
     access_token_type: session
+  backend-api:
+    client_secret: backend-api-secret
+    confidential: true
+    consent_required: false
+    description: Backend API Application
+    allowed_scopes:
+      - write:user
+      - write:flows
+      - write:realms
+      - write:applications
+    allowed_grants:
+      - client_credentials
+      - authorization_code
+      - refresh_token
+    redirect_uris:
+      - http://localhost:3000
+    allowed_authentication_flows:
+      - login_or_register
+      - noprompt
+    access_token_lifetime: 600
+    refresh_token_lifetime: 3600
+    id_token_lifetime: 600
+    access_token_type: session

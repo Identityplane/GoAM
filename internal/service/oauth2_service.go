@@ -68,6 +68,7 @@ type Oauth2TokenRequest struct {
 	GrantType    string `json:"grant_type"`
 	RefreshToken string `json:"refresh_token"`
 	RedirectURI  string `json:"redirect_uri"`
+	Scope        string `json:"scope"` // Only used for the client credentials grant
 }
 
 // Oauth2 client authentication
@@ -249,6 +250,12 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Client ID mismatch")
 	}
 
+	// Ensure that the grant_type is allowed for the application, we check this already in the validateOAuth2AuthorizationRequest
+	// but for the token request or refresh token we need to check if again
+	if !slices.Contains(application.AllowedGrants, tokenRequest.GrantType) {
+		return nil, NewOAuth2Error(oauth2.ErrorUnauthorizedClient, "Grant type not allowed")
+	}
+
 	// if the grant type is authorization_code we need to create an access token by looking up the auth code in the client sessions
 	switch tokenRequest.GrantType {
 	case "authorization_code":
@@ -260,10 +267,51 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 
 	case "client_credentials":
 
-		panic("Not implemented")
+		return s.processTokenRequestForClientCredentialsGrant(tenant, realm, tokenRequest, clientAuthentication, application)
 	}
 
 	return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid grant type")
+}
+
+func (s *OAuth2Service) processTokenRequestForClientCredentialsGrant(tenant string, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication, application *model.Application) (*Oauth2TokenResponse, *OAuth2Error) {
+
+	// Ensure that this is only allowed for confidential applications
+	if !application.Confidential {
+		return nil, NewOAuth2Error(oauth2.ErrorUnauthorizedClient, "Client credentials grant only allowed for confidential applications")
+	}
+
+	// Ensure that the scope is allowed for the application
+	scopes := strings.Split(tokenRequest.Scope, " ")
+	for _, scope := range scopes {
+		if !slices.Contains(application.AllowedScopes, scope) {
+			return nil, NewOAuth2Error(oauth2.ErrorInvalidScope, "Invalid scope "+scope)
+		}
+	}
+
+	// Client authentication has already been validated by the ProcessTokenRequest
+	// so we can directly generate the token response
+	tokenResponse, err := s.generateTokenResponseForClientCredentialsGrant(application, scopes)
+	if err != nil {
+		return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not generate token response")
+	}
+
+	return tokenResponse, nil
+
+}
+
+func (s *OAuth2Service) generateTokenResponseForClientCredentialsGrant(application *model.Application, scopes []string) (*Oauth2TokenResponse, *OAuth2Error) {
+
+	accessToken, expiresIn, scope, tokenType, err := s.generateAccessTokenForClientCredentialsGrant(application, scopes)
+	if err != nil {
+		return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not generate token response")
+	}
+
+	return &Oauth2TokenResponse{
+		AccessToken: accessToken,
+		ExpiresIn:   expiresIn,
+		Scope:       scope,
+		TokenType:   tokenType,
+	}, nil
 }
 
 func (s *OAuth2Service) processTokenRequestForRefreshTokenGrant(tenant string, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication, application *model.Application) (*Oauth2TokenResponse, *OAuth2Error) {
@@ -428,6 +476,28 @@ func (s *OAuth2Service) generateAccessToken(session *model.ClientSession, loginS
 	}
 
 	return accessToken, expiresIn, scopes, tokenType, nil
+}
+
+// Compared to the generateAccessToken this has no associated user, just an appliaction
+func (s *OAuth2Service) generateAccessTokenForClientCredentialsGrant(application *model.Application, scopes []string) (string, int, string, string, error) {
+
+	// First we generate the access token
+	expiresIn := application.AccessTokenLifetime
+	tokenType := "Bearer"
+	tenant := application.Tenant
+	realm := application.Realm
+	clientId := application.ClientId
+	userId := ""
+	scope := strings.Join(scopes, " ")
+
+	// Then we store it into the client sessions database using the service
+	accessToken, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, clientId, userId, scopes, string(Oauth2_ClientCredentials), expiresIn)
+
+	if err != nil {
+		return "", 0, "", "", fmt.Errorf("internal server error. Could not create access token session: %w", err)
+	}
+
+	return accessToken, expiresIn, scope, tokenType, nil
 }
 
 func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, error) {
