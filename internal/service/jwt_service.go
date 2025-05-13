@@ -1,84 +1,121 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"goiam/internal/db"
 	"goiam/internal/lib/jwt_ec256"
-	"sync"
+	"goiam/internal/model"
+	"time"
+
+	"github.com/google/uuid"
 )
 
-// JWTService handles JWT token signing and JWKS operations
-type JWTService struct {
-	mu sync.RWMutex
-	// In-memory storage of keys per tenant/realm
-	keys map[string]map[string]string // tenant:realm -> private key JWK
+// JWTService defines the business logic for JWT operations
+type JWTService interface {
+	// LoadPublicKeys returns the JWKS for a given tenant and realm
+	LoadPublicKeys(tenant, realm string) (string, error)
+
+	// SignJWT signs a JWT token with the key for the given tenant and realm
+	SignJWT(tenant, realm string, claims map[string]interface{}) (string, error)
+
+	// GenerateKey generates a new key for a tenant/realm
+	GenerateKey(tenant, realm string) error
+
+	// RotateKey generates a new key and disables the old one
+	RotateKey(tenant, realm string) error
+
+	// getActiveSigningKey returns an active signing key for the given tenant and realm
+	// This is an internal method that takes a context
+	getActiveSigningKey(ctx context.Context, tenant, realm string) (*model.SigningKey, error)
+}
+
+// jwtServiceImpl implements JWTService
+type jwtServiceImpl struct {
+	signingKeyDB db.SigningKeyDB
 }
 
 // NewJWTService creates a new JWTService instance
-func NewJWTService() *JWTService {
-	return &JWTService{
-		keys: make(map[string]map[string]string),
+func NewJWTService(signingKeyDB db.SigningKeyDB) JWTService {
+	return &jwtServiceImpl{
+		signingKeyDB: signingKeyDB,
 	}
 }
 
 // ensureKeyExists ensures that a key exists for the given tenant and realm
 // If no key exists, it generates one
-func (s *JWTService) ensureKeyExists(tenant, realm string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Check if we already have a key
-	if realmKeys, ok := s.keys[tenant]; ok {
-		if _, ok := realmKeys[realm]; ok {
-			return nil // Key already exists
-		}
+func (s *jwtServiceImpl) ensureKeyExists(ctx context.Context, tenant, realm string) error {
+	// Check if we already have an active key
+	keys, err := s.signingKeyDB.ListActiveSigningKeys(ctx, tenant, realm)
+	if err != nil {
+		return fmt.Errorf("failed to list active keys: %w", err)
+	}
+	if len(keys) > 0 {
+		return nil // Active key already exists
 	}
 
 	// Generate a new key
-	keyID := fmt.Sprintf("%s:%s", tenant, realm)
+	keyID := uuid.New().String()
 	privateKey, err := jwt_ec256.GenerateEC256JWK(keyID)
 	if err != nil {
 		return fmt.Errorf("failed to generate key: %w", err)
 	}
 
-	// Store the key
-	if _, ok := s.keys[tenant]; !ok {
-		s.keys[tenant] = make(map[string]string)
+	// Extract the public key
+	publicKey, err := jwt_ec256.ExtractEC256PublicJWK(privateKey)
+	if err != nil {
+		return fmt.Errorf("failed to extract public key: %w", err)
 	}
-	s.keys[tenant][realm] = privateKey
+
+	// Create the signing key record
+	signingKey := model.SigningKey{
+		Tenant:             tenant,
+		Realm:              realm,
+		Kid:                keyID,
+		Active:             true,
+		Algorithm:          "EC256",
+		Implementation:     "plain",
+		SigningKeyMaterial: privateKey,
+		PublicKeyJWK:       publicKey,
+		Created:            time.Now(),
+	}
+
+	// Store the key in the database
+	if err := s.signingKeyDB.CreateSigningKey(ctx, signingKey); err != nil {
+		return fmt.Errorf("failed to store key: %w", err)
+	}
 
 	return nil
 }
 
 // LoadPublicKeys returns the JWKS for a given tenant and realm
-func (s *JWTService) LoadPublicKeys(tenant, realm string) (string, error) {
+func (s *jwtServiceImpl) LoadPublicKeys(tenant, realm string) (string, error) {
 	// Ensure we have a key
-	if err := s.ensureKeyExists(tenant, realm); err != nil {
+	if err := s.ensureKeyExists(context.Background(), tenant, realm); err != nil {
 		return "", fmt.Errorf("failed to ensure key exists: %w", err)
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	// Get the private key for this tenant/realm
-	realmKeys := s.keys[tenant]
-	privateKey := realmKeys[realm]
-
-	// Extract the public key from the private key
-	publicKey, err := jwt_ec256.ExtractEC256PublicJWK(privateKey)
+	// Get all keys for this tenant/realm, including disabled ones
+	keys, err := s.signingKeyDB.ListSigningKeys(context.Background(), tenant, realm)
 	if err != nil {
-		return "", fmt.Errorf("failed to extract public key: %w", err)
+		return "", fmt.Errorf("failed to list keys: %w", err)
 	}
 
-	// Parse the public key JSON
-	var keyMap map[string]interface{}
-	if err := json.Unmarshal([]byte(publicKey), &keyMap); err != nil {
-		return "", fmt.Errorf("failed to parse public key JSON: %w", err)
+	// Create a JWKS set with all keys
+	var jwksKeys []interface{}
+	for _, key := range keys {
+		// Parse the public key JSON
+		var keyMap map[string]interface{}
+		if err := json.Unmarshal([]byte(key.PublicKeyJWK), &keyMap); err != nil {
+			return "", fmt.Errorf("failed to parse public key JSON: %w", err)
+		}
+		jwksKeys = append(jwksKeys, keyMap)
 	}
 
-	// Create a JWKS set with a single key
+	// Create the JWKS set
 	jwks := map[string]interface{}{
-		"keys": []interface{}{keyMap},
+		"keys": jwksKeys,
 	}
 
 	// Marshal the JWKS set to JSON
@@ -90,22 +127,36 @@ func (s *JWTService) LoadPublicKeys(tenant, realm string) (string, error) {
 	return string(jwksJSON), nil
 }
 
+// getActiveSigningKey returns an active signing key for the given tenant and realm
+func (s *jwtServiceImpl) getActiveSigningKey(ctx context.Context, tenant, realm string) (*model.SigningKey, error) {
+	// Get an active key for this tenant/realm
+	keys, err := s.signingKeyDB.ListActiveSigningKeys(ctx, tenant, realm)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list active keys: %w", err)
+	}
+	if len(keys) == 0 {
+		return nil, fmt.Errorf("no active keys found")
+	}
+
+	// Use the first active key
+	return &keys[0], nil
+}
+
 // SignJWT signs a JWT token with the key for the given tenant and realm
-func (s *JWTService) SignJWT(tenant, realm string, claims map[string]interface{}) (string, error) {
+func (s *jwtServiceImpl) SignJWT(tenant, realm string, claims map[string]interface{}) (string, error) {
 	// Ensure we have a key
-	if err := s.ensureKeyExists(tenant, realm); err != nil {
+	if err := s.ensureKeyExists(context.Background(), tenant, realm); err != nil {
 		return "", fmt.Errorf("failed to ensure key exists: %w", err)
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	// Get the private key for this tenant/realm
-	realmKeys := s.keys[tenant]
-	privateKey := realmKeys[realm]
+	// Get an active signing key
+	key, err := s.getActiveSigningKey(context.Background(), tenant, realm)
+	if err != nil {
+		return "", err
+	}
 
 	// Create a signer with the private key
-	signer, err := jwt_ec256.NewJWTSignerEC256(privateKey)
+	signer, err := jwt_ec256.NewJWTSignerEC256(key.SigningKeyMaterial)
 	if err != nil {
 		return "", fmt.Errorf("failed to create signer: %w", err)
 	}
@@ -120,7 +171,25 @@ func (s *JWTService) SignJWT(tenant, realm string, claims map[string]interface{}
 }
 
 // GenerateKey generates a new key for a tenant/realm
-// This is now just a convenience method that calls ensureKeyExists
-func (s *JWTService) GenerateKey(tenant, realm string) error {
-	return s.ensureKeyExists(tenant, realm)
+func (s *jwtServiceImpl) GenerateKey(tenant, realm string) error {
+	return s.ensureKeyExists(context.Background(), tenant, realm)
+}
+
+// RotateKey generates a new key and disables the old one
+func (s *jwtServiceImpl) RotateKey(tenant, realm string) error {
+	ctx := context.Background()
+	// First, disable all existing active keys
+	keys, err := s.signingKeyDB.ListActiveSigningKeys(ctx, tenant, realm)
+	if err != nil {
+		return fmt.Errorf("failed to list active keys: %w", err)
+	}
+
+	for _, key := range keys {
+		if err := s.signingKeyDB.DisableSigningKey(ctx, tenant, realm, key.Kid); err != nil {
+			return fmt.Errorf("failed to disable key %s: %w", key.Kid, err)
+		}
+	}
+
+	// Then generate a new key
+	return s.ensureKeyExists(ctx, tenant, realm)
 }

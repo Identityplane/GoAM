@@ -13,7 +13,7 @@ type Services struct {
 	SessionsService            *SessionsService
 	StaticConfigurationService StaticConfigurationService
 	OAuth2Service              *OAuth2Service
-	JWTService                 *JWTService
+	JWTService                 JWTService
 	CacheService               CacheService
 }
 
@@ -24,6 +24,7 @@ type DatabaseConnections struct {
 	FlowDB          db.FlowDB
 	ApplicationsDB  db.ApplicationDB
 	ClientSessionDB db.ClientSessionDB
+	SigningKeyDB    db.SigningKeyDB
 }
 
 var (
@@ -50,7 +51,7 @@ func InitServices(connections DatabaseConnections) *Services {
 		SessionsService:            NewSessionsService(databases.ClientSessionDB),
 		StaticConfigurationService: NewStaticConfigurationService(),
 		OAuth2Service:              NewOAuth2Service(),
-		JWTService:                 NewJWTService(),
+		JWTService:                 NewCachedJWTService(NewJWTService(databases.SigningKeyDB), cacheService),
 		CacheService:               cacheService,
 	}
 

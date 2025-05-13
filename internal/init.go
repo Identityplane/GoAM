@@ -93,6 +93,12 @@ func initDatabase() *service.DatabaseConnections {
 		if err != nil {
 			logger.PanicNoContext("Failed to initialize sqlite client session db: %v", err)
 		}
+
+		// init signing key db
+		connections.SigningKeyDB, err = sqlite_adapter.NewSigningKeyDB(sqliteDB)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize sqlite signing key db: %v", err)
+		}
 	}
 
 	if err != nil {
