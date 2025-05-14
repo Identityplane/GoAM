@@ -60,3 +60,15 @@ func (r *UserRepository) Update(ctx context.Context, user *model.User) error {
 
 	return r.db.UpdateUser(ctx, user)
 }
+
+func (r *UserRepository) GetByID(ctx context.Context, id string) (*model.User, error) {
+	return r.db.GetUserByID(ctx, r.tenant, r.realm, id)
+}
+
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
+	return r.db.GetUserByEmail(ctx, r.tenant, r.realm, email)
+}
+
+func (r *UserRepository) GetByLoginIdentifier(ctx context.Context, loginIdentifier string) (*model.User, error) {
+	return r.db.GetUserByLoginIdentifier(ctx, r.tenant, r.realm, loginIdentifier)
+}

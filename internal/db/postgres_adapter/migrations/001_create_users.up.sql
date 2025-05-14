@@ -1,4 +1,3 @@
-
 -- migrations/001_create_users.sql
 
 CREATE TABLE IF NOT EXISTS users (
@@ -19,11 +18,17 @@ CREATE TABLE IF NOT EXISTS users (
     given_name TEXT,
     family_name TEXT,
 
+    -- Profile Information
+    profile_picture_uri TEXT,
+
     -- Additional contact information
     email TEXT,
     phone TEXT,
     email_verified BOOLEAN DEFAULT false,
     phone_verified BOOLEAN DEFAULT false,
+
+    -- Login Information
+    login_identifier TEXT,
 
     -- Locale
     locale TEXT,
@@ -46,6 +51,8 @@ CREATE TABLE IF NOT EXISTS users (
     -- User roles and groups (stored as JSON)
     roles TEXT DEFAULT '[]',
     groups TEXT DEFAULT '[]',
+    entitlements TEXT DEFAULT '[]',
+    consent TEXT DEFAULT '[]',
 
     -- Extensibility
     attributes TEXT DEFAULT '{}',
@@ -72,4 +79,5 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_users_federated_id ON users(federated_id);
+CREATE INDEX IF NOT EXISTS idx_users_login_identifier ON users(login_identifier);
 

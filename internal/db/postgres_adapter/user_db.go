@@ -46,6 +46,8 @@ func (p *PostgresUserDB) CreateUser(ctx context.Context, user model.User) error 
 	groupsJSON, _ := json.Marshal(user.Groups)
 	attributesJSON, _ := json.Marshal(user.Attributes)
 	trustedDevicesJSON, _ := json.Marshal(user.TrustedDevices)
+	entitlementsJSON, _ := json.Marshal(user.Entitlements)
+	consentJSON, _ := json.Marshal(user.Consent)
 
 	// Handle time fields
 	var updatedAt, lastLoginAt interface{}
@@ -68,16 +70,18 @@ func (p *PostgresUserDB) CreateUser(ctx context.Context, user model.User) error 
 			id, tenant, realm, username,
 			status,
 			display_name, given_name, family_name,
+			profile_picture_uri,
 			email, phone, email_verified, phone_verified,
+			login_identifier,
 			locale,
 			password_credential, webauthn_credential, mfa_credential,
 			password_locked, webauthn_locked, mfa_locked,
 			failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-			roles, groups, attributes,
+			roles, groups, entitlements, consent, attributes,
 			created_at, updated_at, last_login_at,
 			federated_idp, federated_id,
 			trusted_devices
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
 	`,
 		user.ID,
 		user.Tenant,
@@ -87,10 +91,12 @@ func (p *PostgresUserDB) CreateUser(ctx context.Context, user model.User) error 
 		user.DisplayName,
 		user.GivenName,
 		user.FamilyName,
+		user.ProfilePictureURI,
 		user.Email,
 		user.Phone,
 		emailVerified,
 		phoneVerified,
+		user.LoginIdentifier,
 		user.Locale,
 		user.PasswordCredential,
 		user.WebAuthnCredential,
@@ -103,6 +109,8 @@ func (p *PostgresUserDB) CreateUser(ctx context.Context, user model.User) error 
 		user.FailedLoginAttemptsMFA,
 		string(rolesJSON),
 		string(groupsJSON),
+		string(entitlementsJSON),
+		string(consentJSON),
 		string(attributesJSON),
 		user.CreatedAt.Format(time.RFC3339),
 		updatedAt,
@@ -123,12 +131,14 @@ func (p *PostgresUserDB) GetUserByUsername(ctx context.Context, tenant, realm, u
 		SELECT id, tenant, realm, username,
 		       status,
 		       display_name, given_name, family_name,
+		       profile_picture_uri,
 		       email, phone, email_verified, phone_verified,
+		       login_identifier,
 		       locale,
 		       password_credential, webauthn_credential, mfa_credential,
 		       password_locked, webauthn_locked, mfa_locked,
 		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-		       roles, groups, attributes,
+		       roles, groups, entitlements, consent, attributes,
 		       created_at, updated_at, last_login_at,
 		       federated_idp, federated_id,
 		       trusted_devices
@@ -147,6 +157,8 @@ func (p *PostgresUserDB) UpdateUser(ctx context.Context, user *model.User) error
 	groupsJSON, _ := json.Marshal(user.Groups)
 	attributesJSON, _ := json.Marshal(user.Attributes)
 	trustedDevicesJSON, _ := json.Marshal(user.TrustedDevices)
+	entitlementsJSON, _ := json.Marshal(user.Entitlements)
+	consentJSON, _ := json.Marshal(user.Consent)
 
 	// Handle time fields
 	var updatedAt, lastLoginAt interface{}
@@ -170,38 +182,44 @@ func (p *PostgresUserDB) UpdateUser(ctx context.Context, user *model.User) error
 			display_name = $2,
 			given_name = $3,
 			family_name = $4,
-			email = $5,
-			phone = $6,
-			email_verified = $7,
-			phone_verified = $8,
-			locale = $9,
-			password_credential = $10,
-			webauthn_credential = $11,
-			mfa_credential = $12,
-			password_locked = $13,
-			webauthn_locked = $14,
-			mfa_locked = $15,
-			failed_login_attempts_password = $16,
-			failed_login_attempts_webauthn = $17,
-			failed_login_attempts_mfa = $18,
-			roles = $19,
-			groups = $20,
-			attributes = $21,
-			updated_at = $22,
-			last_login_at = $23,
-			federated_idp = $24,
-			federated_id = $25,
-			trusted_devices = $26
-		WHERE id = $27 AND tenant = $28 AND realm = $29
+			profile_picture_uri = $5,
+			email = $6,
+			phone = $7,
+			email_verified = $8,
+			phone_verified = $9,
+			login_identifier = $10,
+			locale = $11,
+			password_credential = $12,
+			webauthn_credential = $13,
+			mfa_credential = $14,
+			password_locked = $15,
+			webauthn_locked = $16,
+			mfa_locked = $17,
+			failed_login_attempts_password = $18,
+			failed_login_attempts_webauthn = $19,
+			failed_login_attempts_mfa = $20,
+			roles = $21,
+			groups = $22,
+			entitlements = $23,
+			consent = $24,
+			attributes = $25,
+			updated_at = $26,
+			last_login_at = $27,
+			federated_idp = $28,
+			federated_id = $29,
+			trusted_devices = $30
+		WHERE id = $31 AND tenant = $32 AND realm = $33
 	`,
 		user.Status,
 		user.DisplayName,
 		user.GivenName,
 		user.FamilyName,
+		user.ProfilePictureURI,
 		user.Email,
 		user.Phone,
 		emailVerified,
 		phoneVerified,
+		user.LoginIdentifier,
 		user.Locale,
 		user.PasswordCredential,
 		user.WebAuthnCredential,
@@ -214,6 +232,8 @@ func (p *PostgresUserDB) UpdateUser(ctx context.Context, user *model.User) error
 		user.FailedLoginAttemptsMFA,
 		string(rolesJSON),
 		string(groupsJSON),
+		string(entitlementsJSON),
+		string(consentJSON),
 		string(attributesJSON),
 		updatedAt,
 		lastLoginAt,
@@ -340,12 +360,14 @@ func (p *PostgresUserDB) ListUsersWithPagination(ctx context.Context, tenant, re
 		SELECT id, tenant, realm, username,
 		       status,
 		       display_name, given_name, family_name,
+		       profile_picture_uri,
 		       email, phone, email_verified, phone_verified,
+		       login_identifier,
 		       locale,
 		       password_credential, webauthn_credential, mfa_credential,
 		       password_locked, webauthn_locked, mfa_locked,
 		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-		       roles, groups, attributes,
+		       roles, groups, entitlements, consent, attributes,
 		       created_at, updated_at, last_login_at,
 		       federated_idp, federated_id,
 		       trusted_devices
@@ -362,7 +384,7 @@ func (p *PostgresUserDB) ListUsersWithPagination(ctx context.Context, tenant, re
 	var users []model.User
 	for rows.Next() {
 		var user model.User
-		var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON string
+		var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON, entitlementsJSON, consentJSON string
 		var createdAt, updatedAt string
 		var lastLoginAt *string
 		var emailVerified, phoneVerified, passwordLocked, webauthnLocked, mfaLocked bool
@@ -376,10 +398,12 @@ func (p *PostgresUserDB) ListUsersWithPagination(ctx context.Context, tenant, re
 			&user.DisplayName,
 			&user.GivenName,
 			&user.FamilyName,
+			&user.ProfilePictureURI,
 			&user.Email,
 			&user.Phone,
 			&emailVerified,
 			&phoneVerified,
+			&user.LoginIdentifier,
 			&user.Locale,
 			&user.PasswordCredential,
 			&user.WebAuthnCredential,
@@ -392,6 +416,8 @@ func (p *PostgresUserDB) ListUsersWithPagination(ctx context.Context, tenant, re
 			&user.FailedLoginAttemptsMFA,
 			&rolesJSON,
 			&groupsJSON,
+			&entitlementsJSON,
+			&consentJSON,
 			&attributesJSON,
 			&createdAt,
 			&updatedAt,
@@ -423,6 +449,8 @@ func (p *PostgresUserDB) ListUsersWithPagination(ctx context.Context, tenant, re
 		user.Roles = []string{}
 		user.Groups = []string{}
 		user.Attributes = map[string]string{}
+		user.Entitlements = []string{}
+		user.Consent = []string{}
 
 		if rolesJSON != "" && rolesJSON != "null" {
 			_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
@@ -432,6 +460,12 @@ func (p *PostgresUserDB) ListUsersWithPagination(ctx context.Context, tenant, re
 		}
 		if attributesJSON != "" && attributesJSON != "null" {
 			_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
+		}
+		if entitlementsJSON != "" && entitlementsJSON != "null" {
+			_ = json.Unmarshal([]byte(entitlementsJSON), &user.Entitlements)
+		}
+		if consentJSON != "" && consentJSON != "null" {
+			_ = json.Unmarshal([]byte(consentJSON), &user.Consent)
 		}
 
 		user.TrustedDevices = trustedDevicesJSON
@@ -508,7 +542,7 @@ func (p *PostgresUserDB) DeleteUser(ctx context.Context, tenant, realm, username
 // scanUserFromRow scans a user from a database row
 func (p *PostgresUserDB) scanUserFromRow(row pgx.Row) (*model.User, error) {
 	var user model.User
-	var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON string
+	var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON, entitlementsJSON, consentJSON string
 	var createdAt, updatedAt string
 	var lastLoginAt *string
 	var emailVerified, phoneVerified, passwordLocked, webauthnLocked, mfaLocked bool
@@ -522,10 +556,12 @@ func (p *PostgresUserDB) scanUserFromRow(row pgx.Row) (*model.User, error) {
 		&user.DisplayName,
 		&user.GivenName,
 		&user.FamilyName,
+		&user.ProfilePictureURI,
 		&user.Email,
 		&user.Phone,
 		&emailVerified,
 		&phoneVerified,
+		&user.LoginIdentifier,
 		&user.Locale,
 		&user.PasswordCredential,
 		&user.WebAuthnCredential,
@@ -538,6 +574,8 @@ func (p *PostgresUserDB) scanUserFromRow(row pgx.Row) (*model.User, error) {
 		&user.FailedLoginAttemptsMFA,
 		&rolesJSON,
 		&groupsJSON,
+		&entitlementsJSON,
+		&consentJSON,
 		&attributesJSON,
 		&createdAt,
 		&updatedAt,
@@ -572,21 +610,23 @@ func (p *PostgresUserDB) scanUserFromRow(row pgx.Row) (*model.User, error) {
 	user.Roles = []string{}
 	user.Groups = []string{}
 	user.Attributes = map[string]string{}
+	user.Entitlements = []string{}
+	user.Consent = []string{}
 
 	if rolesJSON != "" && rolesJSON != "null" {
 		_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
-	} else {
-		user.Roles = []string{}
 	}
 	if groupsJSON != "" && groupsJSON != "null" {
 		_ = json.Unmarshal([]byte(groupsJSON), &user.Groups)
-	} else {
-		user.Groups = []string{}
 	}
 	if attributesJSON != "" && attributesJSON != "null" {
 		_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
-	} else {
-		user.Attributes = map[string]string{}
+	}
+	if entitlementsJSON != "" && entitlementsJSON != "null" {
+		_ = json.Unmarshal([]byte(entitlementsJSON), &user.Entitlements)
+	}
+	if consentJSON != "" && consentJSON != "null" {
+		_ = json.Unmarshal([]byte(consentJSON), &user.Consent)
 	}
 
 	user.TrustedDevices = trustedDevicesJSON
@@ -599,18 +639,66 @@ func (p *PostgresUserDB) GetUserByID(ctx context.Context, tenant, realm, userID 
 		SELECT id, tenant, realm, username,
 		       status,
 		       display_name, given_name, family_name,
+		       profile_picture_uri,
 		       email, phone, email_verified, phone_verified,
+		       login_identifier,
 		       locale,
 		       password_credential, webauthn_credential, mfa_credential,
 		       password_locked, webauthn_locked, mfa_locked,
 		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-		       roles, groups, attributes,
+		       roles, groups, entitlements, consent, attributes,
 		       created_at, updated_at, last_login_at,
 		       federated_idp, federated_id,
 		       trusted_devices
 		FROM users 
 		WHERE tenant = $1 AND realm = $2 AND id = $3
 	`, tenant, realm, userID)
+
+	return p.scanUserFromRow(row)
+}
+
+func (p *PostgresUserDB) GetUserByEmail(ctx context.Context, tenant, realm, email string) (*model.User, error) {
+	row := p.db.QueryRow(ctx, `
+		SELECT id, tenant, realm, username,
+		       status,
+		       display_name, given_name, family_name,
+		       profile_picture_uri,
+		       email, phone, email_verified, phone_verified,
+		       login_identifier,
+		       locale,
+		       password_credential, webauthn_credential, mfa_credential,
+		       password_locked, webauthn_locked, mfa_locked,
+		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
+		       roles, groups, entitlements, consent, attributes,
+		       created_at, updated_at, last_login_at,
+		       federated_idp, federated_id,
+		       trusted_devices
+		FROM users 
+		WHERE tenant = $1 AND realm = $2 AND email = $3
+	`, tenant, realm, email)
+
+	return p.scanUserFromRow(row)
+}
+
+func (p *PostgresUserDB) GetUserByLoginIdentifier(ctx context.Context, tenant, realm, loginIdentifier string) (*model.User, error) {
+	row := p.db.QueryRow(ctx, `
+		SELECT id, tenant, realm, username,
+		       status,
+		       display_name, given_name, family_name,
+		       profile_picture_uri,
+		       email, phone, email_verified, phone_verified,
+		       login_identifier,
+		       locale,
+		       password_credential, webauthn_credential, mfa_credential,
+		       password_locked, webauthn_locked, mfa_locked,
+		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
+		       roles, groups, entitlements, consent, attributes,
+		       created_at, updated_at, last_login_at,
+		       federated_idp, federated_id,
+		       trusted_devices
+		FROM users 
+		WHERE tenant = $1 AND realm = $2 AND login_identifier = $3
+	`, tenant, realm, loginIdentifier)
 
 	return p.scanUserFromRow(row)
 }

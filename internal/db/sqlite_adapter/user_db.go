@@ -50,6 +50,8 @@ func (s *SQLiteUserDB) CreateUser(ctx context.Context, user model.User) error {
 	groupsJSON, _ := json.Marshal(user.Groups)
 	attributesJSON, _ := json.Marshal(user.Attributes)
 	trustedDevicesJSON, _ := json.Marshal(user.TrustedDevices)
+	entitlementsJSON, _ := json.Marshal(user.Entitlements)
+	consentJSON, _ := json.Marshal(user.Consent)
 
 	// Handle time fields
 	var updatedAt, lastLoginAt interface{}
@@ -65,16 +67,18 @@ func (s *SQLiteUserDB) CreateUser(ctx context.Context, user model.User) error {
 			id, tenant, realm, username,
 			status,
 			display_name, given_name, family_name,
+			profile_picture_uri,
 			email, phone, email_verified, phone_verified,
+			login_identifier,
 			locale,
 			password_credential, webauthn_credential, mfa_credential,
 			password_locked, webauthn_locked, mfa_locked,
 			failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-			roles, groups, attributes,
+			roles, groups, entitlements, consent, attributes,
 			created_at, updated_at, last_login_at,
 			federated_idp, federated_id,
 			trusted_devices
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		user.ID,
 		user.Tenant,
@@ -84,10 +88,12 @@ func (s *SQLiteUserDB) CreateUser(ctx context.Context, user model.User) error {
 		user.DisplayName,
 		user.GivenName,
 		user.FamilyName,
+		user.ProfilePictureURI,
 		user.Email,
 		user.Phone,
 		user.EmailVerified,
 		user.PhoneVerified,
+		user.LoginIdentifier,
 		user.Locale,
 		user.PasswordCredential,
 		user.WebAuthnCredential,
@@ -100,6 +106,8 @@ func (s *SQLiteUserDB) CreateUser(ctx context.Context, user model.User) error {
 		user.FailedLoginAttemptsMFA,
 		string(rolesJSON),
 		string(groupsJSON),
+		string(entitlementsJSON),
+		string(consentJSON),
 		string(attributesJSON),
 		user.CreatedAt.Format(time.RFC3339),
 		updatedAt,
@@ -120,12 +128,14 @@ func (s *SQLiteUserDB) GetUserByUsername(ctx context.Context, tenant, realm, use
 		SELECT id, tenant, realm, username,
 		       status,
 		       display_name, given_name, family_name,
+		       profile_picture_uri,
 		       email, phone, email_verified, phone_verified,
+		       login_identifier,
 		       locale,
 		       password_credential, webauthn_credential, mfa_credential,
 		       password_locked, webauthn_locked, mfa_locked,
 		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-		       roles, groups, attributes,
+		       roles, groups, entitlements, consent, attributes,
 		       created_at, updated_at, last_login_at,
 		       federated_idp, federated_id,
 		       trusted_devices
@@ -139,7 +149,7 @@ func (s *SQLiteUserDB) GetUserByUsername(ctx context.Context, tenant, realm, use
 // scanUserFromRow scans a user from a database row
 func (s *SQLiteUserDB) scanUserFromRow(row *sql.Row) (*model.User, error) {
 	var user model.User
-	var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON string
+	var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON, entitlementsJSON, consentJSON string
 	var createdAt, updatedAt string
 	var lastLoginAt sql.NullString
 
@@ -152,10 +162,12 @@ func (s *SQLiteUserDB) scanUserFromRow(row *sql.Row) (*model.User, error) {
 		&user.DisplayName,
 		&user.GivenName,
 		&user.FamilyName,
+		&user.ProfilePictureURI,
 		&user.Email,
 		&user.Phone,
 		&user.EmailVerified,
 		&user.PhoneVerified,
+		&user.LoginIdentifier,
 		&user.Locale,
 		&user.PasswordCredential,
 		&user.WebAuthnCredential,
@@ -168,6 +180,8 @@ func (s *SQLiteUserDB) scanUserFromRow(row *sql.Row) (*model.User, error) {
 		&user.FailedLoginAttemptsMFA,
 		&rolesJSON,
 		&groupsJSON,
+		&entitlementsJSON,
+		&consentJSON,
 		&attributesJSON,
 		&createdAt,
 		&updatedAt,
@@ -195,27 +209,26 @@ func (s *SQLiteUserDB) scanUserFromRow(row *sql.Row) (*model.User, error) {
 	user.Roles = []string{}
 	user.Groups = []string{}
 	user.Attributes = map[string]string{}
+	user.Entitlements = []string{}
+	user.Consent = []string{}
 
 	if rolesJSON != "" && rolesJSON != "null" {
 		_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
-	} else {
-		user.Roles = []string{}
 	}
 	if groupsJSON != "" && groupsJSON != "null" {
 		_ = json.Unmarshal([]byte(groupsJSON), &user.Groups)
-	} else {
-		user.Groups = []string{}
 	}
 	if attributesJSON != "" && attributesJSON != "null" {
 		_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
-	} else {
-		user.Attributes = map[string]string{}
 	}
-
+	if entitlementsJSON != "" && entitlementsJSON != "null" {
+		_ = json.Unmarshal([]byte(entitlementsJSON), &user.Entitlements)
+	}
+	if consentJSON != "" && consentJSON != "null" {
+		_ = json.Unmarshal([]byte(consentJSON), &user.Consent)
+	}
 	if trustedDevicesJSON != "" && trustedDevicesJSON != "null" {
 		_ = json.Unmarshal([]byte(trustedDevicesJSON), &user.TrustedDevices)
-	} else {
-		user.TrustedDevices = ""
 	}
 
 	return &user, nil
@@ -226,12 +239,14 @@ func (s *SQLiteUserDB) GetUserByID(ctx context.Context, tenant, realm, userID st
 		SELECT id, tenant, realm, username,
 		       status,
 		       display_name, given_name, family_name,
+		       profile_picture_uri,
 		       email, phone, email_verified, phone_verified,
+		       login_identifier,
 		       locale,
 		       password_credential, webauthn_credential, mfa_credential,
 		       password_locked, webauthn_locked, mfa_locked,
 		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-		       roles, groups, attributes,
+		       roles, groups, entitlements, consent, attributes,
 		       created_at, updated_at, last_login_at,
 		       federated_idp, federated_id,
 		       trusted_devices
@@ -250,12 +265,11 @@ func (s *SQLiteUserDB) UpdateUser(ctx context.Context, user *model.User) error {
 	groupsJSON, _ := json.Marshal(user.Groups)
 	attributesJSON, _ := json.Marshal(user.Attributes)
 	trustedDevicesJSON, _ := json.Marshal(user.TrustedDevices)
+	entitlementsJSON, _ := json.Marshal(user.Entitlements)
+	consentJSON, _ := json.Marshal(user.Consent)
 
 	// Handle time fields
-	var updatedAt, lastLoginAt interface{}
-	if !user.UpdatedAt.IsZero() {
-		updatedAt = user.UpdatedAt.Format(time.RFC3339)
-	}
+	var lastLoginAt interface{}
 	if user.LastLoginAt != nil {
 		lastLoginAt = user.LastLoginAt.Format(time.RFC3339)
 	}
@@ -266,10 +280,12 @@ func (s *SQLiteUserDB) UpdateUser(ctx context.Context, user *model.User) error {
 			display_name = ?,
 			given_name = ?,
 			family_name = ?,
+			profile_picture_uri = ?,
 			email = ?,
 			phone = ?,
 			email_verified = ?,
 			phone_verified = ?,
+			login_identifier = ?,
 			locale = ?,
 			password_credential = ?,
 			webauthn_credential = ?,
@@ -282,22 +298,26 @@ func (s *SQLiteUserDB) UpdateUser(ctx context.Context, user *model.User) error {
 			failed_login_attempts_mfa = ?,
 			roles = ?,
 			groups = ?,
+			entitlements = ?,
+			consent = ?,
 			attributes = ?,
 			updated_at = ?,
 			last_login_at = ?,
 			federated_idp = ?,
 			federated_id = ?,
 			trusted_devices = ?
-		WHERE id = ? AND tenant = ? AND realm = ?
+		WHERE tenant = ? AND realm = ? AND id = ?
 	`,
 		user.Status,
 		user.DisplayName,
 		user.GivenName,
 		user.FamilyName,
+		user.ProfilePictureURI,
 		user.Email,
 		user.Phone,
 		user.EmailVerified,
 		user.PhoneVerified,
+		user.LoginIdentifier,
 		user.Locale,
 		user.PasswordCredential,
 		user.WebAuthnCredential,
@@ -310,16 +330,19 @@ func (s *SQLiteUserDB) UpdateUser(ctx context.Context, user *model.User) error {
 		user.FailedLoginAttemptsMFA,
 		string(rolesJSON),
 		string(groupsJSON),
+		string(entitlementsJSON),
+		string(consentJSON),
 		string(attributesJSON),
-		updatedAt,
+		user.UpdatedAt.Format(time.RFC3339),
 		lastLoginAt,
 		user.FederatedIDP,
 		user.FederatedID,
 		string(trustedDevicesJSON),
-		user.ID,
 		user.Tenant,
 		user.Realm,
+		user.ID,
 	)
+
 	return err
 }
 
@@ -372,12 +395,14 @@ func (s *SQLiteUserDB) ListUsersWithPagination(ctx context.Context, tenant, real
 		SELECT id, tenant, realm, username,
 		       status,
 		       display_name, given_name, family_name,
+		       profile_picture_uri,
 		       email, phone, email_verified, phone_verified,
+		       login_identifier,
 		       locale,
 		       password_credential, webauthn_credential, mfa_credential,
 		       password_locked, webauthn_locked, mfa_locked,
 		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-		       roles, groups, attributes,
+		       roles, groups, entitlements, consent, attributes,
 		       created_at, updated_at, last_login_at,
 		       federated_idp, federated_id,
 		       trusted_devices
@@ -393,7 +418,7 @@ func (s *SQLiteUserDB) ListUsersWithPagination(ctx context.Context, tenant, real
 	var users []model.User
 	for rows.Next() {
 		var user model.User
-		var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON string
+		var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON, entitlementsJSON, consentJSON string
 		var createdAt, updatedAt string
 		var lastLoginAt sql.NullString
 
@@ -406,10 +431,12 @@ func (s *SQLiteUserDB) ListUsersWithPagination(ctx context.Context, tenant, real
 			&user.DisplayName,
 			&user.GivenName,
 			&user.FamilyName,
+			&user.ProfilePictureURI,
 			&user.Email,
 			&user.Phone,
 			&user.EmailVerified,
 			&user.PhoneVerified,
+			&user.LoginIdentifier,
 			&user.Locale,
 			&user.PasswordCredential,
 			&user.WebAuthnCredential,
@@ -422,6 +449,8 @@ func (s *SQLiteUserDB) ListUsersWithPagination(ctx context.Context, tenant, real
 			&user.FailedLoginAttemptsMFA,
 			&rolesJSON,
 			&groupsJSON,
+			&entitlementsJSON,
+			&consentJSON,
 			&attributesJSON,
 			&createdAt,
 			&updatedAt,
@@ -446,6 +475,8 @@ func (s *SQLiteUserDB) ListUsersWithPagination(ctx context.Context, tenant, real
 		user.Roles = []string{}
 		user.Groups = []string{}
 		user.Attributes = map[string]string{}
+		user.Entitlements = []string{}
+		user.Consent = []string{}
 
 		if rolesJSON != "" && rolesJSON != "null" {
 			_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
@@ -456,8 +487,16 @@ func (s *SQLiteUserDB) ListUsersWithPagination(ctx context.Context, tenant, real
 		if attributesJSON != "" && attributesJSON != "null" {
 			_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
 		}
+		if entitlementsJSON != "" && entitlementsJSON != "null" {
+			_ = json.Unmarshal([]byte(entitlementsJSON), &user.Entitlements)
+		}
+		if consentJSON != "" && consentJSON != "null" {
+			_ = json.Unmarshal([]byte(consentJSON), &user.Consent)
+		}
+		if trustedDevicesJSON != "" && trustedDevicesJSON != "null" {
+			_ = json.Unmarshal([]byte(trustedDevicesJSON), &user.TrustedDevices)
+		}
 
-		user.TrustedDevices = trustedDevicesJSON
 		users = append(users, user)
 	}
 
@@ -482,4 +521,50 @@ func (s *SQLiteUserDB) DeleteUser(ctx context.Context, tenant, realm, username s
 
 	// No error if user doesn't exist (idempotent)
 	return nil
+}
+
+func (s *SQLiteUserDB) GetUserByEmail(ctx context.Context, tenant, realm, email string) (*model.User, error) {
+	row := s.db.QueryRowContext(ctx, `
+		SELECT id, tenant, realm, username,
+		       status,
+		       display_name, given_name, family_name,
+		       profile_picture_uri,
+		       email, phone, email_verified, phone_verified,
+		       login_identifier,
+		       locale,
+		       password_credential, webauthn_credential, mfa_credential,
+		       password_locked, webauthn_locked, mfa_locked,
+		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
+		       roles, groups, entitlements, consent, attributes,
+		       created_at, updated_at, last_login_at,
+		       federated_idp, federated_id,
+		       trusted_devices
+		FROM users 
+		WHERE tenant = ? AND realm = ? AND email = ?
+	`, tenant, realm, email)
+
+	return s.scanUserFromRow(row)
+}
+
+func (s *SQLiteUserDB) GetUserByLoginIdentifier(ctx context.Context, tenant, realm, loginIdentifier string) (*model.User, error) {
+	row := s.db.QueryRowContext(ctx, `
+		SELECT id, tenant, realm, username,
+		       status,
+		       display_name, given_name, family_name,
+		       profile_picture_uri,
+		       email, phone, email_verified, phone_verified,
+		       login_identifier,
+		       locale,
+		       password_credential, webauthn_credential, mfa_credential,
+		       password_locked, webauthn_locked, mfa_locked,
+		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
+		       roles, groups, entitlements, consent, attributes,
+		       created_at, updated_at, last_login_at,
+		       federated_idp, federated_id,
+		       trusted_devices
+		FROM users 
+		WHERE tenant = ? AND realm = ? AND login_identifier = ?
+	`, tenant, realm, loginIdentifier)
+
+	return s.scanUserFromRow(row)
 }

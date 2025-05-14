@@ -81,15 +81,25 @@ func (s *userServiceImpl) UpdateUser(ctx context.Context, tenant, realm, usernam
 	user.DisplayName = updateUser.DisplayName
 	user.GivenName = updateUser.GivenName
 	user.FamilyName = updateUser.FamilyName
+	user.ProfilePictureURI = updateUser.ProfilePictureURI
 	user.Email = updateUser.Email
 	user.Phone = updateUser.Phone
 	user.EmailVerified = updateUser.EmailVerified
 	user.PhoneVerified = updateUser.PhoneVerified
+	user.LoginIdentifier = updateUser.LoginIdentifier
 	user.Locale = updateUser.Locale
 	user.Status = updateUser.Status
 	user.Roles = updateUser.Roles
 	user.Groups = updateUser.Groups
+	user.Entitlements = updateUser.Entitlements
+	user.Consent = updateUser.Consent
 	user.Attributes = updateUser.Attributes
+	user.PasswordLocked = updateUser.PasswordLocked
+	user.WebAuthnLocked = updateUser.WebAuthnLocked
+	user.MFALocked = updateUser.MFALocked
+	user.FailedLoginAttemptsPassword = updateUser.FailedLoginAttemptsPassword
+	user.FailedLoginAttemptsWebAuthn = updateUser.FailedLoginAttemptsWebAuthn
+	user.FailedLoginAttemptsMFA = updateUser.FailedLoginAttemptsMFA
 
 	// Update user in database
 	if err := s.userDB.UpdateUser(ctx, user); err != nil {

@@ -25,11 +25,17 @@ type User struct {
 	GivenName   string `json:"given_name" example:"John"`
 	FamilyName  string `json:"family_name" example:"Doe"`
 
+	// Profile Information
+	ProfilePictureURI string `json:"profile_picture_uri" example:"https://example.com/profile.jpg"`
+
 	// Additional contact information
 	Email         string `json:"email" example:"john.doe@example.com"`
 	Phone         string `json:"phone" example:"+1234567890"`
 	EmailVerified bool   `json:"email_verified" example:"true"`
 	PhoneVerified bool   `json:"phone_verified" example:"false"`
+
+	// Login Information
+	LoginIdentifier string `json:"login_identifier" example:"john.doe@example.com"`
 
 	// Locale
 	Locale string `json:"locale" example:"en-US"`
@@ -47,9 +53,13 @@ type User struct {
 	FailedLoginAttemptsWebAuthn int `json:"failed_login_attempts_webauthn" example:"0"`
 	FailedLoginAttemptsMFA      int `json:"failed_login_attempts_mfa" example:"0"`
 
-	// User roles and groups
-	Roles  []string `json:"roles" example:"['admin', 'user']"`
-	Groups []string `json:"groups" example:"['developers', 'support']"`
+	// User roles, groups and entitlements
+	Roles        []string `json:"roles" example:"['admin', 'user']"`
+	Groups       []string `json:"groups" example:"['developers', 'support']"`
+	Entitlements []string `json:"entitlements" example:"['read:users', 'write:users']"`
+
+	// User consents
+	Consent []string `json:"consent" example:"['marketing', 'analytics', 'cookies']"`
 
 	// Extensibility
 	Attributes map[string]string `json:"attributes" example:"{'department': 'IT', 'location': 'HQ'}"`
