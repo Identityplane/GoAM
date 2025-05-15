@@ -28,6 +28,9 @@ var NodeDefinitions = map[string]*NodeDefinition{
 	// Password
 	UpdatePasswordNode.Name:           UpdatePasswordNode,
 	ValidateUsernamePasswordNode.Name: ValidateUsernamePasswordNode,
+
+	// Hcaptcha
+	HcaptchaNode.Name: HcaptchaNode,
 }
 
 func GetNodeDefinitionByName(name string) *NodeDefinition {
