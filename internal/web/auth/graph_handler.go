@@ -127,10 +127,7 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 	// Load the inputs from the request
 	var input map[string]string
 	if ctx.IsPost() {
-		step := string(ctx.PostArgs().Peek("step"))
-		if step != "" && session.Current == step {
-			input = extractPromptsFromRequest(ctx, flow.Definition, step)
-		}
+		input = extractPromptsFromRequest(ctx, flow.Definition, session.Current)
 	}
 
 	// Run the flow engine with the current state and input

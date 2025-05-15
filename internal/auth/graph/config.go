@@ -18,6 +18,9 @@ var NodeDefinitions = map[string]*NodeDefinition{
 
 	// User Management
 	LoadUserByUsernameNode.Name: LoadUserByUsernameNode,
+
+	// Password or Social Login
+	PasswordOrSocialLoginNode.Name: PasswordOrSocialLoginNode,
 }
 
 func GetNodeDefinitionByName(name string) *NodeDefinition {

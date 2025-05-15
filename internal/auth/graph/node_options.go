@@ -1,0 +1,49 @@
+package graph
+
+import (
+	"fmt"
+	"goiam/internal/auth/repository"
+	"goiam/internal/model"
+)
+
+var PasswordOrSocialLoginNode = &NodeDefinition{
+	Name:                 "passwordOrSocialLogin",
+	Type:                 model.NodeTypeQueryWithLogic,
+	RequiredContext:      []string{""},
+	PossiblePrompts:      map[string]string{"option": "text", "username": "text", "password": "password", "email": "email"},
+	OutputContext:        []string{"username", "password"},
+	PossibleResultStates: []string{"password", "forgotPassword", "passkey", "social1", "social2", "social3"},
+	CustomConfigOptions:  []string{"useEmail", "showForgotPassword", "showPasskeys", "showSocial1", "showSocial2", "social1Provider", "social2Provider"},
+	Run:                  RunPasswordOrSocialLoginNode,
+}
+
+func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+
+	// if option is not set we return the prompt
+	option, ok := input["option"]
+	if !ok {
+		return model.NewNodeResultWithPrompts(map[string]string{"option": "text", "username": "text", "password": "password", "email": "email"})
+	}
+
+	// if option is set we return the result
+	switch option {
+	case "password":
+
+		// Copy username and password to context
+		state.Context["username"] = input["username"]
+		state.Context["email"] = input["email"]
+		state.Context["password"] = input["password"]
+
+		return model.NewNodeResultWithCondition("password")
+	case "forgotPassword":
+		return model.NewNodeResultWithCondition("forgotPassword")
+	case "passkey":
+		return model.NewNodeResultWithCondition("passkey")
+	case "social1":
+		return model.NewNodeResultWithCondition("social1")
+	case "social2":
+		return model.NewNodeResultWithCondition("social2")
+	}
+
+	return nil, fmt.Errorf("invalid option: %s", option)
+}

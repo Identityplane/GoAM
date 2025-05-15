@@ -8,6 +8,7 @@ import (
 	"goiam/internal/model"
 	"html/template"
 	"path/filepath"
+	"strings"
 
 	"github.com/valyala/fasthttp"
 )
@@ -17,6 +18,7 @@ var (
 	baseTemplates      *template.Template
 	LayoutTemplatePath = "templates/layout.html"
 	NodeTemplatesPath  = "templates/nodes"
+	ComponentsPath     = "templates/components"
 )
 
 // ViewData is passed to all templates for dynamic rendering
@@ -41,9 +43,27 @@ type ViewData struct {
 //go:embed templates/*
 var templatesFS embed.FS
 
-// InitTemplates loads and parses the base layout template
-func InitTemplates() error {
+// loadComponents loads all component templates from the components directory
+func loadComponents(tmpl *template.Template) error {
+	entries, err := templatesFS.ReadDir(ComponentsPath)
+	if err != nil {
+		return fmt.Errorf("failed to read components directory: %w", err)
+	}
 
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".html") {
+			componentPath := filepath.Join(ComponentsPath, entry.Name())
+			_, err := tmpl.ParseFS(templatesFS, componentPath)
+			if err != nil {
+				return fmt.Errorf("failed to parse component %s: %w", entry.Name(), err)
+			}
+		}
+	}
+	return nil
+}
+
+// InitTemplates loads and parses the base layout template and all components
+func InitTemplates() error {
 	// Parse the base layout template
 	tmpl, err := template.New("layout").Funcs(template.FuncMap{
 		"title": title,
@@ -53,13 +73,17 @@ func InitTemplates() error {
 		return fmt.Errorf("failed to parse base template: %w", err)
 	}
 
+	// Load all component templates
+	if err := loadComponents(tmpl); err != nil {
+		return fmt.Errorf("failed to load components: %w", err)
+	}
+
 	baseTemplates = tmpl
 	return nil
 }
 
 // Render is the single public entry point
 func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.AuthenticationSession, resultNode *model.GraphNode, prompts map[string]string, baseUrl string) {
-
 	var templateFile string
 	var customMessage string
 
@@ -72,8 +96,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		}
 	}
 
-	// Choosing the right tempalte file
-	// TODO this should be simplified so that in any case we just render the template for the node
+	// Choosing the right template file
 	if state.Result != nil {
 		templateFile = "result.html"
 		customMessage = resultNode.CustomConfig["message"]
@@ -89,7 +112,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		return
 	}
 
-	// Lookup custom config of node to make it available to the tempalte
+	// Lookup custom config of node to make it available to the template
 	CustomConfig := currentGraphNode.CustomConfig
 	if CustomConfig == nil {
 		CustomConfig = make(map[string]string)

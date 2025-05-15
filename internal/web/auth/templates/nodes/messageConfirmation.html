@@ -5,7 +5,7 @@
 
   <input type="hidden" name="step" value="{{ .NodeName }}">
   <input type="hidden" name="confirmation" value="true">
-  <button type="submit">{{index .CustomConfig "button_text"}}</button>
+  <button type="submit">{{if index .CustomConfig "button_text"}}{{index .CustomConfig "button_text"}}{{else}}Ok{{end}}</button>
 
 </form>
 {{ end }}
