@@ -2,12 +2,23 @@ package graph
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"goiam/internal/auth/repository"
+	"goiam/internal/lib"
 	"goiam/internal/model"
+	"strconv"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 )
+
+var UpdatePasswordNode = &NodeDefinition{
+	Name:                 "updatePassword",
+	Type:                 model.NodeTypeLogic,
+	RequiredContext:      []string{"user"},
+	OutputContext:        []string{}, // or we may skip outputs if conditions imply it
+	PossibleResultStates: []string{"success", "fail"},
+	Run:                  RunUpdatePasswordNode,
+}
 
 var ValidateUsernamePasswordNode = &NodeDefinition{
 	Name:                 "validateUsernamePassword",
@@ -15,7 +26,7 @@ var ValidateUsernamePasswordNode = &NodeDefinition{
 	RequiredContext:      []string{"username", "password"},
 	OutputContext:        []string{"auth_result"}, // or we may skip outputs if conditions imply it
 	PossibleResultStates: []string{"success", "fail", "locked", "noPassword"},
-	CustomConfigOptions:  []string{"maxFailedLoginAttempts", "user_lookup_method"},
+	CustomConfigOptions:  []string{"max_failed_password_attempts", "user_lookup_method"},
 	Run:                  RunValidateUsernamePasswordNode,
 }
 
@@ -26,10 +37,19 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 	email := state.Context["email"]
 	loginIdentifier := state.Context["loginIdentifier"]
 
+	// if max_failed_password_attempts is set use else default to 5
+	maxFailedPasswordAttempts := 5
+	var err error
+	if node.CustomConfig["max_failed_password_attempts"] != "" {
+		maxFailedPasswordAttempts, err = strconv.Atoi(node.CustomConfig["max_failed_password_attempts"])
+		if err != nil {
+			return model.NewNodeResultWithError(fmt.Errorf("failed to convert max_failed_password_attempts to int: %w", err))
+		}
+	}
+
 	ctx := context.Background()
 
 	var user *model.User
-	var err error
 
 	userLookupMethod := node.CustomConfig["user_lookup_method"]
 
@@ -48,7 +68,7 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 	}
 
 	// Check if user is locked or has too many failed login attempts
-	if user.FailedLoginAttemptsPassword >= 3 || user.PasswordLocked {
+	if user.FailedLoginAttemptsPassword >= maxFailedPasswordAttempts || user.PasswordLocked {
 		return model.NewNodeResultWithCondition("locked")
 	}
 
@@ -58,13 +78,18 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 	}
 
 	// Compare password
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordCredential), []byte(password))
+	err = lib.ComparePassword(password, user.PasswordCredential)
 	if err != nil {
 		user.FailedLoginAttemptsPassword++
-		if user.FailedLoginAttemptsPassword >= 3 {
+		if user.FailedLoginAttemptsPassword >= maxFailedPasswordAttempts {
 			user.PasswordLocked = true
 		}
 		_ = services.UserRepo.Update(ctx, user)
+
+		if user.FailedLoginAttemptsPassword >= maxFailedPasswordAttempts {
+			return model.NewNodeResultWithCondition("locked")
+		}
+
 		return model.NewNodeResultWithCondition("fail")
 	}
 
@@ -77,6 +102,31 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 	state.User = user
 	state.Context["auth_result"] = "success"
 	state.Context["user_id"] = user.ID
+
+	return model.NewNodeResultWithCondition("success")
+}
+
+func RunUpdatePasswordNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+
+	if state.User == nil {
+		return model.NewNodeResultWithError(errors.New("user must be loaded before updating password"))
+	}
+
+	if state.Context["password"] == "" {
+
+		return model.NewNodeResultWithPrompts(map[string]string{"password": "password"})
+	}
+
+	hashed, err := lib.HashPassword(state.Context["password"])
+	if err != nil {
+		return model.NewNodeResultWithError(fmt.Errorf("failed to hash password: %w", err))
+	}
+
+	state.User.PasswordCredential = hashed
+	err = services.UserRepo.Update(context.Background(), state.User)
+	if err != nil {
+		return model.NewNodeResultWithError(fmt.Errorf("failed to update password: %w", err))
+	}
 
 	return model.NewNodeResultWithCondition("success")
 }

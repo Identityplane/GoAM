@@ -88,7 +88,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	if newSession.Result != nil {
 		// If the result is set we clear the session
-		service.GetServices().SessionsService.DeleteAuthenticationSession(session.SessionIdHash)
+		service.GetServices().SessionsService.DeleteAuthenticationSession(tenant, realm, session.SessionIdHash)
 	}
 
 	// Render the result
@@ -165,7 +165,7 @@ func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, 
 
 	// If the session if from a different flow we delete it and create a new one by overwriting it
 	if session != nil && session.FlowId != flow.Id {
-		service.GetServices().SessionsService.DeleteAuthenticationSession(session.SessionIdHash)
+		service.GetServices().SessionsService.DeleteAuthenticationSession(tenant, realm, session.SessionIdHash)
 		return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow)
 	}
 
@@ -177,7 +177,7 @@ func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, bas
 
 	// if not we create a new session
 	loginUri := baseUrl + "/auth/" + flow.Route
-	session, sessionID := service.GetServices().SessionsService.CreateSessionObject(tenant, realm, flow.Id, loginUri)
+	session, sessionID := service.GetServices().SessionsService.CreateAuthSessionObject(tenant, realm, flow.Id, loginUri)
 
 	c := &fasthttp.Cookie{}
 	c.SetPath("/")

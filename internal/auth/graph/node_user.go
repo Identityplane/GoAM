@@ -21,28 +21,36 @@ var LoadUserByUsernameNode = &NodeDefinition{
 
 func RunLoadUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 
-	ctx := context.Background()
 	username := state.Context["username"]
+	email := state.Context["email"]
+	loginIdentifier := state.Context["loginIdentifier"]
 
-	userRepo := services.UserRepo
-	if userRepo == nil {
-		return model.NewNodeResultWithTextError("UserRepo not initialized")
+	ctx := context.Background()
+
+	var user *model.User
+	var err error
+
+	userLookupMethod := node.CustomConfig["user_lookup_method"]
+
+	switch userLookupMethod {
+	case "email":
+		user, err = services.UserRepo.GetByEmail(ctx, email)
+	case "loginIdentifier":
+		user, err = services.UserRepo.GetByLoginIdentifier(ctx, loginIdentifier)
+	default:
+		user, err = services.UserRepo.GetByUsername(ctx, username)
 	}
-
-	// Check for existing user
-	existing, err := userRepo.GetByUsername(ctx, username)
 
 	if err != nil {
 		return model.NewNodeResultWithError(fmt.Errorf("failed to get user: %w", err))
 	}
 
-	if existing == nil {
+	if user == nil {
 		return model.NewNodeResultWithCondition("not_found")
 	}
 
-	state.User = existing
-	state.Context["user_id"] = existing.ID
-	state.Context["username"] = existing.Username
+	state.User = user
+	state.Context["user_id"] = user.ID
 
 	return model.NewNodeResultWithCondition("loaded")
 }

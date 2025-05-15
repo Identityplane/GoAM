@@ -51,7 +51,7 @@ func (s *SessionsService) SetTimeProvider(provider TimeProvider) {
 // Creates a new session object but does not store it in the database yet
 // This is to optimize performance so that only one database call is made when the session is created
 // returns the session object and session id
-func (s *SessionsService) CreateSessionObject(tenant, realm, flowId, loginUri string) (*model.AuthenticationSession, string) {
+func (s *SessionsService) CreateAuthSessionObject(tenant, realm, flowId, loginUri string) (*model.AuthenticationSession, string) {
 
 	sessionID := lib.GenerateSecureSessionID()
 
@@ -112,10 +112,13 @@ func (s *SessionsService) GetAuthenticationSession(tenant, realm, sessionIDHash 
 }
 
 // DeleteAuthenticationSession removes an authentication session
-func (s *SessionsService) DeleteAuthenticationSession(sessionIDHash string) {
+func (s *SessionsService) DeleteAuthenticationSession(tenant, realm, sessionIDHash string) {
+
+	cashKey := tenant + ":" + realm + ":" + sessionIDHash
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	delete(s.sessions, sessionIDHash)
+	delete(s.sessions, cashKey)
 }
 
 // CreateClientSession creates a new client session

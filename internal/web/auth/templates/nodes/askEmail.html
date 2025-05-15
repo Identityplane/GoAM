@@ -1,0 +1,18 @@
+{{ define "content" }}
+<form method="POST" class="login-form" action="{{ .LoginUri}}">
+  <h2>Welcometo GoAM</h2>
+  <p>{{index .CustomConfig "message"}}</p>
+
+  <div class="input-group">
+    <input type="hidden" name="step" value="{{ .NodeName }}">
+    <label for="email">Email</label>
+    <input type="email" name="email" id="email" placeholder="email" required />
+  </div>
+  <button type="submit">Login</button>
+
+  {{ if index .CustomConfig "showRegisterLink" }}
+    <p class="register-link">Don't have an account? <a href="/register">Sign up</a></p>
+  {{ end }}
+
+</form>
+{{ end }}

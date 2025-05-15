@@ -137,7 +137,7 @@ func TestSessionsService(t *testing.T) {
 	t.Run("CreateSessionObject", func(t *testing.T) {
 		flowID := "test-flow"
 		loginURI := "/login"
-		session, sessionID := service.CreateSessionObject(testTenant, testRealm, flowID, loginURI)
+		session, sessionID := service.CreateAuthSessionObject(testTenant, testRealm, flowID, loginURI)
 
 		assert.NotEmpty(t, sessionID)
 		assert.Equal(t, flowID, session.FlowId)
@@ -153,7 +153,7 @@ func TestSessionsService(t *testing.T) {
 	t.Run("CreateAndGetAuthenticationSession", func(t *testing.T) {
 		flowID := "test-flow"
 		loginURI := "/login"
-		session, sessionID := service.CreateSessionObject(testTenant, testRealm, flowID, loginURI)
+		session, sessionID := service.CreateAuthSessionObject(testTenant, testRealm, flowID, loginURI)
 
 		err := service.CreateOrUpdateAuthenticationSession(testTenant, testRealm, *session)
 		require.NoError(t, err)
@@ -198,7 +198,7 @@ func TestSessionsService(t *testing.T) {
 	t.Run("CreateAndGetAuthCodeSession", func(t *testing.T) {
 		flowID := "test-flow"
 		loginURI := "/login"
-		loginSession, _ := service.CreateSessionObject(testTenant, testRealm, flowID, loginURI)
+		loginSession, _ := service.CreateAuthSessionObject(testTenant, testRealm, flowID, loginURI)
 
 		authCode, err := service.CreateAuthCodeSession(
 			ctx,

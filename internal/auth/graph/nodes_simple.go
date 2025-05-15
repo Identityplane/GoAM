@@ -71,6 +71,17 @@ var AskUsernameNode = &NodeDefinition{
 	PossibleResultStates: []string{"submitted"},
 }
 
+var AskEmailNode = &NodeDefinition{
+	Name:            "askEmail",
+	Type:            model.NodeTypeQuery,
+	RequiredContext: []string{},
+	OutputContext:   []string{"email"},
+	PossiblePrompts: map[string]string{
+		"email": "email",
+	},
+	PossibleResultStates: []string{"submitted"},
+}
+
 var AskPasswordNode = &NodeDefinition{
 	Name:            "askPassword",
 	Type:            model.NodeTypeQuery,

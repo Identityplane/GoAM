@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"goiam/internal/auth/repository"
+	"goiam/internal/lib"
 	"goiam/internal/model"
 	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var CreateUserNode = &NodeDefinition{
@@ -36,7 +36,7 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 		return model.NewNodeResultWithTextError("username already exists")
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashed, err := lib.HashPassword(password)
 	if err != nil {
 		return model.NewNodeResultWithError(fmt.Errorf("failed to hash password: %w", err))
 	}

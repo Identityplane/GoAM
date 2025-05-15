@@ -28,6 +28,7 @@ type ViewData struct {
 	Prompts      map[string]string
 	Debug        bool
 	Error        string
+	State        *model.AuthenticationSession
 	StateJSON    string
 	FlowName     string
 	StylePath    string
@@ -134,6 +135,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		Prompts:      prompts,
 		Debug:        debug,
 		Error:        resolveErrorMessage(state),
+		State:        state,
 		StateJSON:    stateJSON,
 		FlowName:     currentGraphNode.Name,
 		Message:      customMessage,

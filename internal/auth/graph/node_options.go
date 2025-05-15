@@ -35,7 +35,7 @@ func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *mode
 		state.Context["password"] = input["password"]
 
 		return model.NewNodeResultWithCondition("password")
-	case "forgotPassword":
+	case "forgot-password":
 		return model.NewNodeResultWithCondition("forgotPassword")
 	case "passkey":
 		return model.NewNodeResultWithCondition("passkey")
