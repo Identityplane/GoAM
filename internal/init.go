@@ -99,6 +99,12 @@ func initDatabase() *service.DatabaseConnections {
 		if err != nil {
 			logger.PanicNoContext("Failed to initialize sqlite signing key db: %v", err)
 		}
+
+		// init auth session db
+		connections.AuthSessionDB, err = sqlite_adapter.NewAuthSessionDB(sqliteDB)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize sqlite auth session db: %v", err)
+		}
 	}
 
 	if err != nil {

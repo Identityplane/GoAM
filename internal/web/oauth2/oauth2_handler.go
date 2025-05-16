@@ -134,7 +134,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	loginUrl := fmt.Sprintf("%s/auth/%s", loadedRealm.Config.BaseUrl, flow.Route)
 
 	// Save the session
-	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(tenant, realm, *session)
+	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, *session)
 
 	// If the debug paramter is set we add it to the login url
 	if ctx.QueryArgs().Has("debug") {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -121,10 +122,111 @@ func (m *mockClientSessionDB) DeleteExpiredClientSessions(ctx context.Context, t
 	return nil
 }
 
+type mockAuthSessionDB struct {
+	sessions map[string]*model.PersistentAuthSession
+	mu       sync.RWMutex
+}
+
+func newMockAuthSessionDB() *mockAuthSessionDB {
+	return &mockAuthSessionDB{
+		sessions: make(map[string]*model.PersistentAuthSession),
+	}
+}
+
+func (m *mockAuthSessionDB) CreateAuthSession(ctx context.Context, session *model.PersistentAuthSession) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	key := session.Tenant + ":" + session.Realm + ":" + session.SessionIDHash
+	m.sessions[key] = session
+	return nil
+}
+
+func (m *mockAuthSessionDB) GetAuthSessionByID(ctx context.Context, tenant, realm, runID string) (*model.PersistentAuthSession, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, session := range m.sessions {
+		if session.Tenant == tenant && session.Realm == realm && session.RunID == runID {
+			return session, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *mockAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant, realm, sessionIDHash string) (*model.PersistentAuthSession, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	key := tenant + ":" + realm + ":" + sessionIDHash
+	if session, ok := m.sessions[key]; ok {
+		return session, nil
+	}
+	return nil, nil
+}
+
+func (m *mockAuthSessionDB) ListAuthSessions(ctx context.Context, tenant, realm string) ([]model.PersistentAuthSession, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var sessions []model.PersistentAuthSession
+	for _, session := range m.sessions {
+		if session.Tenant == tenant && session.Realm == realm {
+			sessions = append(sessions, *session)
+		}
+	}
+	return sessions, nil
+}
+
+func (m *mockAuthSessionDB) ListAllAuthSessions(ctx context.Context, tenant string) ([]model.PersistentAuthSession, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var sessions []model.PersistentAuthSession
+	for _, session := range m.sessions {
+		if session.Tenant == tenant {
+			sessions = append(sessions, *session)
+		}
+	}
+	return sessions, nil
+}
+
+func (m *mockAuthSessionDB) DeleteAuthSession(ctx context.Context, tenant, realm, sessionIDHash string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	key := tenant + ":" + realm + ":" + sessionIDHash
+	delete(m.sessions, key)
+	return nil
+}
+
+func (m *mockAuthSessionDB) DeleteExpiredAuthSessions(ctx context.Context, tenant, realm string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	now := time.Now()
+	for key, session := range m.sessions {
+		if session.Tenant == tenant && session.Realm == realm && session.ExpiresAt.Before(now) {
+			delete(m.sessions, key)
+		}
+	}
+	return nil
+}
+
+func (m *mockAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, session *model.PersistentAuthSession) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	key := session.Tenant + ":" + session.Realm + ":" + session.SessionIDHash
+	m.sessions[key] = session
+	return nil
+}
+
 func TestSessionsService(t *testing.T) {
 	ctx := context.Background()
 	mockDB := newMockClientSessionDB()
-	service := NewSessionsService(mockDB)
+	mockAuthSessionDB := newMockAuthSessionDB()
+	service := NewSessionsService(mockDB, mockAuthSessionDB)
 	mockTime := newMockTimeProvider()
 	service.SetTimeProvider(mockTime)
 
@@ -155,10 +257,10 @@ func TestSessionsService(t *testing.T) {
 		loginURI := "/login"
 		session, sessionID := service.CreateAuthSessionObject(testTenant, testRealm, flowID, loginURI)
 
-		err := service.CreateOrUpdateAuthenticationSession(testTenant, testRealm, *session)
+		err := service.CreateOrUpdateAuthenticationSession(ctx, testTenant, testRealm, *session)
 		require.NoError(t, err)
 
-		retrievedSession, exists := service.GetAuthenticationSessionByID(testTenant, testRealm, sessionID)
+		retrievedSession, exists := service.GetAuthenticationSessionByID(ctx, testTenant, testRealm, sessionID)
 		assert.True(t, exists)
 		assert.Equal(t, session.SessionIdHash, retrievedSession.SessionIdHash)
 		assert.Equal(t, session.FlowId, retrievedSession.FlowId)
@@ -253,5 +355,43 @@ func TestSessionsService(t *testing.T) {
 		assert.NotNil(t, session)
 		assert.Equal(t, testClientID, session.ClientID)
 		assert.Equal(t, testUserID, session.UserID)
+	})
+
+	t.Run("CreateAndUpdateAuthenticationSession", func(t *testing.T) {
+		flowID := "test-flow"
+		loginURI := "/login"
+		session, sessionID := service.CreateAuthSessionObject(testTenant, testRealm, flowID, loginURI)
+
+		// Create initial session
+		err := service.CreateOrUpdateAuthenticationSession(ctx, testTenant, testRealm, *session)
+		require.NoError(t, err)
+
+		// Verify initial session
+		retrievedSession, exists := service.GetAuthenticationSessionByID(ctx, testTenant, testRealm, sessionID)
+		assert.True(t, exists)
+		assert.Equal(t, session.SessionIdHash, retrievedSession.SessionIdHash)
+		assert.Equal(t, session.FlowId, retrievedSession.FlowId)
+
+		// Update session with new flow ID
+		newFlowID := "updated-flow"
+		session.FlowId = newFlowID
+		err = service.CreateOrUpdateAuthenticationSession(ctx, testTenant, testRealm, *session)
+		require.NoError(t, err)
+
+		// Verify updated session
+		retrievedSession, exists = service.GetAuthenticationSessionByID(ctx, testTenant, testRealm, sessionID)
+		assert.True(t, exists)
+		assert.Equal(t, session.SessionIdHash, retrievedSession.SessionIdHash)
+		assert.Equal(t, newFlowID, retrievedSession.FlowId)
+
+		// Update session with new context
+		session.Context["new_key"] = "new_value"
+		err = service.CreateOrUpdateAuthenticationSession(ctx, testTenant, testRealm, *session)
+		require.NoError(t, err)
+
+		// Verify context update
+		retrievedSession, exists = service.GetAuthenticationSessionByID(ctx, testTenant, testRealm, sessionID)
+		assert.True(t, exists)
+		assert.Equal(t, "new_value", retrievedSession.Context["new_key"])
 	})
 }

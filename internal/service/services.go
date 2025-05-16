@@ -25,6 +25,7 @@ type DatabaseConnections struct {
 	ApplicationsDB  db.ApplicationDB
 	ClientSessionDB db.ClientSessionDB
 	SigningKeyDB    db.SigningKeyDB
+	AuthSessionDB   db.AuthSessionDB
 }
 
 var (
@@ -48,7 +49,7 @@ func InitServices(connections DatabaseConnections) *Services {
 		RealmService:               NewCachedRealmService(NewRealmService(databases.RealmDB, databases.UserDB), cacheService),
 		FlowService:                NewCachedFlowService(NewFlowService(databases.FlowDB), cacheService),
 		ApplicationService:         NewApplicationService(databases.ApplicationsDB),
-		SessionsService:            NewSessionsService(databases.ClientSessionDB),
+		SessionsService:            NewSessionsService(databases.ClientSessionDB, databases.AuthSessionDB),
 		StaticConfigurationService: NewStaticConfigurationService(),
 		OAuth2Service:              NewOAuth2Service(),
 		JWTService:                 NewCachedJWTService(NewJWTService(databases.SigningKeyDB), cacheService),

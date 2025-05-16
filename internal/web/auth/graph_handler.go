@@ -75,7 +75,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Save the updated state in the session
-	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(tenant, realm, *newSession)
+	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, *newSession)
 
 	// If we are in an oauth2 flow we need to use the finish function to finish the oaith2 flow
 	if newSession.Result != nil && newSession.Oauth2SessionInformation != nil {
@@ -88,7 +88,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	if newSession.Result != nil {
 		// If the result is set we clear the session
-		service.GetServices().SessionsService.DeleteAuthenticationSession(tenant, realm, session.SessionIdHash)
+		service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, tenant, realm, session.SessionIdHash)
 	}
 
 	// Render the result
@@ -151,7 +151,7 @@ func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*
 	cookie := string(ctx.Request.Header.Cookie(sessionCookieName))
 
 	// if present we load the session from the session service
-	session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(tenant, realm, cookie)
+	session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(ctx, tenant, realm, cookie)
 	return session, ok
 }
 
@@ -165,7 +165,7 @@ func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, 
 
 	// If the session if from a different flow we delete it and create a new one by overwriting it
 	if session != nil && session.FlowId != flow.Id {
-		service.GetServices().SessionsService.DeleteAuthenticationSession(tenant, realm, session.SessionIdHash)
+		service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, tenant, realm, session.SessionIdHash)
 		return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow)
 	}
 

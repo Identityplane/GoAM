@@ -15,6 +15,7 @@ type AuthenticationSession struct {
 	User                     *User             `json:"user,omitempty"`
 	Prompts                  map[string]string `json:"prompts,omitempty"` // Prompts to be shown to the user, if applicable
 	Oauth2SessionInformation *Oauth2Session    `json:"oauth2_request,omitempty"`
+	CreatedAt                time.Time         `json:"created_at"`
 	ExpiresAt                time.Time         `json:"expires_at"`
 	LoginUri                 string            `json:"login_uri"` // Uri of the login flow
 }

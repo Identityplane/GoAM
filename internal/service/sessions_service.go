@@ -30,15 +30,15 @@ func (r *RealTimeProvider) Now() time.Time {
 
 type SessionsService struct {
 	mu              sync.RWMutex
-	sessions        map[string]*model.AuthenticationSession
 	clientSessionDB db.ClientSessionDB
+	authSessionDB   db.AuthSessionDB
 	timeProvider    TimeProvider
 }
 
-func NewSessionsService(clientSessionDB db.ClientSessionDB) *SessionsService {
+func NewSessionsService(clientSessionDB db.ClientSessionDB, authSessionDB db.AuthSessionDB) *SessionsService {
 	return &SessionsService{
-		sessions:        make(map[string]*model.AuthenticationSession),
 		clientSessionDB: clientSessionDB,
+		authSessionDB:   authSessionDB,
 		timeProvider:    &RealTimeProvider{},
 	}
 }
@@ -52,7 +52,6 @@ func (s *SessionsService) SetTimeProvider(provider TimeProvider) {
 // This is to optimize performance so that only one database call is made when the session is created
 // returns the session object and session id
 func (s *SessionsService) CreateAuthSessionObject(tenant, realm, flowId, loginUri string) (*model.AuthenticationSession, string) {
-
 	sessionID := lib.GenerateSecureSessionID()
 
 	session := &model.AuthenticationSession{
@@ -63,7 +62,8 @@ func (s *SessionsService) CreateAuthSessionObject(tenant, realm, flowId, loginUr
 		History:                  make([]string, 0),
 		Prompts:                  make(map[string]string),
 		Oauth2SessionInformation: nil,
-		ExpiresAt:                time.Now().Add(30 * time.Minute), // 30 minutes expiration TODO make this variable by realm
+		CreatedAt:                s.timeProvider.Now(),
+		ExpiresAt:                s.timeProvider.Now().Add(30 * time.Minute), // 30 minutes expiration TODO make this variable by realm
 		LoginUri:                 loginUri,
 	}
 
@@ -71,40 +71,45 @@ func (s *SessionsService) CreateAuthSessionObject(tenant, realm, flowId, loginUr
 }
 
 // CreateOrUpdateAuthenticationSession creates a new authentication session or updates an existing one
-func (s *SessionsService) CreateOrUpdateAuthenticationSession(tenant, realm string, session model.AuthenticationSession) error {
+func (s *SessionsService) CreateOrUpdateAuthenticationSession(ctx context.Context, tenant, realm string, session model.AuthenticationSession) error {
+	persistentSession, err := model.NewPersistentAuthSession(tenant, realm, &session)
+	if err != nil {
+		return fmt.Errorf("failed to create persistent session: %w", err)
+	}
 
-	cashKey := tenant + ":" + realm + ":" + session.SessionIdHash
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.sessions[cashKey] = &session
-
-	return nil
+	return s.authSessionDB.CreateOrUpdateAuthSession(ctx, persistentSession)
 }
 
-func (s *SessionsService) GetAuthenticationSessionByID(tenant, realm, sessionID string) (*model.AuthenticationSession, bool) {
-
+func (s *SessionsService) GetAuthenticationSessionByID(ctx context.Context, tenant, realm, sessionID string) (*model.AuthenticationSession, bool) {
 	// Hash the session id
 	sessionIDHash := lib.HashString(sessionID)
-
-	return s.GetAuthenticationSession(tenant, realm, sessionIDHash)
+	return s.GetAuthenticationSession(ctx, tenant, realm, sessionIDHash)
 }
 
 // GetAuthenticationSession retrieves an authentication session by its hash
-func (s *SessionsService) GetAuthenticationSession(tenant, realm, sessionIDHash string) (*model.AuthenticationSession, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	cashKey := tenant + ":" + realm + ":" + sessionIDHash
-	session, ok := s.sessions[cashKey]
-	if !ok {
+func (s *SessionsService) GetAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) (*model.AuthenticationSession, bool) {
+	persistentSession, err := s.authSessionDB.GetAuthSessionByHash(ctx, tenant, realm, sessionIDHash)
+	if err != nil {
+		logger.ErrorNoContext("Failed to get auth session: %v", err)
+		return nil, false
+	}
+	if persistentSession == nil {
 		return nil, false
 	}
 
 	// Check if session has expired
-	if s.timeProvider.Now().After(session.ExpiresAt) {
-		s.mu.Lock()
-		delete(s.sessions, cashKey)
-		s.mu.Unlock()
+	if s.timeProvider.Now().After(persistentSession.ExpiresAt) {
+		// Delete expired session
+		err := s.authSessionDB.DeleteAuthSession(ctx, tenant, realm, sessionIDHash)
+		if err != nil {
+			logger.ErrorNoContext("Failed to delete expired session: %v", err)
+		}
+		return nil, false
+	}
+
+	session, err := persistentSession.ToAuthenticationSession()
+	if err != nil {
+		logger.ErrorNoContext("Failed to convert persistent session to auth session: %v", err)
 		return nil, false
 	}
 
@@ -112,13 +117,8 @@ func (s *SessionsService) GetAuthenticationSession(tenant, realm, sessionIDHash 
 }
 
 // DeleteAuthenticationSession removes an authentication session
-func (s *SessionsService) DeleteAuthenticationSession(tenant, realm, sessionIDHash string) {
-
-	cashKey := tenant + ":" + realm + ":" + sessionIDHash
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.sessions, cashKey)
+func (s *SessionsService) DeleteAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) error {
+	return s.authSessionDB.DeleteAuthSession(ctx, tenant, realm, sessionIDHash)
 }
 
 // CreateClientSession creates a new client session
