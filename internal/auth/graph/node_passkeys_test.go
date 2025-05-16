@@ -13,6 +13,10 @@ func TestRunPasskeyRegisterNode_HappyPath(t *testing.T) {
 		Context: map[string]string{
 			"username": "alice",
 		},
+		User: &model.User{
+			Username: "alice",
+			Email:    "alice@example.com",
+		},
 	}
 
 	// Minimal graph node (not used in logic here, but required)

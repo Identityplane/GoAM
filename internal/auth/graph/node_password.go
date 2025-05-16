@@ -112,6 +112,11 @@ func RunUpdatePasswordNode(state *model.AuthenticationSession, node *model.Graph
 		return model.NewNodeResultWithError(errors.New("user must be loaded before updating password"))
 	}
 
+	// If the password is not set in the input, use the password from the context
+	if input["password"] != "" {
+		state.Context["password"] = input["password"]
+	}
+
 	if state.Context["password"] == "" {
 
 		return model.NewNodeResultWithPrompts(map[string]string{"password": "password"})

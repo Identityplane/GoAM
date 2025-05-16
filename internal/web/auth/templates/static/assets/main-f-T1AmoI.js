@@ -775,11 +775,41 @@ async function startPasskeyLogin() {
   document.getElementById("passkeysFinishLoginJson").value = JSON.stringify(serializedAssertion);
   document.getElementById("passkey-form").submit();
 }
+async function initRegisterPasskey() {
+  console.log("initializing RegisterPasskey");
+  const passkeyButton = document.getElementById("passkey-button");
+  if (passkeyButton) {
+    passkeyButton.addEventListener("click", async () => {
+      await startPasskeyRegistration();
+    });
+  }
+}
+async function startPasskeyRegistration() {
+  try {
+    const optionsInput = document.getElementById("passkeysOptions").value;
+    const options = JSON.parse(optionsInput);
+    options.publicKey.challenge = base64urlToBuffer(options.publicKey.challenge);
+    options.publicKey.user.id = base64urlToBuffer(options.publicKey.user.id);
+    const useMock = false;
+    let cred;
+    if (useMock) ;
+    else {
+      cred = await navigator.credentials.create({ publicKey: options.publicKey });
+    }
+    serializedCred = serializeCredential(cred);
+    document.getElementById("passkeysFinishRegistrationJson").value = JSON.stringify(serializedCred);
+    document.getElementById("passkey-form").submit();
+  } catch (err) {
+    alert("Passkey registration failed: " + err.message);
+    console.error(err);
+  }
+}
 const nodeHandlers = {
   "emailOTP": initEmailOTP,
   "passwordOrSocialLogin": initPasswordOrSocialLogin,
   "hcaptcha": initHcaptcha,
-  "verifyPasskey": initVerifyPasskey
+  "verifyPasskey": initVerifyPasskey,
+  "registerPasskey": initRegisterPasskey
   // Add more node handlers here as needed
 };
 document.addEventListener("DOMContentLoaded", function() {
