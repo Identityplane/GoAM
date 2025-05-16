@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>node_2128ba72</title>
+    <link rel="stylesheet" href="http://localhost:8080/acme/customers/static/style.css">
+    <script type="module" src="/main.js"></script>
+</head>
+<body>
+
+    <div class="main-content" data-node="hcaptcha">
+        <div class="login-container">
+
+            <form method="POST" class="login-form" action="http://localhost:8080/acme/customers/auth/loginv2"
+                id="hcaptcha-form">
+                <h2>Welcome to GoAM</h2>
+                <p></p>
+                <input type="hidden" name="hcaptcha" id="hcaptcha-token">
+                <div class="h-captcha" data-sitekey='cbc470e2-3f70-4594-8eb6-cb8cf9b40fc2'
+                    data-callback="onCaptchaSolved"></div>
+            </form>
+
+        </div>
+    </div>
+</body>
+</html>

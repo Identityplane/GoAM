@@ -3,13 +3,15 @@
 <html>
 <head>
   <title>{{ .Title }}</title>
-  <link rel="stylesheet" href="{{ .StylePath }}">
-  <script defer src="{{ .ScriptPath }}"></script>
+  <link rel="stylesheet" href="{{ .AssetsCSSPath }}"> <!-- Global CSS -->
+  <script defer src="{{ .AssetsJSPath }}"></script> <!-- Global JS -->
+
+  <link rel="stylesheet" href="{{ .StylePath }}"> <!-- Realm specific CSS takes precedence -->
 </head>
 <body>
   
   
-  <div class="main-content">
+  <div class="main-content" data-node="{{ .Node.Use }}">
     <div class="login-container">
 
         {{ if .Error }}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>node_0bc0189e</title>
+  <link rel="stylesheet" href="http://localhost:8080/acme/customers/static/style.css">
+  <script type="module" src="/main.js"></script>
+</head>
+<body>
+  
+  
+  <div class="main-content" data-node="emailOTP">
+    <div class="login-container">
+
+        
+        
+<form method="POST" class="login-form" action="http://localhost:8080/acme/customers/auth/loginv2" id="otpForm">
+  <h2>Enter the OTP sent to your email</h2>
+  <p></p>
+
+
+  <div class="input-group">
+    <input 
+      type="text" 
+      name="otp" 
+      id="otp" 
+      class="otp-input" 
+      pattern="[0-9]{6}" 
+      inputmode="numeric" 
+      maxlength="6" 
+      placeholder="Enter 6-digit code" 
+      required 
+    />
+  </div>
+  <button type="submit">Login</button>
+</form>
+
+    </div>
+</div>
+</body>
+</html>

@@ -1,6 +1,9 @@
 package integration
 
 import (
+	"context"
+	"goiam/internal/model"
+	"goiam/internal/service"
 	"net/http"
 	"testing"
 )
@@ -22,7 +25,11 @@ nodes:
       key: username
       value: admin
     next:
-      done: registerPasskey
+      done: loadUser
+  loadUser:
+    use: loadUserByUsername
+    next:
+      loaded: registerPasskey
   registerPasskey:
     use: registerPasskey
     next:
@@ -31,6 +38,10 @@ nodes:
     use: successResult`
 
 	e := SetupIntegrationTest(t, flow)
+
+	service.GetServices().UserService.CreateUser(context.Background(), "acme", "customers", model.User{
+		Username: "admin",
+	})
 
 	e.GET("/acme/customers/auth/test_flow").Expect().
 		Status(http.StatusOK).

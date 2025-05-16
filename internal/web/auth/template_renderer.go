@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"crypto/md5"
+
 	"github.com/valyala/fasthttp"
 )
 
@@ -19,26 +21,39 @@ var (
 	LayoutTemplatePath = "templates/layout.html"
 	NodeTemplatesPath  = "templates/nodes"
 	ComponentsPath     = "templates/components"
+	AssetsManifestPath = "templates/static/manifest.json"
+)
+
+// Loaded asset
+var (
+	AssetsJSName  string
+	AssetsCSSName string
+
+	AssetsJSContent  []byte
+	AssetsCSSContent []byte
 )
 
 // ViewData is passed to all templates for dynamic rendering
 type ViewData struct {
-	Title        string
-	NodeName     string
-	Prompts      map[string]string
-	Debug        bool
-	Error        string
-	State        *model.AuthenticationSession
-	StateJSON    string
-	FlowName     string
-	StylePath    string
-	ScriptPath   string
-	Message      string
-	CustomConfig map[string]string
-	Tenant       string
-	Realm        string
-	FlowPath     string
-	LoginUri     string
+	Title         string
+	NodeName      string
+	Prompts       map[string]string
+	Debug         bool
+	Error         string
+	State         *model.AuthenticationSession
+	StateJSON     string
+	FlowName      string
+	Node          *model.GraphNode
+	StylePath     string
+	ScriptPath    string
+	Message       string
+	CustomConfig  map[string]string
+	Tenant        string
+	Realm         string
+	FlowPath      string
+	LoginUri      string
+	AssetsJSPath  string
+	AssetsCSSPath string
 }
 
 //go:embed templates/*
@@ -80,6 +95,37 @@ func InitTemplates() error {
 	}
 
 	baseTemplates = tmpl
+
+	// Initialize the assets
+	// Read the manifest file from the templates FS
+	manifest, err := templatesFS.ReadFile(AssetsManifestPath)
+	if err != nil {
+		return fmt.Errorf("failed to read manifest: %w", err)
+	}
+
+	// Parse the manifest
+	var manifestData struct {
+		JS  string `json:"js"`
+		CSS string `json:"css"`
+	}
+
+	if err := json.Unmarshal(manifest, &manifestData); err != nil {
+		return fmt.Errorf("failed to parse manifest: %w", err)
+	}
+
+	AssetsJSName = manifestData.JS
+	AssetsCSSName = manifestData.CSS
+
+	AssetsJSContent, err = templatesFS.ReadFile("templates/static/" + AssetsJSName)
+	if err != nil {
+		return fmt.Errorf("failed to read JS asset: %w", err)
+	}
+
+	AssetsCSSContent, err = templatesFS.ReadFile("templates/static/" + AssetsCSSName)
+	if err != nil {
+		return fmt.Errorf("failed to read CSS asset: %w", err)
+	}
+
 	return nil
 }
 
@@ -130,22 +176,25 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 
 	// Create the view data
 	view := &ViewData{
-		Title:        state.Current,
-		NodeName:     state.Current,
-		Prompts:      prompts,
-		Debug:        debug,
-		Error:        resolveErrorMessage(state),
-		State:        state,
-		StateJSON:    stateJSON,
-		FlowName:     currentGraphNode.Name,
-		Message:      customMessage,
-		StylePath:    stylePath,
-		ScriptPath:   scriptPath,
-		CustomConfig: CustomConfig,
-		Tenant:       ctx.UserValue("tenant").(string),
-		Realm:        ctx.UserValue("realm").(string),
-		FlowPath:     flowPath,
-		LoginUri:     loginUri,
+		Title:         state.Current,
+		NodeName:      state.Current,
+		Prompts:       prompts,
+		Debug:         debug,
+		Error:         resolveErrorMessage(state),
+		State:         state,
+		StateJSON:     stateJSON,
+		FlowName:      currentGraphNode.Name,
+		Node:          resultNode,
+		Message:       customMessage,
+		StylePath:     stylePath,
+		ScriptPath:    scriptPath,
+		CustomConfig:  CustomConfig,
+		Tenant:        ctx.UserValue("tenant").(string),
+		Realm:         ctx.UserValue("realm").(string),
+		FlowPath:      flowPath,
+		LoginUri:      loginUri,
+		AssetsJSPath:  baseUrl + "/" + AssetsJSName,
+		AssetsCSSPath: baseUrl + "/" + AssetsCSSName,
 	}
 
 	// Clone the base template
@@ -179,6 +228,47 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string) {
 	ctx.SetContentType("text/html")
 	ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 	ctx.SetBodyString(fmt.Sprintf("<html><body><h2>Error</h2><p>%s</p></body></html>", msg))
+}
+
+// HandleStaticAssets serves the static assets from memory
+// This is used to serve the assets for the global static files
+// like the main.js and style.css that are idependend from the realm
+// served at /{tenant}/{realm}/assets/{filename}
+func HandleStaticAssets(ctx *fasthttp.RequestCtx) {
+	filename := ctx.UserValue("filename").(string)
+
+	// Get the appropriate content and content type
+	var content []byte
+	var contentType string
+	if strings.HasSuffix(filename, ".js") {
+		content = AssetsJSContent
+		contentType = "text/javascript"
+	} else if strings.HasSuffix(filename, ".css") {
+		content = AssetsCSSContent
+		contentType = "text/css"
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
+	}
+
+	// Generate ETag from content hash
+	etag := fmt.Sprintf(`"%x"`, md5.Sum(content))
+
+	// Check if client has a matching ETag
+	if match := ctx.Request.Header.Peek("If-None-Match"); match != nil {
+		if string(match) == etag {
+			ctx.SetStatusCode(fasthttp.StatusNotModified)
+			return
+		}
+	}
+
+	// Set caching headers
+	ctx.Response.Header.Set("ETag", etag)
+	ctx.Response.Header.Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
+	ctx.Response.Header.Set("Vary", "Accept-Encoding")
+	ctx.SetContentType(contentType)
+	ctx.SetBody(content)
+	ctx.SetStatusCode(fasthttp.StatusOK)
 }
 
 func isDebugMode(ctx *fasthttp.RequestCtx) bool {

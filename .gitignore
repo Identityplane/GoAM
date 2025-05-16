@@ -6,3 +6,6 @@ internal/web/swagger-ui/swagger.yaml
 cmd/__debug_*
 test/integration/config/tenants/acme/customers/static/style.css.fasthttp.br
 test/integration/config/tenants/acme/customers/static/style.css.fasthttp.gz
+auth-js/node_modules/*
+node_modules/*
+auth-js/dist/*

@@ -1,19 +1,22 @@
 package graph
 
 var NodeDefinitions = map[string]*NodeDefinition{
-	InitNode.Name:                    InitNode,
-	AskUsernameNode.Name:             AskUsernameNode,
-	AskPasswordNode.Name:             AskPasswordNode,
-	SuccessResultNode.Name:           SuccessResultNode,
-	FailureResultNode.Name:           FailureResultNode,
-	CheckUsernameAvailableNode.Name:  CheckUsernameAvailableNode,
-	CreateUserNode.Name:              CreateUserNode,
-	SetVariableNode.Name:             SetVariableNode,
+	InitNode.Name:                   InitNode,
+	AskUsernameNode.Name:            AskUsernameNode,
+	AskPasswordNode.Name:            AskPasswordNode,
+	SuccessResultNode.Name:          SuccessResultNode,
+	FailureResultNode.Name:          FailureResultNode,
+	CheckUsernameAvailableNode.Name: CheckUsernameAvailableNode,
+	CreateUserNode.Name:             CreateUserNode,
+	SetVariableNode.Name:            SetVariableNode,
+	UnlockAccountNode.Name:          UnlockAccountNode,
+	MessageConfirmationNode.Name:    MessageConfirmationNode,
+
+	// Passkeys
+	AskEnrollPasskeyNode.Name:        AskEnrollPasskeyNode,
 	PasskeyRegisterNode.Name:         PasskeyRegisterNode,
 	PasskeysVerifyNode.Name:          PasskeysVerifyNode,
-	UnlockAccountNode.Name:           UnlockAccountNode,
 	PasskeysCheckUserRegistered.Name: PasskeysCheckUserRegistered,
-	MessageConfirmationNode.Name:     MessageConfirmationNode,
 
 	// User Management
 	LoadUserByUsernameNode.Name: LoadUserByUsernameNode,

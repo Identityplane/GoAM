@@ -22,7 +22,14 @@ func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *mode
 	// if option is not set we return the prompt
 	option, ok := input["option"]
 	if !ok {
-		return model.NewNodeResultWithPrompts(map[string]string{"option": "text", "username": "text", "password": "password", "email": "email"})
+
+		// For passkey discovery we create a passkey challenge
+		passkeysLoginOptions, err := generatePasskeysChallenge(state, "", "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate passkey challenge: %w", err)
+		}
+
+		return model.NewNodeResultWithPrompts(map[string]string{"option": "text", "username": "text", "password": "password", "email": "email", "passkeysLoginOptions": passkeysLoginOptions})
 	}
 
 	// if option is set we return the result

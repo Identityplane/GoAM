@@ -4,16 +4,6 @@
   <p>{{index .CustomConfig "message"}}</p>
 
   <input type="hidden" name="hcaptcha" id="hcaptcha-token">
-  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
   <div class="h-captcha" data-sitekey='{{ index .CustomConfig "hcaptcha_sitekey" }}' data-callback="onCaptchaSolved"></div>
-  
-  <script>
-    function onCaptchaSolved(token) {
-
-      // Set the token value in the hidden input and submit the form
-      document.getElementById('hcaptcha-token').value = token;
-      document.getElementById('hcaptcha-form').submit();
-    }
-  </script>
 </form>
 {{ end }}

@@ -93,7 +93,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	// Render the result
 	currentNode := flow.Definition.Nodes[newSession.Current]
-	Render(ctx, flow.Definition, newSession, currentNode, session.Prompts, loadedRealm.Config.BaseUrl)
+	Render(ctx, flow.Definition, newSession, currentNode, newSession.Prompts, loadedRealm.Config.BaseUrl)
 }
 
 func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session model.AuthenticationSession) (*model.AuthenticationSession, error) {

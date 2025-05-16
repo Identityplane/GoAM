@@ -66,7 +66,8 @@ func New() *router.Router {
 	r.GET("/{tenant}/{realm}/debug/{flow}/graph.svg", adminMiddleware(debug.HandleFlowGraphSVG))
 
 	// Static files
-	r.GET("/{tenant}/{realm}/static/{filename}", adminMiddleware(StaticHandler))
+	r.GET("/{tenant}/{realm}/static/{filename}", WrapMiddleware(StaticHandler))
+	r.GET("/{tenant}/{realm}/assets/{filename}", WrapMiddleware(auth.HandleStaticAssets))
 
 	// Health endpoints
 	r.GET("/healthz", WrapMiddleware(handleLiveness))
