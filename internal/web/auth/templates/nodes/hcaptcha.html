@@ -4,6 +4,6 @@
   <p>{{index .CustomConfig "message"}}</p>
 
   <input type="hidden" name="hcaptcha" id="hcaptcha-token">
-  <div class="h-captcha" data-sitekey='{{ index .CustomConfig "hcaptcha_sitekey" }}' data-callback="onCaptchaSolved"></div>
+  <div class="h-captcha" data-sitekey='{{ index .CustomConfig "hcaptcha_sitekey" }}'></div>
 </form>
 {{ end }}

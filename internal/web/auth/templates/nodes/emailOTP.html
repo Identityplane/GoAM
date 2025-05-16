@@ -3,107 +3,19 @@
   <h2>Enter the OTP sent to your email</h2>
   <p>{{index .State.Context "message"}}</p>
 
-
-  <div class="input-group otp-group">
-    <div class="otp-inputs">
-      <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-input" required />
-      <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-input" required />
-      <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-input" required />
-      <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-input" required />
-      <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-input" required />
-      <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-input" required />
-    </div>
-    <input type="hidden" name="otp" id="otp" />
+  <div class="input-group">
+    <input 
+      type="text" 
+      name="otp" 
+      id="otp" 
+      class="otp-input" 
+      pattern="[0-9]{6}" 
+      inputmode="numeric" 
+      maxlength="6" 
+      placeholder="Enter 6-digit code" 
+      required 
+    />
   </div>
   <button type="submit">Login</button>
 </form>
-
-<style>
-.otp-group {
-  margin: 20px 0;
-}
-.otp-inputs {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-.otp-input {
-  width: 40px;
-  height: 40px;
-  text-align: center;
-  font-size: 20px;
-  border: 2px solid #ccc;
-  border-radius: 4px;
-}
-.otp-input:focus {
-  border-color: #007bff;
-  outline: none;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const inputs = document.querySelectorAll('.otp-input');
-  const form = document.getElementById('otpForm');
-  const hiddenInput = document.getElementById('otp');
-
-  inputs.forEach((input, index) => {
-    // Auto-focus next input
-    input.addEventListener('input', function() {
-      if (this.value.length === 1) {
-        if (index < inputs.length - 1) {
-          inputs[index + 1].focus();
-        }
-      }
-    });
-
-    // Handle backspace
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Backspace' && !this.value && index > 0) {
-        inputs[index - 1].focus();
-      }
-    });
-
-    // Handle paste
-    input.addEventListener('paste', function(e) {
-      e.preventDefault();
-      const pastedData = e.clipboardData.getData('text').slice(0, 6);
-      if (/^\d+$/.test(pastedData)) {
-        pastedData.split('').forEach((digit, i) => {
-          if (inputs[i]) {
-            inputs[i].value = digit;
-          }
-        });
-        const otp = Array.from(inputs).map(input => input.value).join('');
-        hiddenInput.value = otp;
-
-        if (pastedData.length === 6) {
-          form.submit();
-        }
-      }
-    });
-  });
-
-  // Combine OTP digits and submit
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const otp = Array.from(inputs).map(input => input.value).join('');
-    if (otp.length === 6) {
-      hiddenInput.value = otp;
-      form.submit();
-    }
-  });
-
-  // Auto-submit when all digits are entered
-  inputs.forEach(input => {
-    input.addEventListener('input', function() {
-      const otp = Array.from(inputs).map(input => input.value).join('');
-      if (otp.length === 6) {
-        hiddenInput.value = otp;
-        form.submit();
-      }
-    });
-  });
-});
-</script>
 {{ end }}

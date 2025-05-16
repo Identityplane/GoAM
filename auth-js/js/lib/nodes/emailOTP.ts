@@ -1,4 +1,4 @@
-import './otp.css';
+import './emailOTP.css';
 
 interface OTPInput extends HTMLInputElement {
   value: string;
@@ -8,7 +8,7 @@ interface OTPForm extends HTMLFormElement {
   submit(): void;
 }
 
-export function initOTP(): void {
+export function initEmailOTP(): void {
   const form: OTPForm | null = document.getElementById('otpForm') as OTPForm;
   const basicInput: OTPInput | null = document.getElementById('otp') as OTPInput;
 

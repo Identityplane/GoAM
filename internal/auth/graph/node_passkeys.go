@@ -31,8 +31,9 @@ var PasskeysVerifyNode = &NodeDefinition{
 	RequiredContext: []string{"username"},
 	PossiblePrompts: map[string]string{
 		"passkeysFinishLoginJson": "json",
+		"passkeysLoginOptions":    "json",
 	},
-	OutputContext:        []string{"passkeysFinishLoginJson", "passkeysLoginSession", "passkeysLoginOptions"},
+	OutputContext:        []string{"passkeysFinishLoginJson", "passkeysSession", "passkeysLoginOptions"},
 	PossibleResultStates: []string{"success", "failure"},
 	Run:                  RunPasskeyVerifyNode,
 }
@@ -121,17 +122,15 @@ func RunPasskeyRegisterNode(state *model.AuthenticationSession, node *model.Grap
 
 func RunPasskeyVerifyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 
-	// Check if input is present, if not generate options, if present process assertion
-	if _, ok := input["passkeysFinishLoginJson"]; !ok {
+	// If we have a passkeysFinishLoginJson in the input we add it to the context
+	passkeysFinishLoginJson, ok := input["passkeysFinishLoginJson"]
+	if ok {
+		state.Context["passkeysFinishLoginJson"] = passkeysFinishLoginJson
+	}
 
-		// Generate options
-		prompts, err := GeneratePasskeysLoginOptions(state, node, services)
-		if err != nil {
-			return model.NewNodeResultWithError(fmt.Errorf("failed to generate passkeys options: %w", err))
-		}
-		return model.NewNodeResultWithPrompts(prompts)
+	// If we have a passkeysFinishLoginJson in the context we process the passkey login
+	if _, ok := state.Context["passkeysFinishLoginJson"]; ok {
 
-	} else {
 		// Process assertion
 		result, err := ProcessPasskeyLogin(state, node, input, services)
 		if err != nil {
@@ -139,6 +138,16 @@ func RunPasskeyVerifyNode(state *model.AuthenticationSession, node *model.GraphN
 		}
 		return model.NewNodeResultWithCondition(result)
 	}
+
+	// Otherwise we generate options and prompt for passkeysFinishLoginJson
+	//prompts, err := GeneratePasskeysLoginOptions(state, node, services)
+	// For passkey discovery we create a passkey challenge
+	passkeysLoginOptions, err := generatePasskeysChallenge(state, "", "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate passkey challenge: %w", err)
+	}
+
+	return model.NewNodeResultWithPrompts(map[string]string{"passkeysLoginOptions": passkeysLoginOptions})
 }
 
 func getWebAuthnConfig() *webauthn.Config {
@@ -254,7 +263,9 @@ func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal credential: %w", err)
 	}
-	user.Attributes["webauthn_credential"] = string(credBytes)
+
+	user.LoginIdentifier = string(parsedCredential.ID)
+	user.WebAuthnCredential = string(credBytes)
 
 	// Then safe the user with updated credential
 	err = userRepo.Update(ctx, user)
@@ -267,10 +278,6 @@ func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.
 }
 
 func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *model.GraphNode, services *repository.Repositories) (map[string]string, error) {
-	user := state.User
-	if user == nil {
-		return nil, fmt.Errorf("user must be loaded before logging in with passkey")
-	}
 
 	// Setup config
 	wconfig := getWebAuthnConfig()
@@ -279,20 +286,9 @@ func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *mode
 		return nil, fmt.Errorf("failed to initialize webauthn config: %w", err)
 	}
 
-	credJSON := user.WebAuthnCredential
-	if len(credJSON) == 0 {
-		return nil, fmt.Errorf("user has no registered passkey")
-	}
-
-	var cred webauthn.Credential
-	if err := json.Unmarshal([]byte(credJSON), &cred); err != nil {
-		return nil, fmt.Errorf("failed to parse stored credential: %w", err)
-	}
-
 	userCredentials := &WebAuthnUserCredentials{
-		Username:    user.Username,
-		ID:          []byte(user.ID),
-		Credentials: []webauthn.Credential{cred},
+		Username: "",
+		ID:       []byte(""),
 	}
 
 	options, session, err := webAuth.BeginLogin(userCredentials)
@@ -303,7 +299,7 @@ func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *mode
 	// Store in context
 	sessionJSON, _ := json.Marshal(session)
 	optionsJSON, _ := json.Marshal(options)
-	state.Context["passkeysLoginSession"] = string(sessionJSON)
+	state.Context["passkeysSession"] = string(sessionJSON)
 	state.Context["passkeysLoginOptions"] = string(optionsJSON)
 
 	return map[string]string{
@@ -312,23 +308,44 @@ func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *mode
 }
 
 func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (string, error) {
-	user := state.User
-	if user == nil {
-		return "failure", fmt.Errorf("user must be loaded before logging in with passkey")
-	}
 
 	// Load session from context
-	sessionJSON := state.Context["passkeysLoginSession"]
+	sessionJSON := state.Context["passkeysSession"]
 	var session webauthn.SessionData
 	if err := json.Unmarshal([]byte(sessionJSON), &session); err != nil {
 		return "failure", fmt.Errorf("failed to unmarshal login session: %w", err)
 	}
 
-	// Parse credential from user input
-	responseJSONStr := input["passkeysFinishLoginJson"]
+	// Parse credential from the passkeysFinishLoginJson object
+	responseJSONStr := state.Context["passkeysFinishLoginJson"]
 	parsedCredential, err := protocol.ParseCredentialRequestResponseBytes([]byte(responseJSONStr))
 	if err != nil {
 		return "failure", fmt.Errorf("failed to parse credential assertion: %w", err)
+	}
+
+	credentialID := parsedCredential.ID
+	logger.DebugNoContext("Credential ID: %s", credentialID)
+
+	// Load user by login identifier
+	user, err := services.UserRepo.GetByLoginIdentifier(context.Background(), credentialID)
+	if err != nil {
+		return "failure", fmt.Errorf("failed to load user by login identifier: %w", err)
+	}
+	// Todo, if not present we need to load the user from the database
+
+	if user == nil {
+		return "failure", fmt.Errorf("user not found")
+	}
+
+	// Copy over from custom attributes if it was not set correctly
+	if user.WebAuthnCredential == "" && user.Attributes["webauthn_credential"] != "" {
+		user.WebAuthnCredential = user.Attributes["webauthn_credential"]
+		services.UserRepo.Update(context.Background(), user)
+	}
+
+	// if we still have no webauthn credential, we return failure
+	if user.WebAuthnCredential == "" {
+		return "failure", fmt.Errorf("user has no registered passkey")
 	}
 
 	var storedCredential webauthn.Credential
@@ -350,17 +367,18 @@ func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNo
 		return "failure", fmt.Errorf("failed to initialize WebAuthn: %w", err)
 	}
 
+	// if the user id from the session is empty we overwrite it with the user id from the user object
+	// This is needed for passkey discovery as we don't know the user id in that case during session creation
+	if len(session.UserID) == 0 {
+		session.UserID = []byte(user.ID)
+	}
+
 	_, err = webAuth.ValidateLogin(userCredentials, session, parsedCredential)
 	if err != nil {
 		return "failure", fmt.Errorf("passkey login failed: %w", err)
 	}
 
-	// Store user in flow context
-	userBytes, err := json.Marshal(user)
-	if err != nil {
-		return "failure", fmt.Errorf("failed to serialize user: %w", err)
-	}
-	state.Context["user"] = string(userBytes)
+	state.User = user
 
 	logger.DebugNoContext("User %s successfully verified via passkey", user.ID)
 	return "success", nil

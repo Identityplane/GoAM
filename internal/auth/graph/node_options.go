@@ -10,7 +10,7 @@ var PasswordOrSocialLoginNode = &NodeDefinition{
 	Name:                 "passwordOrSocialLogin",
 	Type:                 model.NodeTypeQueryWithLogic,
 	RequiredContext:      []string{""},
-	PossiblePrompts:      map[string]string{"option": "text", "username": "text", "password": "password", "email": "email"},
+	PossiblePrompts:      map[string]string{"option": "text", "username": "text", "password": "password", "email": "email", "passkeysLoginOptions": "json", "passkeysFinishLoginJson": "json"},
 	OutputContext:        []string{"username", "password"},
 	PossibleResultStates: []string{"password", "forgotPassword", "passkey", "social1", "social2", "social3"},
 	CustomConfigOptions:  []string{"useEmail", "showForgotPassword", "showPasskeys", "showSocial1", "showSocial2", "social1Provider", "social2Provider"},
@@ -45,6 +45,13 @@ func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *mode
 	case "forgot-password":
 		return model.NewNodeResultWithCondition("forgotPassword")
 	case "passkey":
+
+		// If we have a passkeyFinishLoginJson we add it to the context
+		// This is the case if the user uses passkey discovery login
+		if input["passkeysFinishLoginJson"] != "" {
+			state.Context["passkeysFinishLoginJson"] = input["passkeysFinishLoginJson"]
+		}
+
 		return model.NewNodeResultWithCondition("passkey")
 	case "social1":
 		return model.NewNodeResultWithCondition("social1")

@@ -198,6 +198,9 @@ func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *model.FlowDefinit
 		return input
 	}
 
+	body := string(ctx.PostBody())
+	logger.DebugNoContext("body: %s", body)
+
 	// Check the definiton to see which inputs are allowed
 	def := graph.NodeDefinitions[node.Use]
 	for key := range def.PossiblePrompts {

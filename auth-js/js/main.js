@@ -1,13 +1,15 @@
 import { addAndDouble } from './lib/math.js'
-import { initOTP } from './lib/nodes/otp.js'
+import { initEmailOTP } from './lib/nodes/emailOTP.js'
 import { initPasswordOrSocialLogin } from './lib/nodes/passwordOrSocialLogin.js'
 import { initHcaptcha } from './lib/nodes/hcaptcha.js'
+import { initVerifyPasskey } from './lib/nodes/verifyPasskey.js'
 // Node-specific initialization
 
 const nodeHandlers = {
-    'emailOTP': initOTP,
+    'emailOTP': initEmailOTP,
     'passwordOrSocialLogin': initPasswordOrSocialLogin,
-    'hcaptcha': initHcaptcha
+    'hcaptcha': initHcaptcha,
+    'verifyPasskey': initVerifyPasskey
     // Add more node handlers here as needed
 }
 
