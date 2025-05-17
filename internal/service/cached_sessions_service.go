@@ -11,7 +11,7 @@ import (
 
 const (
 	// sessionCacheTTL is the time-to-live for session cache entries
-	sessionCacheTTL = 10 * time.Second
+	sessionCacheTTL = 5 * time.Second
 )
 
 // cachedSessionsService implements SessionsService with caching
