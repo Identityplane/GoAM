@@ -384,10 +384,9 @@ func (p *PostgresUserDB) ListUsersWithPagination(ctx context.Context, tenant, re
 	var users []model.User
 	for rows.Next() {
 		var user model.User
-		var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON, entitlementsJSON, consentJSON string
-		var createdAt, updatedAt string
-		var lastLoginAt *string
-		var emailVerified, phoneVerified, passwordLocked, webauthnLocked, mfaLocked bool
+		var createdAt, updatedAt time.Time
+		var lastLoginAt *time.Time
+		var rolesStr, groupsStr, entitlementsStr, consentStr, attributesStr, trustedDevicesStr string
 
 		err := rows.Scan(
 			&user.ID,
@@ -401,79 +400,65 @@ func (p *PostgresUserDB) ListUsersWithPagination(ctx context.Context, tenant, re
 			&user.ProfilePictureURI,
 			&user.Email,
 			&user.Phone,
-			&emailVerified,
-			&phoneVerified,
+			&user.EmailVerified,
+			&user.PhoneVerified,
 			&user.LoginIdentifier,
 			&user.Locale,
 			&user.PasswordCredential,
 			&user.WebAuthnCredential,
 			&user.MFACredential,
-			&passwordLocked,
-			&webauthnLocked,
-			&mfaLocked,
+			&user.PasswordLocked,
+			&user.WebAuthnLocked,
+			&user.MFALocked,
 			&user.FailedLoginAttemptsPassword,
 			&user.FailedLoginAttemptsWebAuthn,
 			&user.FailedLoginAttemptsMFA,
-			&rolesJSON,
-			&groupsJSON,
-			&entitlementsJSON,
-			&consentJSON,
-			&attributesJSON,
+			&rolesStr,
+			&groupsStr,
+			&entitlementsStr,
+			&consentStr,
+			&attributesStr,
 			&createdAt,
 			&updatedAt,
 			&lastLoginAt,
 			&user.FederatedIDP,
 			&user.FederatedID,
-			&trustedDevicesJSON,
+			&trustedDevicesStr,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 
-		// Set boolean fields
-		user.EmailVerified = emailVerified
-		user.PhoneVerified = phoneVerified
-		user.PasswordLocked = passwordLocked
-		user.WebAuthnLocked = webauthnLocked
-		user.MFALocked = mfaLocked
-
-		// Parse timestamps
-		user.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
-		user.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
-		if lastLoginAt != nil {
-			lastLogin, _ := time.Parse(time.RFC3339, *lastLoginAt)
-			user.LastLoginAt = &lastLogin
-		}
+		// Set time fields
+		user.CreatedAt = createdAt
+		user.UpdatedAt = updatedAt
+		user.LastLoginAt = lastLoginAt
 
 		// Parse JSON fields
-		user.Roles = []string{}
-		user.Groups = []string{}
-		user.Attributes = map[string]string{}
-		user.Entitlements = []string{}
-		user.Consent = []string{}
-
-		if rolesJSON != "" && rolesJSON != "null" {
-			_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
+		if err := json.Unmarshal([]byte(rolesStr), &user.Roles); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal roles: %w", err)
 		}
-		if groupsJSON != "" && groupsJSON != "null" {
-			_ = json.Unmarshal([]byte(groupsJSON), &user.Groups)
+		if err := json.Unmarshal([]byte(groupsStr), &user.Groups); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal groups: %w", err)
 		}
-		if attributesJSON != "" && attributesJSON != "null" {
-			_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
+		if err := json.Unmarshal([]byte(entitlementsStr), &user.Entitlements); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal entitlements: %w", err)
 		}
-		if entitlementsJSON != "" && entitlementsJSON != "null" {
-			_ = json.Unmarshal([]byte(entitlementsJSON), &user.Entitlements)
+		if err := json.Unmarshal([]byte(consentStr), &user.Consent); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal consent: %w", err)
 		}
-		if consentJSON != "" && consentJSON != "null" {
-			_ = json.Unmarshal([]byte(consentJSON), &user.Consent)
+		if err := json.Unmarshal([]byte(attributesStr), &user.Attributes); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal attributes: %w", err)
+		}
+		if err := json.Unmarshal([]byte(trustedDevicesStr), &user.TrustedDevices); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal trusted devices: %w", err)
 		}
 
-		user.TrustedDevices = trustedDevicesJSON
 		users = append(users, user)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error iterating users: %w", err)
 	}
 
 	return users, nil
@@ -543,8 +528,8 @@ func (p *PostgresUserDB) DeleteUser(ctx context.Context, tenant, realm, username
 func (p *PostgresUserDB) scanUserFromRow(row pgx.Row) (*model.User, error) {
 	var user model.User
 	var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON, entitlementsJSON, consentJSON string
-	var createdAt, updatedAt string
-	var lastLoginAt *string
+	var createdAt, updatedAt time.Time
+	var lastLoginAt *time.Time
 	var emailVerified, phoneVerified, passwordLocked, webauthnLocked, mfaLocked bool
 
 	err := row.Scan(
@@ -598,12 +583,11 @@ func (p *PostgresUserDB) scanUserFromRow(row pgx.Row) (*model.User, error) {
 	user.WebAuthnLocked = webauthnLocked
 	user.MFALocked = mfaLocked
 
-	// Parse timestamps
-	user.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
-	user.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
+	// Set timestamps
+	user.CreatedAt = createdAt
+	user.UpdatedAt = updatedAt
 	if lastLoginAt != nil {
-		lastLogin, _ := time.Parse(time.RFC3339, *lastLoginAt)
-		user.LastLoginAt = &lastLogin
+		user.LastLoginAt = lastLoginAt
 	}
 
 	// Parse JSON fields

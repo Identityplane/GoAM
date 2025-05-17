@@ -31,12 +31,12 @@ type DatabaseConnections struct {
 var (
 	// Global service registry
 	services  *Services
-	databases *DatabaseConnections
+	Databases *DatabaseConnections
 )
 
 // InitServices initializes all services with their dependencies
 func InitServices(connections DatabaseConnections) *Services {
-	databases = &connections
+	Databases = &connections
 
 	// Initialize cache service first
 	cacheService, err := NewCacheService()
@@ -45,14 +45,14 @@ func InitServices(connections DatabaseConnections) *Services {
 	}
 
 	services = &Services{
-		UserService:                NewUserService(databases.UserDB),
-		RealmService:               NewCachedRealmService(NewRealmService(databases.RealmDB, databases.UserDB), cacheService),
-		FlowService:                NewCachedFlowService(NewFlowService(databases.FlowDB), cacheService),
-		ApplicationService:         NewApplicationService(databases.ApplicationsDB),
-		SessionsService:            NewCachedSessionsService(NewSessionsService(databases.ClientSessionDB, databases.AuthSessionDB), cacheService),
+		UserService:                NewUserService(Databases.UserDB),
+		RealmService:               NewCachedRealmService(NewRealmService(Databases.RealmDB, Databases.UserDB), cacheService),
+		FlowService:                NewCachedFlowService(NewFlowService(Databases.FlowDB), cacheService),
+		ApplicationService:         NewApplicationService(Databases.ApplicationsDB),
+		SessionsService:            NewCachedSessionsService(NewSessionsService(Databases.ClientSessionDB, Databases.AuthSessionDB), cacheService),
 		StaticConfigurationService: NewStaticConfigurationService(),
 		OAuth2Service:              NewOAuth2Service(),
-		JWTService:                 NewCachedJWTService(NewJWTService(databases.SigningKeyDB), cacheService),
+		JWTService:                 NewCachedJWTService(NewJWTService(Databases.SigningKeyDB), cacheService),
 		CacheService:               cacheService,
 	}
 

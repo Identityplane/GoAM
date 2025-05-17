@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"goiam/internal/service"
+	"reflect"
 	"runtime"
 	"strconv"
 
@@ -74,10 +75,59 @@ func handleReadiness(ctx *fasthttp.RequestCtx) {
 // @Success 200 {object} object "Service information"
 // @Router /info [get]
 func handleInfo(ctx *fasthttp.RequestCtx) {
-	info := map[string]string{
+	// Create the main info structure
+	info := map[string]interface{}{
 		"name":       "GoIAM",
 		"go_version": runtime.Version(),
 	}
+
+	// list available services and their implementaitons with service.GetServices()
+	services := service.GetServices()
+	servicesInfo := make(map[string]string)
+
+	// Use reflection to get the type information
+	svcValue := reflect.ValueOf(services).Elem()
+	svcType := svcValue.Type()
+
+	for i := 0; i < svcValue.NumField(); i++ {
+		field := svcValue.Field(i)
+		fieldType := svcType.Field(i)
+
+		// Get the concrete type name
+		implType := "nil"
+		if !field.IsNil() {
+			implType = reflect.TypeOf(field.Interface()).String()
+		}
+
+		servicesInfo[fieldType.Name] = implType
+	}
+
+	// Add services info directly to the main structure
+	info["services"] = servicesInfo
+
+	// Get database implementations
+	databases := service.Databases
+	databasesInfo := make(map[string]string)
+
+	// Use reflection to get the type information for databases
+	dbValue := reflect.ValueOf(databases).Elem()
+	dbType := dbValue.Type()
+
+	for i := 0; i < dbValue.NumField(); i++ {
+		field := dbValue.Field(i)
+		fieldType := dbType.Field(i)
+
+		// Get the concrete type name
+		implType := "nil"
+		if !field.IsNil() {
+			implType = reflect.TypeOf(field.Interface()).String()
+		}
+
+		databasesInfo[fieldType.Name] = implType
+	}
+
+	// Add databases info directly to the main structure
+	info["databases"] = databasesInfo
 
 	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetContentType("application/json")

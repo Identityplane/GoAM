@@ -73,8 +73,11 @@ func TemplateTestSigningKeyCRUD(t *testing.T, db SigningKeyDB) {
 		keys, err := db.ListActiveSigningKeys(ctx, testTenant, testRealm)
 		assert.NoError(t, err)
 		assert.Len(t, keys, 1)
-		assert.Equal(t, testKey.Kid, keys[0].Kid)
-		assert.True(t, keys[0].Active)
+
+		if len(keys) > 0 {
+			assert.Equal(t, testKey.Kid, keys[0].Kid)
+			assert.True(t, keys[0].Active)
+		}
 	})
 
 	t.Run("DisableSigningKey", func(t *testing.T) {

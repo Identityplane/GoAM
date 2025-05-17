@@ -16,6 +16,7 @@ var (
 	// All loaded realm configurations, indexed by "tenant/realm"
 	LoadedRealms     = map[string]*service.LoadedRealm{}
 	UserAdminService service.UserAdminService
+	DBConnections    *service.DatabaseConnections
 )
 
 // Initialize loads all tenant/realm configurations at startup.
@@ -44,10 +45,52 @@ func initDatabase() *service.DatabaseConnections {
 			logger.PanicNoContext("Failed to initialize postgres database: %v", err)
 		}
 
+		// Run migrations
+		err = postgres_adapter.RunMigrations(postgresdb)
+		if err != nil {
+			logger.PanicNoContext("Failed to run postgres migrations: %v", err)
+		}
+
 		// Init user db
 		connections.UserDB, err = postgres_adapter.NewPostgresUserDB(postgresdb)
 		if err != nil {
 			logger.PanicNoContext("Failed to initialize postgres user db: %v", err)
+		}
+
+		// Init signing key db
+		connections.SigningKeyDB, err = postgres_adapter.NewPostgresSigningKeysDB(postgresdb)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize postgres signing key db: %v", err)
+		}
+
+		// Init auth session db
+		connections.AuthSessionDB, err = postgres_adapter.NewPostgresAuthSessionDB(postgresdb)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize postgres auth session db: %v", err)
+		}
+
+		// Init client session db
+		connections.ClientSessionDB, err = postgres_adapter.NewPostgresClientSessionDB(postgresdb)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize postgres client session db: %v", err)
+		}
+
+		// Init realm db
+		connections.RealmDB, err = postgres_adapter.NewPostgresRealmDB(postgresdb)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize postgres realm db: %v", err)
+		}
+
+		// Init flow db
+		connections.FlowDB, err = postgres_adapter.NewPostgresFlowDB(postgresdb)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize postgres flow db: %v", err)
+		}
+
+		// Init application db
+		connections.ApplicationsDB, err = postgres_adapter.NewPostgresApplicationDB(postgresdb)
+		if err != nil {
+			logger.PanicNoContext("Failed to initialize postgres application db: %v", err)
 		}
 
 	} else {

@@ -1,47 +1,46 @@
 -- migrations/001_create_users.sql
 
 CREATE TABLE IF NOT EXISTS users (
-
     -- Unique UUID for the user
-    id TEXT PRIMARY KEY,
+    id VARCHAR(36) PRIMARY KEY,
 
     -- Organization Context
-    tenant TEXT NOT NULL,
-    realm TEXT NOT NULL,
-    username TEXT NOT NULL,
+    tenant VARCHAR(255) NOT NULL,
+    realm VARCHAR(255) NOT NULL,
+    username VARCHAR(255) NOT NULL,
 
     -- User status
-    status TEXT NOT NULL DEFAULT 'active',
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
 
     -- Identity Information
-    display_name TEXT,
-    given_name TEXT,
-    family_name TEXT,
+    display_name VARCHAR(255),
+    given_name VARCHAR(255),
+    family_name VARCHAR(255),
 
     -- Profile Information
-    profile_picture_uri TEXT,
+    profile_picture_uri VARCHAR(1024),
 
     -- Additional contact information
-    email TEXT,
-    phone TEXT,
-    email_verified BOOLEAN DEFAULT false,
-    phone_verified BOOLEAN DEFAULT false,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    email_verified BOOLEAN DEFAULT FALSE,
+    phone_verified BOOLEAN DEFAULT FALSE,
 
     -- Login Information
-    login_identifier TEXT,
+    login_identifier VARCHAR(255),
 
     -- Locale
-    locale TEXT,
+    locale VARCHAR(10),
 
-    -- Authentication credentials (stored as encrypted JSON)
+    -- Authentication credentials
     password_credential TEXT,
     webauthn_credential TEXT,
     mfa_credential TEXT,
 
     -- Credential lock status
-    password_locked BOOLEAN DEFAULT false,
-    webauthn_locked BOOLEAN DEFAULT false,
-    mfa_locked BOOLEAN DEFAULT false,
+    password_locked BOOLEAN DEFAULT FALSE,
+    webauthn_locked BOOLEAN DEFAULT FALSE,
+    mfa_locked BOOLEAN DEFAULT FALSE,
 
     -- Failed login attempts
     failed_login_attempts_password INTEGER DEFAULT 0,
@@ -49,25 +48,25 @@ CREATE TABLE IF NOT EXISTS users (
     failed_login_attempts_mfa INTEGER DEFAULT 0,
 
     -- User roles and groups (stored as JSON)
-    roles TEXT DEFAULT '[]',
-    groups TEXT DEFAULT '[]',
-    entitlements TEXT DEFAULT '[]',
-    consent TEXT DEFAULT '[]',
+    roles JSONB DEFAULT '[]'::jsonb,
+    groups JSONB DEFAULT '[]'::jsonb,
+    entitlements JSONB DEFAULT '[]'::jsonb,
+    consent JSONB DEFAULT '[]'::jsonb,
 
     -- Extensibility
-    attributes TEXT DEFAULT '{}',
+    attributes JSONB DEFAULT '{}'::jsonb,
 
     -- Audit
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    last_login_at TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TIMESTAMP WITH TIME ZONE,
 
     -- Federation
-    federated_idp TEXT,
-    federated_id TEXT,
+    federated_idp VARCHAR(255),
+    federated_id VARCHAR(255),
 
     -- Devices (stored as JSON)
-    trusted_devices TEXT,
+    trusted_devices JSONB,
 
     -- Constraints
     CONSTRAINT unique_username_per_tenant_realm UNIQUE (tenant, realm, username)
