@@ -267,7 +267,7 @@ func TestSessionsService(t *testing.T) {
 	})
 
 	t.Run("CreateAndGetClientSessionByAccessToken", func(t *testing.T) {
-		accessToken, err := service.CreateAccessTokenSession(ctx, testTenant, testRealm, testClientID, testUserID, testScope, "client_credentials", 3600)
+		accessToken, _, err := service.CreateAccessTokenSession(ctx, testTenant, testRealm, testClientID, testUserID, testScope, "client_credentials", 3600)
 		require.NoError(t, err)
 		assert.NotEmpty(t, accessToken)
 
@@ -280,7 +280,7 @@ func TestSessionsService(t *testing.T) {
 	})
 
 	t.Run("CreateAndGetClientSessionByRefreshToken", func(t *testing.T) {
-		refreshToken, err := service.CreateRefreshTokenSession(ctx, testTenant, testRealm, testClientID, testUserID, testScope, "refresh_token", 86400)
+		refreshToken, _, err := service.CreateRefreshTokenSession(ctx, testTenant, testRealm, testClientID, testUserID, testScope, "refresh_token", 86400)
 		require.NoError(t, err)
 		assert.NotEmpty(t, refreshToken)
 
@@ -302,7 +302,7 @@ func TestSessionsService(t *testing.T) {
 		loginURI := "/login"
 		loginSession, _ := service.CreateAuthSessionObject(testTenant, testRealm, flowID, loginURI)
 
-		authCode, err := service.CreateAuthCodeSession(
+		authCode, _, err := service.CreateAuthCodeSession(
 			ctx,
 			testTenant,
 			testRealm,
@@ -329,7 +329,7 @@ func TestSessionsService(t *testing.T) {
 
 	t.Run("SessionExpiration", func(t *testing.T) {
 		// Create a session that expires in 1 second
-		accessToken, err := service.CreateAccessTokenSession(ctx, testTenant, testRealm, testClientID, testUserID, testScope, "client_credentials", 1)
+		accessToken, _, err := service.CreateAccessTokenSession(ctx, testTenant, testRealm, testClientID, testUserID, testScope, "client_credentials", 1)
 		require.NoError(t, err)
 
 		// Advance time by 2 seconds
@@ -343,7 +343,7 @@ func TestSessionsService(t *testing.T) {
 
 	t.Run("SessionNotExpired", func(t *testing.T) {
 		// Create a session that expires in 10 seconds
-		accessToken, err := service.CreateAccessTokenSession(ctx, testTenant, testRealm, testClientID, testUserID, testScope, "client_credentials", 10)
+		accessToken, _, err := service.CreateAccessTokenSession(ctx, testTenant, testRealm, testClientID, testUserID, testScope, "client_credentials", 10)
 		require.NoError(t, err)
 
 		// Advance time by 5 seconds

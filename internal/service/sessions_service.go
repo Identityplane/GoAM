@@ -28,15 +28,56 @@ func (r *RealTimeProvider) Now() time.Time {
 	return time.Now()
 }
 
-type SessionsService struct {
+// SessionsService defines the interface for session management
+type SessionsService interface {
+	// SetTimeProvider sets a custom time provider for testing
+	SetTimeProvider(provider TimeProvider)
+
+	// CreateAuthSessionObject creates a new session object but does not store it
+	CreateAuthSessionObject(tenant, realm, flowId, loginUri string) (*model.AuthenticationSession, string)
+
+	// CreateOrUpdateAuthenticationSession creates or updates an authentication session
+	CreateOrUpdateAuthenticationSession(ctx context.Context, tenant, realm string, session model.AuthenticationSession) error
+
+	// GetAuthenticationSessionByID retrieves an authentication session by its ID
+	GetAuthenticationSessionByID(ctx context.Context, tenant, realm, sessionID string) (*model.AuthenticationSession, bool)
+
+	// GetAuthenticationSession retrieves an authentication session by its hash
+	GetAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) (*model.AuthenticationSession, bool)
+
+	// DeleteAuthenticationSession removes an authentication session
+	DeleteAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) error
+
+	// CreateAuthCodeSession creates a new client session with an auth code
+	CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession) (string, *model.ClientSession, error)
+
+	// CreateAccessTokenSession creates a new access token session
+	CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int) (string, *model.ClientSession, error)
+
+	// CreateRefreshTokenSession creates a new refresh token session
+	CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int) (string, *model.ClientSession, error)
+
+	// GetClientSessionByAccessToken retrieves a client session by its access token
+	GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessToken string) (*model.ClientSession, error)
+
+	// LoadAndDeleteAuthCodeSession retrieves a client session by auth code and deletes it
+	LoadAndDeleteAuthCodeSession(ctx context.Context, tenant, realm, authCode string) (*model.ClientSession, *model.AuthenticationSession, error)
+
+	// LoadAndDeleteRefreshTokenSession retrieves a client session by refresh token and deletes it
+	LoadAndDeleteRefreshTokenSession(ctx context.Context, tenant, realm, refreshToken string) (*model.ClientSession, error)
+}
+
+// sessionsService implements SessionsService
+type sessionsService struct {
 	mu              sync.RWMutex
 	clientSessionDB db.ClientSessionDB
 	authSessionDB   db.AuthSessionDB
 	timeProvider    TimeProvider
 }
 
-func NewSessionsService(clientSessionDB db.ClientSessionDB, authSessionDB db.AuthSessionDB) *SessionsService {
-	return &SessionsService{
+// NewSessionsService creates a new sessions service
+func NewSessionsService(clientSessionDB db.ClientSessionDB, authSessionDB db.AuthSessionDB) SessionsService {
+	return &sessionsService{
 		clientSessionDB: clientSessionDB,
 		authSessionDB:   authSessionDB,
 		timeProvider:    &RealTimeProvider{},
@@ -44,14 +85,14 @@ func NewSessionsService(clientSessionDB db.ClientSessionDB, authSessionDB db.Aut
 }
 
 // SetTimeProvider sets a custom time provider for testing
-func (s *SessionsService) SetTimeProvider(provider TimeProvider) {
+func (s *sessionsService) SetTimeProvider(provider TimeProvider) {
 	s.timeProvider = provider
 }
 
 // Creates a new session object but does not store it in the database yet
 // This is to optimize performance so that only one database call is made when the session is created
 // returns the session object and session id
-func (s *SessionsService) CreateAuthSessionObject(tenant, realm, flowId, loginUri string) (*model.AuthenticationSession, string) {
+func (s *sessionsService) CreateAuthSessionObject(tenant, realm, flowId, loginUri string) (*model.AuthenticationSession, string) {
 	sessionID := lib.GenerateSecureSessionID()
 
 	session := &model.AuthenticationSession{
@@ -71,7 +112,7 @@ func (s *SessionsService) CreateAuthSessionObject(tenant, realm, flowId, loginUr
 }
 
 // CreateOrUpdateAuthenticationSession creates a new authentication session or updates an existing one
-func (s *SessionsService) CreateOrUpdateAuthenticationSession(ctx context.Context, tenant, realm string, session model.AuthenticationSession) error {
+func (s *sessionsService) CreateOrUpdateAuthenticationSession(ctx context.Context, tenant, realm string, session model.AuthenticationSession) error {
 	persistentSession, err := model.NewPersistentAuthSession(tenant, realm, &session)
 	if err != nil {
 		return fmt.Errorf("failed to create persistent session: %w", err)
@@ -80,14 +121,14 @@ func (s *SessionsService) CreateOrUpdateAuthenticationSession(ctx context.Contex
 	return s.authSessionDB.CreateOrUpdateAuthSession(ctx, persistentSession)
 }
 
-func (s *SessionsService) GetAuthenticationSessionByID(ctx context.Context, tenant, realm, sessionID string) (*model.AuthenticationSession, bool) {
+func (s *sessionsService) GetAuthenticationSessionByID(ctx context.Context, tenant, realm, sessionID string) (*model.AuthenticationSession, bool) {
 	// Hash the session id
 	sessionIDHash := lib.HashString(sessionID)
 	return s.GetAuthenticationSession(ctx, tenant, realm, sessionIDHash)
 }
 
 // GetAuthenticationSession retrieves an authentication session by its hash
-func (s *SessionsService) GetAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) (*model.AuthenticationSession, bool) {
+func (s *sessionsService) GetAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) (*model.AuthenticationSession, bool) {
 	persistentSession, err := s.authSessionDB.GetAuthSessionByHash(ctx, tenant, realm, sessionIDHash)
 	if err != nil {
 		logger.ErrorNoContext("Failed to get auth session: %v", err)
@@ -117,20 +158,12 @@ func (s *SessionsService) GetAuthenticationSession(ctx context.Context, tenant, 
 }
 
 // DeleteAuthenticationSession removes an authentication session
-func (s *SessionsService) DeleteAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) error {
+func (s *sessionsService) DeleteAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) error {
 	return s.authSessionDB.DeleteAuthSession(ctx, tenant, realm, sessionIDHash)
 }
 
-// CreateClientSession creates a new client session
-func (s *SessionsService) CreateClientSession(ctx context.Context, tenant, realm string, session *model.ClientSession) error {
-
-	panic("not implemented")
-
-	return s.clientSessionDB.CreateClientSession(ctx, tenant, realm, session)
-}
-
 // CreateAuthCodeSession creates a new client session with an auth code
-func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession) (string, error) {
+func (s *sessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession) (string, *model.ClientSession, error) {
 	// Generate a new auth code
 	sessionID := lib.GenerateSecureSessionID()
 	authCode := lib.GenerateSecureSessionID()
@@ -139,7 +172,7 @@ func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, rea
 	// json encode the login session
 	loginSessionJSON, err := json.Marshal(loginSession)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal login session: %w", err)
+		return "", nil, fmt.Errorf("failed to marshal login session: %w", err)
 	}
 
 	// Create a new client session
@@ -162,13 +195,13 @@ func (s *SessionsService) CreateAuthCodeSession(ctx context.Context, tenant, rea
 	// Store the session in the database
 	err = s.clientSessionDB.CreateClientSession(ctx, tenant, realm, session)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return authCode, nil
+	return authCode, session, nil
 }
 
-func (s *SessionsService) CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int) (string, error) {
+func (s *sessionsService) CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int) (string, *model.ClientSession, error) {
 
 	sessionID := lib.GenerateSecureSessionID()
 	accessToken := lib.GenerateSecureSessionID()
@@ -189,16 +222,16 @@ func (s *SessionsService) CreateAccessTokenSession(ctx context.Context, tenant, 
 
 	err := s.clientSessionDB.CreateClientSession(ctx, tenant, realm, session)
 	if err != nil {
-		return "", fmt.Errorf("failed to create access token session: %w", err)
+		return "", nil, fmt.Errorf("failed to create access token session: %w", err)
 	}
 
 	logger.InfoNoContext("Creating client access token session tenant=%s realm=%s id=%s hash=%s", tenant, realm, sessionID[:8], accessTokenHash[:8])
 
-	return accessToken, nil
+	return accessToken, session, nil
 }
 
 // CreateRefreshTokenSession creates a new refresh token session
-func (s *SessionsService) CreateRefreshTokenSession(context context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int) (string, error) {
+func (s *sessionsService) CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int) (string, *model.ClientSession, error) {
 
 	sessionID := lib.GenerateSecureSessionID()
 	refreshToken := lib.GenerateSecureSessionID()
@@ -217,18 +250,18 @@ func (s *SessionsService) CreateRefreshTokenSession(context context.Context, ten
 		Expire:           time.Now().Add(time.Duration(expiresIn) * time.Second),
 	}
 
-	err := s.clientSessionDB.CreateClientSession(context, tenant, realm, session)
+	err := s.clientSessionDB.CreateClientSession(ctx, tenant, realm, session)
 	if err != nil {
-		return "", fmt.Errorf("failed to create refresh token session: %w", err)
+		return "", nil, fmt.Errorf("failed to create refresh token session: %w", err)
 	}
 
 	logger.InfoNoContext("Creating client refresh token session tenant=%s realm=%s id=%s hash=%s", tenant, realm, sessionID[:8], refreshTokenHash[:8])
 
-	return refreshToken, nil
+	return refreshToken, session, nil
 }
 
 // GetClientSessionByAccessToken retrieves a client session by its access token
-func (s *SessionsService) GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessToken string) (*model.ClientSession, error) {
+func (s *sessionsService) GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessToken string) (*model.ClientSession, error) {
 	accessTokenHash := lib.HashString(accessToken)
 
 	logger.DebugNoContext("Getting client session by access token tenant=%s realm=%s hash=%s", tenant, realm, accessTokenHash[:8])
@@ -247,7 +280,7 @@ func (s *SessionsService) GetClientSessionByAccessToken(ctx context.Context, ten
 }
 
 // LoadAndDeleteAuthCodeSession retrieves a client session by auth code and deletes it
-func (s *SessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, tenant, realm, authCode string) (*model.ClientSession, *model.AuthenticationSession, error) {
+func (s *sessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, tenant, realm, authCode string) (*model.ClientSession, *model.AuthenticationSession, error) {
 	// Hash the auth code
 	authCodeHash := lib.HashString(authCode)
 
@@ -282,7 +315,7 @@ func (s *SessionsService) LoadAndDeleteAuthCodeSession(ctx context.Context, tena
 }
 
 // LoadAndDeleteRefreshTokenSession retrieves a client session by refresh token and deletes it
-func (s *SessionsService) LoadAndDeleteRefreshTokenSession(ctx context.Context, tenant, realm, refreshToken string) (*model.ClientSession, error) {
+func (s *sessionsService) LoadAndDeleteRefreshTokenSession(ctx context.Context, tenant, realm, refreshToken string) (*model.ClientSession, error) {
 
 	// Hash the refresh token
 	refreshTokenHash := lib.HashString(refreshToken)

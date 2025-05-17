@@ -221,7 +221,7 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 
 	// If all ok we create a client session and issue an auth code
 	scope := session.Oauth2SessionInformation.AuthorizeRequest.Scope
-	authCode, err := GetServices().SessionsService.CreateAuthCodeSession(
+	authCode, _, err := GetServices().SessionsService.CreateAuthCodeSession(
 		context.Background(),
 		tenant,
 		realm,
@@ -494,7 +494,7 @@ func (s *OAuth2Service) generateAccessToken(session *model.ClientSession, loginS
 	scopesArray := strings.Split(scopes, " ")
 
 	// Then we store it into the client sessions database using the service
-	accessToken, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn)
+	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn)
 
 	if err != nil {
 		return "", 0, "", "", fmt.Errorf("internal server error. Could not create access token session: %w", err)
@@ -516,7 +516,7 @@ func (s *OAuth2Service) generateAccessTokenForClientCredentialsGrant(application
 	scope := strings.Join(scopes, " ")
 
 	// Then we store it into the client sessions database using the service
-	accessToken, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, clientId, userId, scopes, string(Oauth2_ClientCredentials), expiresIn)
+	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, clientId, userId, scopes, string(oauth2.Oauth2_ClientCredentials), expiresIn)
 
 	if err != nil {
 		return "", 0, "", "", fmt.Errorf("internal server error. Could not create access token session: %w", err)
@@ -540,7 +540,7 @@ func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, login
 	scopesArray := strings.Split(scopes, " ")
 
 	// Create the refresh token
-	refreshToken, err := GetServices().SessionsService.CreateRefreshTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn)
+	refreshToken, _, err := GetServices().SessionsService.CreateRefreshTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn)
 
 	if err != nil {
 		return "", fmt.Errorf("internal server error. Could not create refresh token session: %w", err)

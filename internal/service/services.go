@@ -10,7 +10,7 @@ type Services struct {
 	RealmService               RealmService
 	FlowService                FlowService
 	ApplicationService         ApplicationService
-	SessionsService            *SessionsService
+	SessionsService            SessionsService
 	StaticConfigurationService StaticConfigurationService
 	OAuth2Service              *OAuth2Service
 	JWTService                 JWTService
@@ -49,7 +49,7 @@ func InitServices(connections DatabaseConnections) *Services {
 		RealmService:               NewCachedRealmService(NewRealmService(databases.RealmDB, databases.UserDB), cacheService),
 		FlowService:                NewCachedFlowService(NewFlowService(databases.FlowDB), cacheService),
 		ApplicationService:         NewApplicationService(databases.ApplicationsDB),
-		SessionsService:            NewSessionsService(databases.ClientSessionDB, databases.AuthSessionDB),
+		SessionsService:            NewCachedSessionsService(NewSessionsService(databases.ClientSessionDB, databases.AuthSessionDB), cacheService),
 		StaticConfigurationService: NewStaticConfigurationService(),
 		OAuth2Service:              NewOAuth2Service(),
 		JWTService:                 NewCachedJWTService(NewJWTService(databases.SigningKeyDB), cacheService),
