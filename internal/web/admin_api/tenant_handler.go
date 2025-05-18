@@ -26,7 +26,7 @@ type CreateTenantRequest struct {
 // @Produce json
 // @Param tenant_name path string true "Tenant name to check"
 // @Success 200 {object} TenantAvailabilityResponse
-// @Failure 500 {object} web.ErrorResponse
+// @Failure 500 {string} string "Internal server error"
 // @Router /admin/tenants/check-availability/{tenant_name} [get]
 func HandleTenantNameAvailable(ctx *fasthttp.RequestCtx) {
 	tenantName := ctx.UserValue("tenant_name").(string)
@@ -67,14 +67,14 @@ func HandleTenantNameAvailable(ctx *fasthttp.RequestCtx) {
 // @Produce json
 // @Param request body CreateTenantRequest true "Tenant creation request"
 // @Success 201 {object} map[string]interface{}
-// @Failure 400 {object} web.ErrorResponse
-// @Failure 500 {object} web.ErrorResponse
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Internal server error"
 // @Router /admin/tenants [post]
 func HandleCreateTenant(ctx *fasthttp.RequestCtx) {
 	var req CreateTenantRequest
 	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		ctx.SetContentType("application/json")
+		ctx.SetContentType("text/plain")
 		ctx.SetBodyString("Invalid request body")
 		return
 	}
@@ -82,7 +82,7 @@ func HandleCreateTenant(ctx *fasthttp.RequestCtx) {
 	available, err := service.GetServices().RealmService.IsTenantNameAvailable(req.TenantName)
 	if err != nil || !available {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		ctx.SetContentType("application/json")
+		ctx.SetContentType("text/plain")
 		ctx.SetBodyString("Not available")
 		return
 	}
@@ -90,6 +90,7 @@ func HandleCreateTenant(ctx *fasthttp.RequestCtx) {
 	user := getUser(ctx)
 	if user == nil {
 		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+		ctx.SetContentType("text/plain")
 		ctx.SetBodyString("Unauthorized")
 		return
 	}
