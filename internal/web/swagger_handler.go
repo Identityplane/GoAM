@@ -58,6 +58,8 @@ func HandleSwaggerUI(ctx *fasthttp.RequestCtx) {
 		ctx.SetContentType("text/plain")
 	}
 
+	ctx.SetUserValue("csp", "")
+
 	// If this is the index.html, we need to replace the Swagger UI configuration
 	if filePath == "index.html" {
 		// Replace the Swagger UI configuration

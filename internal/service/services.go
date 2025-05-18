@@ -15,6 +15,7 @@ type Services struct {
 	OAuth2Service              *OAuth2Service
 	JWTService                 JWTService
 	CacheService               CacheService
+	AdminAuthzService          AdminAuthzService
 }
 
 // DatabaseConnections holds all database connections
@@ -54,6 +55,7 @@ func InitServices(connections DatabaseConnections) *Services {
 		OAuth2Service:              NewOAuth2Service(),
 		JWTService:                 NewCachedJWTService(NewJWTService(Databases.SigningKeyDB), cacheService),
 		CacheService:               cacheService,
+		AdminAuthzService:          NewAdminAuthzService(),
 	}
 
 	return services

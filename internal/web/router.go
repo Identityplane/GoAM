@@ -21,6 +21,8 @@ func New() *router.Router {
 	admin := r.Group("/admin")
 	admin.OPTIONS("/{name:*}", WrapMiddleware(handleOptions)) // Cors for options requests requests
 
+	admin.GET("/whoami", adminMiddleware(admin_api.HandleWhoAmI))
+
 	admin.GET("/{tenant}/{realm}/users", adminMiddleware(admin_api.HandleListUsers))
 	admin.GET("/{tenant}/{realm}/users/stats", adminMiddleware(admin_api.HandleGetUserStats))
 	admin.GET("/{tenant}/{realm}/users/{username}", adminMiddleware(admin_api.HandleGetUser))
