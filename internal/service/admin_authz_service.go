@@ -1,7 +1,10 @@
 package service
 
 import (
+	"context"
+	"fmt"
 	"goiam/internal/model"
+	"regexp"
 	"strings"
 )
 
@@ -15,6 +18,7 @@ type AdminAuthzService interface {
 	GetEntitlements(user *model.User) []AuthzEntitlement
 	CheckAccess(user *model.User, tenant, realm, scope string) (bool, string)
 	GetVisibleRealms(user *model.User) (map[string]*LoadedRealm, error)
+	CreateTenant(tenantSlug, tenantName string, user *model.User) error
 }
 
 type adminAuthzServiceImpl struct {
@@ -116,4 +120,46 @@ func (s *adminAuthzServiceImpl) CheckAccess(user *model.User, tenant, realm, sco
 	}
 
 	return false, ""
+}
+
+func (s *adminAuthzServiceImpl) CreateTenant(tenantSlug, tenantName string, user *model.User) error {
+
+	services := GetServices()
+
+	// Validate tenant slug
+	if len(tenantSlug) < 3 {
+		return fmt.Errorf("tenant slug must be at least 3 characters")
+	}
+
+	if len(tenantSlug) > 50 {
+		return fmt.Errorf("tenant slug must be less than 50 characters")
+	}
+
+	matched, err := regexp.MatchString("^[a-z0-9-]+$", tenantSlug)
+	if err != nil {
+		return fmt.Errorf("error validating tenant slug: %v", err)
+	}
+	if !matched {
+		return fmt.Errorf("tenant slug can only contain lowercase letters, numbers, and hyphens")
+	}
+
+	// add an entitlement to the user
+	user.Entitlements = append(user.Entitlements, fmt.Sprintf("%s/*/*", tenantSlug))
+	_, err = services.UserService.UpdateUser(context.Background(), "internal", "internal", user.Username, *user)
+	if err != nil {
+		return err
+	}
+
+	// create the realm
+	err = services.RealmService.CreateRealm(&model.Realm{
+		Tenant:    tenantSlug,
+		Realm:     "default",
+		RealmName: "Default Realm",
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

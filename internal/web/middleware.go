@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"goiam/internal/config"
 	"goiam/internal/logger"
+	"goiam/internal/model"
 	"goiam/internal/service"
 	"runtime/debug"
 	"strings"
@@ -193,7 +195,46 @@ func adminAuthMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 				return
 			}
 
+			if user == nil {
+				ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+				ctx.SetBodyString("Could not load user from token")
+				return
+			}
+
 			ctx.SetUserValue("user", user)
+		}
+
+		// If the admin authz check is disabled, we skip the authz check
+		if config.UnsafeDisableAdminAuthzCheck && token == "" {
+			next(ctx)
+			return
+		}
+
+		// Validate if the user has access to the tenant and realm
+		tenantAny := ctx.UserValue("tenant")
+		realmAny := ctx.UserValue("realm")
+
+		if tenantAny != nil && realmAny != nil {
+
+			tenant := tenantAny.(string)
+			realm := realmAny.(string)
+
+			userAny := ctx.UserValue("user")
+
+			if userAny == nil {
+				ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+				ctx.SetBodyString("Unauthorized")
+				return
+			}
+
+			user := userAny.(*model.User)
+
+			hasAccess, _ := service.GetServices().AdminAuthzService.CheckAccess(user, tenant, realm, "")
+			if !hasAccess {
+				ctx.SetStatusCode(fasthttp.StatusForbidden)
+				ctx.SetBodyString("No access to tenant or realm")
+				return
+			}
 		}
 
 		next(ctx)

@@ -8,7 +8,9 @@
         "request": "launch",
         "mode": "auto",
         "program": "${workspaceFolder}/cmd/main.go",
-        "env": {},
+        "env": {
+          "GOIAM_UNSAFE_DISABLE_ADMIN_AUTHZ_CHECK": "true"
+        },
         "args": [],
         "showLog": true
       },

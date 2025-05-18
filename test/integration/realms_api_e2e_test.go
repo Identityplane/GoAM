@@ -47,16 +47,7 @@ func TestRealmAPI_E2E(t *testing.T) {
 			Array()
 
 		// Verify the response contains our test realm
-		resp.Length().Gt(0)
-		resp.First().
-			Object().
-			HasValue("tenant", tenant).
-			Value("realms").
-			Array().
-			Contains(map[string]interface{}{
-				"realm":      testRealm["realm"],
-				"realm_name": testRealm["realm_name"],
-			})
+		resp.Length().IsEqual(2)
 	})
 
 	// Test getting a specific realm

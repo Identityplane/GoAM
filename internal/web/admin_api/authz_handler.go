@@ -2,6 +2,7 @@ package admin_api
 
 import (
 	"encoding/json"
+	"goiam/internal/config"
 	"goiam/internal/model"
 	"goiam/internal/service"
 	"net/http"
@@ -28,16 +29,22 @@ type AuthzUser struct {
 	PhoneVerified bool      `json:"phone_verified"`
 }
 
-func HandleWhoAmI(ctx *fasthttp.RequestCtx) {
+func getUser(ctx *fasthttp.RequestCtx) *model.User {
 	userAny := ctx.UserValue("user")
-
 	if userAny == nil {
+		return nil
+	}
+	return userAny.(*model.User)
+}
+
+func HandleWhoAmI(ctx *fasthttp.RequestCtx) {
+	user := getUser(ctx)
+
+	if user == nil {
 		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 		ctx.SetBodyString("Unauthorized")
 		return
 	}
-
-	user := userAny.(*model.User)
 
 	services := service.GetServices()
 	entitlements := services.AdminAuthzService.GetEntitlements(user)
@@ -104,25 +111,16 @@ func HandleListRealms(ctx *fasthttp.RequestCtx) {
 	tenants := make(map[string]*ShortTenantInfo)
 	tenantList := make([]ShortTenantInfo, 0, len(tenants))
 
-	if userAny == nil {
+	var visibleRealms map[string]*service.LoadedRealm
+	var err error
 
-		// return an empty list of realms
-		// Marshal response to JSON with pretty printing
-		jsonData, err := json.MarshalIndent(tenantList, "", "  ")
-		if err != nil {
-			ctx.SetStatusCode(http.StatusInternalServerError)
-			ctx.SetBodyString("Failed to marshal response: " + err.Error())
-			return
-		}
+	if config.UnsafeDisableAdminAuthzCheck && userAny == nil {
+		visibleRealms, err = services.RealmService.GetAllRealms()
+	} else {
 
-		ctx.SetContentType("application/json")
-		ctx.SetBody(jsonData)
-		return
+		user := userAny.(*model.User)
+		visibleRealms, err = services.AdminAuthzService.GetVisibleRealms(user)
 	}
-
-	user := userAny.(*model.User)
-
-	visibleRealms, err := services.AdminAuthzService.GetVisibleRealms(user)
 
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)

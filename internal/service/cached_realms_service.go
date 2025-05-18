@@ -103,3 +103,8 @@ func (s *cachedRealmService) invalidateCaches(tenant, realm string) {
 	realmKey := s.getCacheKey(tenant, realm)
 	s.cache.Invalidate(realmKey)
 }
+
+// This is not cached
+func (s *cachedRealmService) IsTenantNameAvailable(tenantName string) (bool, error) {
+	return s.realmService.IsTenantNameAvailable(tenantName)
+}

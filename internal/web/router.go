@@ -22,6 +22,10 @@ func New() *router.Router {
 	admin.OPTIONS("/{name:*}", WrapMiddleware(handleOptions)) // Cors for options requests requests
 
 	admin.GET("/whoami", adminMiddleware(admin_api.HandleWhoAmI))
+	admin.GET("/realms", adminMiddleware(admin_api.HandleListRealms))
+	admin.GET("/system/stats", adminMiddleware(admin_api.HandleSystemStats))
+	admin.GET("/tenants/check-availability/{tenant_name}", adminMiddleware(admin_api.HandleTenantNameAvailable))
+	admin.POST("/tenants", adminMiddleware(admin_api.HandleCreateTenant))
 
 	admin.GET("/{tenant}/{realm}/users", adminMiddleware(admin_api.HandleListUsers))
 	admin.GET("/{tenant}/{realm}/users/stats", adminMiddleware(admin_api.HandleGetUserStats))
@@ -32,7 +36,6 @@ func New() *router.Router {
 
 	admin.GET("/{tenant}/{realm}/dashboard", adminMiddleware(admin_api.HandleDashboard))
 
-	admin.GET("/realms", adminMiddleware(admin_api.HandleListRealms))
 	admin.GET("/{tenant}/{realm}/", adminMiddleware(admin_api.HandleGetRealm))
 	admin.POST("/{tenant}/{realm}/", adminMiddleware(admin_api.HandleCreateRealm))
 	admin.PATCH("/{tenant}/{realm}/", adminMiddleware(admin_api.HandleUpdateRealm))
@@ -52,9 +55,6 @@ func New() *router.Router {
 	admin.POST("/{tenant}/{realm}/flows/{flow}", adminMiddleware(admin_api.HandleCreateFlow))
 	admin.PATCH("/{tenant}/{realm}/flows/{flow}", adminMiddleware(admin_api.HandleUpdateFlow))
 	admin.DELETE("/{tenant}/{realm}/flows/{flow}", adminMiddleware(admin_api.HandleDeleteFlow))
-
-	// System stats routes
-	admin.GET("/system/stats", adminMiddleware(admin_api.HandleSystemStats))
 
 	// Flow defintion routes
 	admin.POST("/{tenant}/{realm}/flows/validate", adminMiddleware(admin_api.HandleValidateFlowDefinition))

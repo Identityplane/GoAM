@@ -22,6 +22,9 @@ var (
 // Initialize loads all tenant/realm configurations at startup.
 // Each realm must include its own flow configuration.
 func Initialize() {
+
+	config.InitConfiguration()
+
 	// Print config path
 	logger.DebugNoContext("Using config path: %s", config.ConfigPath)
 
@@ -30,6 +33,7 @@ func Initialize() {
 
 	// Step 2: Initialize services and realms
 	initServices(dbConnections)
+
 }
 
 // initDatabase initializes all database connections based on the connection strings

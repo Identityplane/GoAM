@@ -36,6 +36,7 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 
 	projectRoot := findProjectRoot("README.md")
 
+	config.UnsafeDisableAdminAuthzCheck = true
 	config.ConfigPath = filepath.Join(projectRoot, "test/integration/config")
 	config.DBConnString = ":memory:?_foreign_keys=on"
 
@@ -106,4 +107,22 @@ func findProjectRoot(markerFile string) string {
 		}
 		dir = parent
 	}
+}
+
+func CreateAccessTokenSession(t *testing.T, user model.User) string {
+
+	token, _, err := service.GetServices().SessionsService.CreateAccessTokenSession(
+		context.Background(),
+		user.Tenant, user.Realm,
+		"clientid",
+		user.ID,
+		[]string{},
+		"test",
+		1000)
+
+	if err != nil {
+		t.Fatalf("failed to create access token session: %v", err)
+	}
+
+	return token
 }

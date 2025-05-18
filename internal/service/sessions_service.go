@@ -271,6 +271,10 @@ func (s *sessionsService) GetClientSessionByAccessToken(ctx context.Context, ten
 		return nil, err
 	}
 
+	if session == nil {
+		return nil, fmt.Errorf("client session not found")
+	}
+
 	// Check if session has expired
 	if s.timeProvider.Now().After(session.Expire) {
 		return nil, fmt.Errorf("session expired")

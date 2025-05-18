@@ -14,6 +14,9 @@ var DBConnString = getDBConnString()
 var PostgresUserDB *postgres_adapter.PostgresUserDB
 var SqliteUserDB *sqlite_adapter.SQLiteUserDB
 
+// Other global configurations
+var UnsafeDisableAdminAuthzCheck = false // Can be overwritten for development purposes
+
 func GetDbDriverName() string {
 
 	if strings.HasPrefix(DBConnString, "postgres://") {
@@ -74,4 +77,13 @@ func getConfigPath() string {
 
 	logger.DebugNoContext("Using default config path: %s, current working directory: %s", path, pwd)
 	return path
+}
+
+func InitConfiguration() {
+
+	disableAdminAuthzCheck := os.Getenv("GOIAM_UNSAFE_DISABLE_ADMIN_AUTHZ_CHECK")
+	if disableAdminAuthzCheck == "true" {
+		logger.DebugNoContext("Disabling admin authz check")
+		UnsafeDisableAdminAuthzCheck = true
+	}
 }

@@ -1,0 +1,35 @@
+realm: internal
+realm_name: IAM Management Users
+base_url: http://localhost:8080/internal/internal
+
+flows:
+  login_or_register:
+    name: Login or Register
+    route: /login
+    active: yes
+    definition_location: login_or_register.yaml
+
+applications:
+  management-ui:
+    client_secret: secret
+    confidential: false
+    consent_required: false
+    description: Management UI Application
+    allowed_scopes:
+      - openid
+      - profile
+      - write:user
+      - write:flows
+      - write:realms
+      - write:applications
+    allowed_grants:
+      - authorization_code_pkce
+    redirect_uris:
+      - http://localhost:3000
+    allowed_authentication_flows:
+      - login_or_register
+    access_token_lifetime: 600
+    refresh_token_lifetime: 3600
+    id_token_lifetime: 600
+    access_token_type: session
+    

@@ -24,6 +24,8 @@ type RealmService interface {
 	UpdateRealm(realm *model.Realm) error
 	// DeleteRealm deletes a realm
 	DeleteRealm(tenant, realm string) error
+	// Is Tenant Name Available
+	IsTenantNameAvailable(tenantName string) (bool, error)
 }
 
 // Intermediate used for deserialization
@@ -160,4 +162,17 @@ func (s *realmServiceImpl) DeleteRealm(tenant, realm string) error {
 	}
 
 	return nil
+}
+
+func (s *realmServiceImpl) IsTenantNameAvailable(tenantName string) (bool, error) {
+
+	// TODO we should optimize this by implementing this in the database
+	existing, err := s.realmDb.ListRealms(context.Background(), tenantName)
+	if err != nil {
+		return false, fmt.Errorf("check existing realm: %w", err)
+	}
+
+	isAvailable := len(existing) == 0
+
+	return isAvailable, nil
 }
