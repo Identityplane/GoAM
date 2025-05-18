@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"goiam/internal/lib"
 	"goiam/internal/model"
 	"html/template"
 	"path/filepath"
@@ -54,6 +55,7 @@ type ViewData struct {
 	LoginUri      string
 	AssetsJSPath  string
 	AssetsCSSPath string
+	CspNonce      string
 }
 
 //go:embed templates/*
@@ -174,6 +176,9 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	stylePath := baseUrl + "/static/style.css"
 	scriptPath := baseUrl + "/static/style.js"
 
+	cspNonce := lib.GenerateSecureSessionID()
+	ctx.SetUserValue("cspNonce", cspNonce)
+
 	// Create the view data
 	view := &ViewData{
 		Title:         state.Current,
@@ -195,6 +200,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		LoginUri:      loginUri,
 		AssetsJSPath:  baseUrl + "/" + AssetsJSName,
 		AssetsCSSPath: baseUrl + "/" + AssetsCSSName,
+		CspNonce:      cspNonce,
 	}
 
 	// Clone the base template

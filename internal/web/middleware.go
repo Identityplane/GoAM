@@ -106,12 +106,38 @@ func cors(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	}
 }
 
+func securityHeaders(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+
+		next(ctx)
+
+		ctx.Response.Header.Set("Strict-Transport-Security", "max-age=31536000;")
+		ctx.Response.Header.Set("X-Content-Type-Options", "nosniff")
+		ctx.Response.Header.Set("X-Frame-Options", "DENY")
+		ctx.Response.Header.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		// If the response has a cspNonce, we set the CSP, otherwise we set a very strict CSP as default
+		cspNonce := ctx.UserValue("cspNonce")
+
+		if cspNonce != nil {
+			cspNonceString := cspNonce.(string)
+			csp := fmt.Sprintf("script-src 'nonce-%s' 'strict-dynamic' 'unsafe-inline' http: https:; object-src 'none'; base-uri 'none';", cspNonceString)
+			ctx.Response.Header.Set("Content-Security-Policy", csp)
+		} else {
+			ctx.Response.Header.Set("Content-Security-Policy", "default-src 'none';")
+		}
+
+	}
+}
+
 // WrapMiddleware wraps a handler with all the necessary middleware
 func WrapMiddleware(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return TopLevelMiddleware(
 		traceIDMiddleware(
 			loggingMiddleware(
-				recoveryMiddleware(h),
+				recoveryMiddleware(
+					securityHeaders(h),
+				),
 			),
 		),
 	)

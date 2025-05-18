@@ -4,7 +4,7 @@
 <head>
   <title>{{ .Title }}</title>
   <link rel="stylesheet" href="{{ .AssetsCSSPath }}"> <!-- Global CSS -->
-  <script defer src="{{ .AssetsJSPath }}"></script> <!-- Global JS -->
+  <script defer src="{{ .AssetsJSPath }}" nonce="{{ .CspNonce }}"></script> <!-- Global JS -->
 
   <link rel="stylesheet" href="{{ .StylePath }}"> <!-- Realm specific CSS takes precedence -->
 </head>

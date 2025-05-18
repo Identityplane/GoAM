@@ -5,11 +5,7 @@ export async function initHcaptcha(): Promise<void> {
     
     await hCaptchaLoader();
 
-    await hCaptchaLoader();
-
-    hcaptcha.render({
-    sitekey: '<your_sitekey>'
-    });
+    hcaptcha.render();
 
     const { response } = await hcaptcha.execute({ async: true });
 

@@ -337,6 +337,14 @@ function serializeCredential(cred) {
 }
 async function initPasswordOrSocialLogin() {
   console.log("initializing PasswordOrSocialLogin");
+  const forgotPasswordLink = document.getElementById("forgot-password-link");
+  if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener("click", (event) => {
+      var _a;
+      event.preventDefault();
+      (_a = document.getElementById("forgotPasswordForm")) == null ? void 0 : _a.submit();
+    });
+  }
   if (window.PublicKeyCredential && PublicKeyCredential.isConditionalMediationAvailable) {
     const isCMA = await PublicKeyCredential.isConditionalMediationAvailable();
     if (isCMA) {
@@ -743,10 +751,7 @@ function xe() {
 async function initHcaptcha() {
   console.log("initializing Hcaptcha");
   await xe();
-  await xe();
-  hcaptcha.render({
-    sitekey: "<your_sitekey>"
-  });
+  hcaptcha.render();
   const { response } = await hcaptcha.execute({ async: true });
   console.log("hcaptcha response", response);
   const tokenInput = document.getElementById("hcaptcha-token");

@@ -4,6 +4,15 @@ export async function initPasswordOrSocialLogin(): Promise<void> {
 
     console.log('initializing PasswordOrSocialLogin')
 
+    // Forgot password link
+    const forgotPasswordLink = document.getElementById("forgot-password-link");
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener("click", (event) => {
+            event.preventDefault();
+            document.getElementById('forgotPasswordForm')?.submit();
+        });
+    }
+
     // Availability of `window.PublicKeyCredential` means WebAuthn is usable.  
     if (window.PublicKeyCredential && PublicKeyCredential.isConditionalMediationAvailable) {
         // Check if conditional mediation is available.  
