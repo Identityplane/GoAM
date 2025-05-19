@@ -1,18 +1,24 @@
 # Build stage
-FROM golang:1.24.2 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24.2 AS builder
+ARG TARGETOS
+ARG TARGETARCH
+
+ENV CGO_ENABLED=0
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Install swag tool
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 COPY . .
 
 RUN make swagger
-RUN CGO_ENABLED=0 GOOS=linux go build -o goiam ./cmd
+
+# Explicitly declare ARG again to be safe
+ARG TARGETARCH
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o goiam ./cmd
 
 # Final image
 FROM alpine

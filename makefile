@@ -32,7 +32,8 @@ k8s-env:
 
 # Build image in the K8S cluster
 docker-build: k8s-env
-	docker build -t $(IMAGE_NAME):$(TAG) .
+	docker build --platform linux/amd64,linux/arm64 -t gianlucafrei/$(IMAGE_NAME):$(TAG) .
+
 
 # Apply K8S resources (forces recreation of pods)
 k8s-deploy: k8s-env docker-build
