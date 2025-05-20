@@ -114,20 +114,22 @@ func HandleListRealms(ctx *fasthttp.RequestCtx) {
 	var visibleRealms map[string]*service.LoadedRealm
 	var err error
 
-	if config.UnsafeDisableAdminAuthzCheck && userAny == nil {
-		visibleRealms, err = services.RealmService.GetAllRealms()
-	}
-
 	if userAny == nil {
-		// if there is not user and we check authentication we return an unauthorized error
-		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
-		ctx.SetBodyString("Unauthorized")
-		return
-	}
 
-	// convert userAny to model.User and get visible realms for user
-	user := userAny.(*model.User)
-	visibleRealms, err = services.AdminAuthzService.GetVisibleRealms(user)
+		if config.UnsafeDisableAdminAuthzCheck {
+			// if we explicitly disable the authz check we show all realms
+			visibleRealms, err = services.RealmService.GetAllRealms()
+		} else {
+			// Else we return an unauthorized error if we have no user
+			ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+			ctx.SetBodyString("Unauthorized")
+			return
+		}
+	} else {
+		// convert userAny to model.User and get visible realms for user
+		user := userAny.(*model.User)
+		visibleRealms, err = services.AdminAuthzService.GetVisibleRealms(user)
+	}
 
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)

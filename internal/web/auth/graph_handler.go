@@ -82,7 +82,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 		// We forward to the finish authorization endpoint
 		url := fmt.Sprintf("%s/oauth2/finishauthorize", loadedRealm.Config.BaseUrl)
-		ctx.Redirect(url, fasthttp.StatusFound)
+		ctx.Redirect(url, fasthttp.StatusSeeOther)
 		return
 	}
 
