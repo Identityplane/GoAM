@@ -9,7 +9,7 @@ import (
 	"goiam/internal/service"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
@@ -48,6 +48,8 @@ func initDatabase() *service.DatabaseConnections {
 		if err != nil {
 			logger.PanicNoContext("Failed to initialize postgres database: %v", err)
 		}
+
+		service.DbAdapters["postgres"] = postgresdb
 
 		// Run migrations
 		err = postgres_adapter.RunMigrations(postgresdb)
@@ -162,7 +164,7 @@ func initDatabase() *service.DatabaseConnections {
 }
 
 // initPostgresDB initializes a PostgreSQL database connection
-func initPostgresDB() (*pgx.Conn, error) {
+func initPostgresDB() (*pgxpool.Pool, error) {
 	logger.DebugNoContext("Initializing postgres database")
 	db, err := postgres_adapter.Init(postgres_adapter.Config{
 		Driver: "postgres",

@@ -7,14 +7,15 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostgresSigningKeysDB struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
 // NewPostgresSigningKeysDB creates a new PostgresSigningKeysDB instance
-func NewPostgresSigningKeysDB(db *pgx.Conn) (*PostgresSigningKeysDB, error) {
+func NewPostgresSigningKeysDB(db *pgxpool.Pool) (*PostgresSigningKeysDB, error) {
 	// Check if the connection works and signing_keys table exists
 	_, err := db.Exec(context.Background(), `
 		SELECT 1 FROM signing_keys LIMIT 1

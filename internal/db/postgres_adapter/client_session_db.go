@@ -7,14 +7,15 @@ import (
 	"goiam/internal/model"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostgresClientSessionDB struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
 // NewPostgresClientSessionDB creates a new PostgresClientSessionDB instance
-func NewPostgresClientSessionDB(db *pgx.Conn) (db.ClientSessionDB, error) {
+func NewPostgresClientSessionDB(db *pgxpool.Pool) (db.ClientSessionDB, error) {
 	// Check if the connection works and client_sessions table exists by executing a query
 	_, err := db.Exec(context.Background(), `
 		SELECT 1 FROM client_sessions LIMIT 1

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -20,24 +20,28 @@ type Config struct {
 	DSN    string
 }
 
-func Init(cfg Config) (*pgx.Conn, error) {
-	config, err := pgx.ParseConfig(cfg.DSN)
+type DB struct {
+}
+
+func Init(cfg Config) (*pgxpool.Pool, error) {
+
+	poolConfig, err := pgxpool.ParseConfig(cfg.DSN)
 	if err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
+		return nil, fmt.Errorf("error parsing pgx pool config: %w", err)
 	}
 
-	conn, err := pgx.ConnectConfig(context.Background(), config)
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
-		return nil, fmt.Errorf("connect: %w", err)
+		return nil, fmt.Errorf("error creating pgx pool: %w", err)
 	}
 
 	// Test the connection
-	if err := conn.Ping(context.Background()); err != nil {
+	if err := pool.Ping(context.Background()); err != nil {
 		return nil, fmt.Errorf("ping: %w", err)
 	}
 
 	// Excetute statement to check database oid and log it
-	rows, err := conn.Query(context.Background(), `
+	rows, err := pool.Query(context.Background(), `
 		SELECT oid, datname 
 		FROM pg_database 
 		WHERE datname = current_database();
@@ -53,13 +57,14 @@ func Init(cfg Config) (*pgx.Conn, error) {
 		if err := rows.Scan(&oid, &datname); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
-		fmt.Printf("Database: %s (oid: %d)\n", datname, oid)
+		logger.DebugNoContext("Database: %s (oid: %d)", datname, oid)
 	}
 
-	return conn, nil
+	logger.DebugNoContext("Initialized connection pool with min pool size %d and max pool size %d", poolConfig.MinConns, poolConfig.MaxConns)
+	return pool, nil
 }
 
-func setupTestDB(t *testing.T) (*pgx.Conn, error) {
+func setupTestDB(t *testing.T) (*pgxpool.Pool, error) {
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:15",
@@ -91,21 +96,21 @@ func setupTestDB(t *testing.T) (*pgx.Conn, error) {
 	time.Sleep(1 * time.Second)
 
 	// Connect to the database
-	conn, err := pgx.Connect(ctx, dsn)
+	pool, err := pgxpool.New(ctx, dsn)
 	require.NoError(t, err)
 
 	// Run migrations
-	err = RunMigrations(conn)
+	err = RunMigrations(pool)
 	require.NoError(t, err)
 
-	return conn, nil
+	return pool, nil
 }
 
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
 // Uses embed fs to load migrations and run them over the database connection in order
-func RunMigrations(conn *pgx.Conn) error {
+func RunMigrations(conn *pgxpool.Pool) error {
 
 	// Open migrations folder
 	migrations, err := migrationsFS.ReadDir("migrations")

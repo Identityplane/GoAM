@@ -8,15 +8,16 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // PostgresFlowDB implements the FlowDB interface using PostgreSQL
 type PostgresFlowDB struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
 // NewPostgresFlowDB creates a new PostgresFlowDB instance
-func NewPostgresFlowDB(db *pgx.Conn) (*PostgresFlowDB, error) {
+func NewPostgresFlowDB(db *pgxpool.Pool) (*PostgresFlowDB, error) {
 	// Check if the connection works and flows table exists by executing a query
 	_, err := db.Exec(context.Background(), `
 		SELECT 1 FROM flows LIMIT 1

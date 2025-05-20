@@ -11,15 +11,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // PostgresUserDB implements the UserDB interface using PostgreSQL
 type PostgresUserDB struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
 // NewPostgresUserDB creates a new PostgresUserDB instance
-func NewPostgresUserDB(db *pgx.Conn) (*PostgresUserDB, error) {
+func NewPostgresUserDB(db *pgxpool.Pool) (*PostgresUserDB, error) {
 
 	// Check if the connection works and users table exists by executing a query
 	_, err := db.Exec(context.Background(), `

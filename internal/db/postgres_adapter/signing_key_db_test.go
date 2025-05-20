@@ -1,7 +1,6 @@
 package postgres_adapter
 
 import (
-	"context"
 	"testing"
 
 	"goiam/internal/db"
@@ -12,7 +11,7 @@ import (
 func TestPostgresSigningKeyDB(t *testing.T) {
 	conn, err := setupTestDB(t)
 	require.NoError(t, err)
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	signingKeyDB, err := NewPostgresSigningKeysDB(conn)
 	require.NoError(t, err)

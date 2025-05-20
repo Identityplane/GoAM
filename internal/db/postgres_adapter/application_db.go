@@ -10,15 +10,16 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // PostgresApplicationDB implements the ApplicationDB interface using PostgreSQL
 type PostgresApplicationDB struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
 // NewPostgresApplicationDB creates a new PostgresApplicationDB instance
-func NewPostgresApplicationDB(db *pgx.Conn) (*PostgresApplicationDB, error) {
+func NewPostgresApplicationDB(db *pgxpool.Pool) (*PostgresApplicationDB, error) {
 	// Check if the connection works and applications table exists by executing a query
 	_, err := db.Exec(context.Background(), `
 		SELECT 1 FROM applications LIMIT 1

@@ -1,7 +1,6 @@
 package postgres_adapter
 
 import (
-	"context"
 	"testing"
 
 	"goiam/internal/db"
@@ -12,7 +11,7 @@ import (
 func TestListUsersWithPagination(t *testing.T) {
 	conn, err := setupTestDB(t)
 	require.NoError(t, err)
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	userDB, err := NewPostgresUserDB(conn)
 	require.NoError(t, err)
@@ -23,7 +22,7 @@ func TestUserCRUD(t *testing.T) {
 	// Setup test database
 	conn, err := setupTestDB(t)
 	require.NoError(t, err)
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	// Create user DB with test tenant and realm
 	userDB, err := NewPostgresUserDB(conn)
@@ -37,7 +36,7 @@ func TestGetUserStats(t *testing.T) {
 	// Setup test database
 	conn, err := setupTestDB(t)
 	require.NoError(t, err)
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	// Create user DB with test tenant and realm
 	userDB, err := NewPostgresUserDB(conn)
@@ -50,7 +49,7 @@ func TestGetUserStats(t *testing.T) {
 func TestPostgresUserDB_DeleteUser(t *testing.T) {
 	conn, err := setupTestDB(t)
 	require.NoError(t, err)
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	userDB, err := NewPostgresUserDB(conn)
 	require.NoError(t, err)

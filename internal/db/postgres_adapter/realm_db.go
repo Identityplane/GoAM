@@ -8,13 +8,14 @@ import (
 	"goiam/internal/model"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostgresRealmDB struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
-func NewPostgresRealmDB(db *pgx.Conn) (*PostgresRealmDB, error) {
+func NewPostgresRealmDB(db *pgxpool.Pool) (*PostgresRealmDB, error) {
 	// Check if the connection works and realms table exists by executing a query
 	_, err := db.Exec(context.Background(), `
 		SELECT 1 FROM realms LIMIT 1
