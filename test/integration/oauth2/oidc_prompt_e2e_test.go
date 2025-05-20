@@ -54,7 +54,7 @@ func TestOIDCPrompt_E2E(t *testing.T) {
 			WithQuery("prompt", "none").
 			WithQuery("flow", flowNoPrompt).
 			Expect().
-			Status(http.StatusFound)
+			Status(http.StatusSeeOther)
 
 		// Verify we get a valid authorization code
 		redirectURL, err := url.Parse(resp.Header("Location").Raw())
@@ -81,7 +81,7 @@ func TestOIDCPrompt_E2E(t *testing.T) {
 			WithQuery("prompt", "login").
 			WithQuery("flow", flowPrompt).
 			Expect().
-			Status(http.StatusFound)
+			Status(http.StatusSeeOther)
 
 		// Verify we get a login_required error
 		redirectURL, err := url.Parse(resp.Header("Location").Raw())
@@ -108,7 +108,7 @@ func TestOIDCPrompt_E2E(t *testing.T) {
 			WithQuery("prompt", "login").
 			WithQuery("flow", flowNoPrompt).
 			Expect().
-			Status(http.StatusFound)
+			Status(http.StatusSeeOther)
 
 		// Verify we get a login_required error
 		redirectURL, err := url.Parse(resp.Header("Location").Raw())
@@ -135,7 +135,7 @@ func TestOIDCPrompt_E2E(t *testing.T) {
 			WithQuery("prompt", "login").
 			WithQuery("flow", flowPrompt).
 			Expect().
-			Status(http.StatusFound)
+			Status(http.StatusSeeOther)
 
 		// Get session cookie
 		sessionCookie := resp.Cookie("session_id")

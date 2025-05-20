@@ -46,7 +46,7 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 			WithQuery("code_challenge", codeChallenge).
 			WithQuery("code_challenge_method", codeChallengeMethod).
 			Expect().
-			Status(http.StatusFound)
+			Status(http.StatusSeeOther)
 
 		assert.Empty(t, resp.Header("Access-Control-Allow-Origin").Raw(), "CORS header should not exist")
 
@@ -86,7 +86,7 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 				WithFormField("password", "foobar").
 				WithCookie("session_id", sessionCookie.Value().Raw()).
 				Expect().
-				Status(http.StatusFound).
+				Status(http.StatusSeeOther).
 				Header("Location").IsEqual("http://localhost:8080/acme/customers/oauth2/finishauthorize")
 
 		})
@@ -97,7 +97,7 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 			resp := e.GET("/acme/customers/oauth2/finishauthorize").
 				WithCookie("session_id", sessionCookie.Value().Raw()).
 				Expect().
-				Status(http.StatusFound).
+				Status(http.StatusSeeOther).
 				Header("Location")
 
 			// Parse the redirect URL to get the authorization code

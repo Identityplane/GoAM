@@ -141,7 +141,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		loginUrl += "?debug"
 	}
 	// Set the response headers
-	ctx.SetStatusCode(fasthttp.StatusFound)
+	ctx.SetStatusCode(fasthttp.StatusSeeOther)
 	ctx.Response.Header.Set("Location", loginUrl)
 	ctx.Response.Header.Set("Cache-Control", "no-store")
 	ctx.Response.Header.Set("Pragma", "no-cache")
@@ -222,7 +222,7 @@ func FinsishOauth2AuthorizationEndpoint(ctx *fasthttp.RequestCtx) {
 	redirectURL := redirectUri + "?" + service.GetServices().OAuth2Service.ToQueryString(response)
 
 	// Set the response headers
-	ctx.SetStatusCode(fasthttp.StatusFound)
+	ctx.SetStatusCode(fasthttp.StatusSeeOther)
 	ctx.Response.Header.Set("Location", redirectURL)
 	ctx.Response.Header.Set("Cache-Control", "no-store")
 	ctx.Response.Header.Set("Pragma", "no-cache")
@@ -337,7 +337,7 @@ func RenderOauth2Error(ctx *fasthttp.RequestCtx, errorCode string, errorDescript
 	redirectURL := redirectURI + "?" + params.Encode()
 
 	// Set the response headers
-	ctx.SetStatusCode(fasthttp.StatusFound)
+	ctx.SetStatusCode(fasthttp.StatusSeeOther)
 	ctx.Response.Header.Set("Location", redirectURL)
 	ctx.Response.Header.Set("Cache-Control", "no-store")
 	ctx.Response.Header.Set("Pragma", "no-cache")

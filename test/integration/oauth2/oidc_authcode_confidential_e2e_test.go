@@ -34,7 +34,7 @@ func TestOAuth2AuthCodeConfidential_E2E(t *testing.T) {
 			WithQuery("scope", scope).
 			WithQuery("state", state).
 			Expect().
-			Status(http.StatusFound)
+			Status(http.StatusSeeOther)
 
 		sessionCookie := resp.Cookie("session_id")
 		if sessionCookie == nil {
@@ -69,7 +69,7 @@ func TestOAuth2AuthCodeConfidential_E2E(t *testing.T) {
 				WithFormField("password", "foobar").
 				WithCookie("session_id", sessionCookie.Value().Raw()).
 				Expect().
-				Status(http.StatusFound).
+				Status(http.StatusSeeOther).
 				Header("Location").IsEqual("http://localhost:8080/acme/customers/oauth2/finishauthorize")
 		})
 
@@ -78,7 +78,7 @@ func TestOAuth2AuthCodeConfidential_E2E(t *testing.T) {
 			resp := e.GET("/acme/customers/oauth2/finishauthorize").
 				WithCookie("session_id", sessionCookie.Value().Raw()).
 				Expect().
-				Status(http.StatusFound).
+				Status(http.StatusSeeOther).
 				Header("Location")
 
 			redirectURL, err := url.Parse(resp.Raw())
