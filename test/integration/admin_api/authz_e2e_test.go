@@ -17,6 +17,18 @@ func TestAdminAuthzE2E(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
 	config.UnsafeDisableAdminAuthzCheck = false
 
+	// An anonymous call use whoami should return an unauthorized error
+	t.Run("Check Unauthorized Endpoints", func(t *testing.T) {
+		e.GET("/admin/whoami").
+			Expect().
+			Status(http.StatusUnauthorized)
+
+		// Same for list realms
+		e.GET("/admin/realms").
+			Expect().
+			Status(http.StatusUnauthorized)
+	})
+
 	// Create test user in internal realm
 	testUser := model.User{
 		Tenant:          "internal",
@@ -53,6 +65,14 @@ func TestAdminAuthzE2E(t *testing.T) {
 		// Verify entitlements
 		entitlements := resp.Value("entitlements").Array()
 		entitlements.Length().IsEqual(0)
+	})
+
+	t.Run("Check List Realms Before Tenant Creation", func(t *testing.T) {
+		e.GET("/admin/realms").
+			WithHeader("Authorization", "Bearer "+accessToken).
+			Expect().
+			Status(http.StatusOK).
+			JSON().Array().Length().IsEqual(0)
 	})
 
 	// Create a new tenant
@@ -103,5 +123,13 @@ func TestAdminAuthzE2E(t *testing.T) {
 		entitlement.Value("realm").String().IsEqual("*")
 		entitlement.Value("scopes").Array().Length().IsEqual(1)
 		entitlement.Value("scopes").Array().Element(0).String().IsEqual("*")
+	})
+
+	t.Run("Check List Realms After Tenant Creation", func(t *testing.T) {
+		e.GET("/admin/realms").
+			WithHeader("Authorization", "Bearer "+accessToken).
+			Expect().
+			Status(http.StatusOK).
+			JSON().Array().Length().IsEqual(1)
 	})
 }

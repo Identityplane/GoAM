@@ -116,11 +116,18 @@ func HandleListRealms(ctx *fasthttp.RequestCtx) {
 
 	if config.UnsafeDisableAdminAuthzCheck && userAny == nil {
 		visibleRealms, err = services.RealmService.GetAllRealms()
-	} else {
-
-		user := userAny.(*model.User)
-		visibleRealms, err = services.AdminAuthzService.GetVisibleRealms(user)
 	}
+
+	if userAny == nil {
+		// if there is not user and we check authentication we return an unauthorized error
+		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+		ctx.SetBodyString("Unauthorized")
+		return
+	}
+
+	// convert userAny to model.User and get visible realms for user
+	user := userAny.(*model.User)
+	visibleRealms, err = services.AdminAuthzService.GetVisibleRealms(user)
 
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
@@ -129,6 +136,22 @@ func HandleListRealms(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Group realms by tenant
+	tenantList = groupRealmsByTenant(visibleRealms, tenants, tenantList)
+
+	// Marshal response to JSON with pretty printing
+	jsonData, err := json.MarshalIndent(tenantList, "", "  ")
+	if err != nil {
+		ctx.SetStatusCode(http.StatusInternalServerError)
+		ctx.SetBodyString("Failed to marshal response: " + err.Error())
+		return
+	}
+
+	// Set response headers and body
+	ctx.SetContentType("application/json")
+	ctx.SetBody(jsonData)
+}
+
+func groupRealmsByTenant(visibleRealms map[string]*service.LoadedRealm, tenants map[string]*ShortTenantInfo, tenantList []ShortTenantInfo) []ShortTenantInfo {
 	for _, realm := range visibleRealms {
 
 		// Get or create tenant info
@@ -153,16 +176,5 @@ func HandleListRealms(ctx *fasthttp.RequestCtx) {
 	for _, tenant := range tenants {
 		tenantList = append(tenantList, *tenant)
 	}
-
-	// Marshal response to JSON with pretty printing
-	jsonData, err := json.MarshalIndent(tenantList, "", "  ")
-	if err != nil {
-		ctx.SetStatusCode(http.StatusInternalServerError)
-		ctx.SetBodyString("Failed to marshal response: " + err.Error())
-		return
-	}
-
-	// Set response headers and body
-	ctx.SetContentType("application/json")
-	ctx.SetBody(jsonData)
+	return tenantList
 }

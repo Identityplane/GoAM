@@ -49,8 +49,6 @@ func initDatabase() *service.DatabaseConnections {
 			logger.PanicNoContext("Failed to initialize postgres database: %v", err)
 		}
 
-		service.DbAdapters["postgres"] = postgresdb
-
 		// Run migrations
 		err = postgres_adapter.RunMigrations(postgresdb)
 		if err != nil {
