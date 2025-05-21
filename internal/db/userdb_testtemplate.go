@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,6 +12,41 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func UserDBTests(t *testing.T, db UserDB) {
+	t.Run("TestListUsersWithPagination", func(t *testing.T) {
+		clearUserDB(t, db)
+		TemplateTestListUsersWithPagination(t, db)
+	})
+	t.Run("TestGetUserStats", func(t *testing.T) {
+		clearUserDB(t, db)
+		TemplateTestGetUserStats(t, db)
+	})
+	t.Run("TestUserCRUD", func(t *testing.T) {
+		clearUserDB(t, db)
+		TemplateTestUserCRUD(t, db)
+	})
+	t.Run("TestUpdateUserDoesNotChangeOtherFields", func(t *testing.T) {
+		clearUserDB(t, db)
+		TemplateTestUpdateUserDoesNotChangeOtherFields(t, db)
+	})
+	t.Run("TestDeleteUser", func(t *testing.T) {
+		clearUserDB(t, db)
+		TemplateTestDeleteUser(t, db)
+	})
+}
+
+func clearUserDB(t *testing.T, db UserDB) {
+
+	users, err := db.ListUsers(context.Background(), "test-tenant", "test-realm")
+	require.NoError(t, err)
+
+	for _, user := range users {
+		err := db.DeleteUser(context.Background(), "test-tenant", "test-realm", user.Username)
+		require.NoError(t, err)
+	}
+
+}
 
 // Test for user listing
 func TemplateTestListUsersWithPagination(t *testing.T, db UserDB) {
@@ -103,7 +140,7 @@ func TemplateTestGetUserStats(t *testing.T, db UserDB) {
 		{
 			Tenant:    testTenant,
 			Realm:     testRealm,
-			Username:  "active1",
+			Username:  "active1-stats",
 			Status:    "active",
 			Email:     "active1@example.com",
 			CreatedAt: time.Now(),
@@ -112,7 +149,7 @@ func TemplateTestGetUserStats(t *testing.T, db UserDB) {
 		{
 			Tenant:    testTenant,
 			Realm:     testRealm,
-			Username:  "active2",
+			Username:  "active2-stats",
 			Status:    "active",
 			Email:     "active2@example.com",
 			CreatedAt: time.Now(),
@@ -121,7 +158,7 @@ func TemplateTestGetUserStats(t *testing.T, db UserDB) {
 		{
 			Tenant:    testTenant,
 			Realm:     testRealm,
-			Username:  "inactive1",
+			Username:  "inactive1-stats",
 			Status:    "inactive",
 			Email:     "inactive1@example.com",
 			CreatedAt: time.Now(),
@@ -130,9 +167,9 @@ func TemplateTestGetUserStats(t *testing.T, db UserDB) {
 		{
 			Tenant:    testTenant,
 			Realm:     testRealm,
-			Username:  "locked",
+			Username:  "locked1-stats",
 			Status:    "locked",
-			Email:     "locked@example.com",
+			Email:     "locked1@example.com",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -298,7 +335,7 @@ func TemplateTestDeleteUser(t *testing.T, db UserDB) {
 	testUser := model.User{
 		Tenant:    testTenant,
 		Realm:     testRealm,
-		Username:  "testuser",
+		Username:  "testuser-delete",
 		Status:    "active",
 		Email:     "test@example.com",
 		CreatedAt: time.Now(),
@@ -325,4 +362,57 @@ func TemplateTestDeleteUser(t *testing.T, db UserDB) {
 		err := db.DeleteUser(ctx, testTenant, testRealm, "nonexistent")
 		assert.NoError(t, err) // Should be idempotent
 	})
+}
+
+// This test checks that a user update does not have any other changes to the user than the changed fields
+func TemplateTestUpdateUserDoesNotChangeOtherFields(t *testing.T, db UserDB) {
+	ctx := context.Background()
+	testTenant := "test-tenant"
+	testRealm := "test-realm"
+
+	// Create a userBefore
+	user := model.User{
+		Tenant:   testTenant,
+		Realm:    testRealm,
+		Username: "testuser2",
+		Status:   "active",
+	}
+
+	// Create the user
+	err := db.CreateUser(ctx, user)
+	require.NoError(t, err)
+
+	// Load user from db to ensure that id etc is initialized
+	userBefore, err := db.GetUserByUsername(ctx, testTenant, testRealm, user.Username)
+	require.NoError(t, err)
+
+	fmt.Printf("userBefore updatedAt: %+v\n now=%+v\n", userBefore.UpdatedAt, time.Now())
+	userBeforeUpdatedAt := userBefore.UpdatedAt
+	userBefore.UpdatedAt = time.Time{}
+
+	jsonBefore, _ := json.Marshal(userBefore)
+	jsonBeforeString := string(jsonBefore)
+
+	// Wait for 2 seconds to ensure that the updatedAt field is different
+	time.Sleep(5 * time.Second)
+
+	// Update the user
+	err = db.UpdateUser(ctx, userBefore)
+	require.NoError(t, err)
+
+	userAfter, err := db.GetUserByUsername(ctx, testTenant, testRealm, userBefore.Username)
+	require.NoError(t, err)
+
+	fmt.Printf("userAfter  updatedAt: %+v\n now=%+v\n", userAfter.UpdatedAt, time.Now())
+
+	// check that the updatedAt field is different but then changing it to nil to compare the json of the two user
+	// to ensure nothing else changed
+	assert.NotEqual(t, userBeforeUpdatedAt, userAfter.UpdatedAt)
+	userAfter.UpdatedAt = time.Time{}
+
+	jsonAfter, _ := json.Marshal(userAfter)
+	jsonAfterString := string(jsonAfter)
+
+	// Check that the json before and after are the same
+	assert.Equal(t, jsonBeforeString, jsonAfterString)
 }
