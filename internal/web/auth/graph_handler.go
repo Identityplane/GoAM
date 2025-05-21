@@ -7,6 +7,8 @@ import (
 	"goiam/internal/logger"
 	"goiam/internal/model"
 	"goiam/internal/service"
+	"net/url"
+	"strings"
 
 	"github.com/valyala/fasthttp"
 )
@@ -179,11 +181,24 @@ func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, bas
 	loginUri := baseUrl + "/auth/" + flow.Route
 	session, sessionID := service.GetServices().SessionsService.CreateAuthSessionObject(tenant, realm, flow.Id, loginUri)
 
+	isHttps := strings.HasPrefix(baseUrl, "https://")
+
+	// Parse base url and get path
+	parsedUrl, err := url.Parse(baseUrl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse base url: %v", err)
+	}
+	basePath := parsedUrl.Path
+
 	c := &fasthttp.Cookie{}
-	c.SetPath("/")
+	c.SetPath(basePath)
 	c.SetKey(sessionCookieName)
 	c.SetValue(sessionID)
+	c.SetSameSite(fasthttp.CookieSameSiteLaxMode)
 	c.SetHTTPOnly(true)
+	if isHttps {
+		c.SetSecure(true)
+	}
 	ctx.Response.Header.SetCookie(c)
 
 	return session, nil

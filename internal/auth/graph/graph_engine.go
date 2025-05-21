@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const MAX_HISTORY_SIZE = 100
+
 type NodeDefinition struct {
 	Name                 string            // e.g. "askUsername", references as use
 	PrettyName           string            // "Ask Username"
@@ -59,6 +61,11 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 	// Check if state is present and valid
 	if state == nil {
 		return nil, errors.New("invalid flow state")
+	}
+
+	// Check if history size limit is reached
+	if len(state.History) > MAX_HISTORY_SIZE {
+		return nil, errors.New("history size limit reached")
 	}
 
 	// If the state is empty we set it to the init node

@@ -14,8 +14,14 @@ var DBConnString = getDBConnString()
 var PostgresUserDB *postgres_adapter.PostgresUserDB
 var SqliteUserDB *sqlite_adapter.SQLiteUserDB
 
+var (
+	UnsafeDisableAdminAuthzCheck = false // Can be overwritten for development purposes
+	UseXForwardedFor             = false
+	NotFoundRedirectUrl          = ""
+	EnableRequestTiming          = false
+)
+
 // Other global configurations
-var UnsafeDisableAdminAuthzCheck = false // Can be overwritten for development purposes
 
 func GetDbDriverName() string {
 
@@ -79,6 +85,14 @@ func getConfigPath() string {
 	return path
 }
 
+func GetNotFoundRedirectUrl() string {
+	return NotFoundRedirectUrl
+}
+
+func IsXForwardedForEnabled() bool {
+	return UseXForwardedFor
+}
+
 func InitConfiguration() {
 
 	disableAdminAuthzCheck := os.Getenv("GOIAM_UNSAFE_DISABLE_ADMIN_AUTHZ_CHECK")
@@ -86,4 +100,8 @@ func InitConfiguration() {
 		logger.DebugNoContext("Disabling admin authz check")
 		UnsafeDisableAdminAuthzCheck = true
 	}
+
+	NotFoundRedirectUrl = os.Getenv("GOIAM_NOT_FOUND_REDIRECT_URL")
+	UseXForwardedFor = os.Getenv("GOIAM_USE_X_FORWARDED_FOR") == "true"
+	EnableRequestTiming = os.Getenv("GOIAM_ENABLE_REQUEST_TIMING") == "true"
 }

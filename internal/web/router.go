@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"goiam/internal/config"
 	"goiam/internal/web/admin_api"
 	"goiam/internal/web/auth"
 	"goiam/internal/web/debug"
@@ -11,11 +12,10 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+var redirectUrl string
+
 func New() *router.Router {
 	r := router.New()
-
-	// Set the NotFound handler
-	r.NotFound = WrapMiddleware(handleNotFound)
 
 	// Admin routes
 	admin := r.Group("/admin")
@@ -102,15 +102,28 @@ func New() *router.Router {
 	// OIDC JWKS endpoint
 	r.GET("/{tenant}/{realm}/oauth2/.well-known/jwks.json", cors(WrapMiddleware(oauth2.HandleJWKs)))
 
-	return r
-}
+	// handleNotFound is the fallback handler for unmatched routes
+	redirectUrl = config.GetNotFoundRedirectUrl()
+	r.NotFound = WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		if config.IsXForwardedForEnabled() {
+			// Use X-Forwarded-For header if enabled
+			if xff := ctx.Request.Header.Peek("X-Forwarded-For"); xff != nil {
+				ctx.SetUserValue("remote_ip", string(xff))
+			}
+		}
 
-// handleNotFound is the fallback handler for unmatched routes
-func handleNotFound(ctx *fasthttp.RequestCtx) {
-	ctx.SetStatusCode(fasthttp.StatusNotFound)
-	ctx.SetContentType("application/json")
-	_ = json.NewEncoder(ctx).Encode(map[string]string{
-		"error": "not found",
-		"path":  string(ctx.Path()),
+		if redirectUrl != "" {
+			ctx.Redirect(redirectUrl, fasthttp.StatusSeeOther)
+			return
+		}
+
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "not found",
+			"path":  string(ctx.Path()),
+		})
 	})
+
+	return r
 }

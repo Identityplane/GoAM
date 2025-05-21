@@ -11,6 +11,7 @@ import (
 	"goiam/internal/service"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
@@ -38,22 +39,44 @@ func traceIDMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 // loggingMiddleware logs incoming requests
 func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
+
+		startTime := time.Now()
 		traceID := ctx.UserValue("trace_id").(string)
 		method := string(ctx.Method())
 		path := string(ctx.Path())
 
+		// Get ip address from request
+		var userIP string
+		if config.IsXForwardedForEnabled() {
+			ip := string(ctx.Request.Header.Peek("X-Forwarded-For"))
+			if ip != "" {
+				userIP = ip
+			}
+		} else {
+			userIP = ctx.RemoteIP().String()
+		}
+		ctx.SetUserValue("user_ip", userIP)
+
+		// Excecute the request
 		next(ctx)
+
+		// Calculate request processing time
+		duration := time.Since(startTime)
+		durationMs := duration.Milliseconds()
+		if config.EnableRequestTiming {
+			ctx.Response.Header.Set("Server-Timing", fmt.Sprintf("req;dur=%d", durationMs))
+		}
 
 		// Log response details
 		logger.InfoWithFields(traceID, "HTTP Response", map[string]interface{}{
 			"status":      ctx.Response.StatusCode(),
 			"method":      method,
 			"path":        path,
-			"ip":          ctx.RemoteIP().String(),
+			"ip":          userIP,
 			"user_agent":  string(ctx.UserAgent()),
 			"referer":     string(ctx.Referer()),
 			"host":        string(ctx.Host()),
-			"duration_ms": ctx.Time().Sub(ctx.ConnTime()).Milliseconds(),
+			"duration_ms": durationMs,
 			"size_bytes":  len(ctx.Response.Body()),
 			"protocol":    string(ctx.Request.URI().Scheme()),
 		})
