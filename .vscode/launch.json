@@ -20,7 +20,11 @@
         "request": "launch",
         "mode": "auto",
         "program": "${workspaceFolder}/cmd/main.go",
-        "env": {},
+        "env": {
+          "GOIAM_NOT_FOUND_REDIRECT_URL": "http://localhost:8080/",
+          "GOIAM_USE_X_FORWARDED_FOR": "true",
+          "GOIAM_ENABLE_REQUEST_TIMING": "true"
+        },
         "args": ["--db", "postgres://goiam:secret123@localhost:5432/goiamdb"],
         "showLog": true
       }
