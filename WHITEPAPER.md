@@ -66,9 +66,9 @@ GoIAM is architected for horizontal scalability and high throughput:
 
 ### Designed to Support
 
-- 1,000+ realms
-- 100,000+ logins per minute
-- 1,000,000+ users
+- 10,000+ realms
+- 1,000,000+ logins per minute
+- 100,000,000+ users
 
 ## Security Architecture
 
