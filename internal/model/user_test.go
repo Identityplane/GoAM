@@ -6,7 +6,7 @@ import (
 )
 
 func TestUserUnmarshalJSON(t *testing.T) {
-	testData := `{"id":"","username":"test","display_name":"","email":"","email_verified":false,"phone":"","phone_verified":false,"given_name":"","family_name":"","locale":"","status":"active","roles":[],"groups":[],"attributes":{},"tenant":"acme","realm":"customers","created_at":"","updated_at":"","last_login_at":"","password_locked":false,"webauthn_locked":false,"mfa_locked":false,"failed_login_attempts_password":0,"failed_login_attempts_webauthn":0,"failed_login_attempts_mfa":0,"trusted_devices":"","federated_id":"","federated_idp":""}`
+	testData := `{"id":"","username":"test","display_name":"","email":"","email_verified":false,"phone":"","phone_verified":false,"given_name":"","family_name":"","locale":"","status":"active","roles":[],"groups":[],"attributes":{},"tenant":"acme","realm":"customers","created_at":"","updated_at":"","last_login_at":"","password_locked":false,"webauthn_locked":false,"mfa_locked":false,"failed_login_attempts_password":0,"failed_login_attempts_webauthn":0,"failed_login_attempts_mfa":0,"trusted_devices":[],"federated_id":"","federated_idp":""}`
 
 	var user User
 	err := json.Unmarshal([]byte(testData), &user)
@@ -35,5 +35,8 @@ func TestUserUnmarshalJSON(t *testing.T) {
 	}
 	if user.LastLoginAt != nil {
 		t.Errorf("Expected nil LastLoginAt, got %v", user.LastLoginAt)
+	}
+	if len(user.TrustedDevices) != 0 {
+		t.Errorf("Expected empty TrustedDevices, got %v", user.TrustedDevices)
 	}
 }

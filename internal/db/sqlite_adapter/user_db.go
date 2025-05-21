@@ -18,11 +18,6 @@ type SQLiteUserDB struct {
 	db *sql.DB
 }
 
-// ListUsers implements model.UserDB.
-func (s *SQLiteUserDB) ListUsers(ctx context.Context, tenant string, realm string) ([]model.User, error) {
-	panic("unimplemented")
-}
-
 // NewUserDB creates a new SQLiteUserDB instance
 func NewUserDB(db *sql.DB) (*SQLiteUserDB, error) {
 
@@ -147,49 +142,94 @@ func (s *SQLiteUserDB) GetUserByUsername(ctx context.Context, tenant, realm, use
 }
 
 // scanUserFromRow scans a user from a database row
-func (s *SQLiteUserDB) scanUserFromRow(row *sql.Row) (*model.User, error) {
+func (s *SQLiteUserDB) scanUserFromRow(scanner interface{}) (*model.User, error) {
 	var user model.User
 	var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON, entitlementsJSON, consentJSON string
 	var createdAt, updatedAt string
 	var lastLoginAt sql.NullString
 
-	err := row.Scan(
-		&user.ID,
-		&user.Tenant,
-		&user.Realm,
-		&user.Username,
-		&user.Status,
-		&user.DisplayName,
-		&user.GivenName,
-		&user.FamilyName,
-		&user.ProfilePictureURI,
-		&user.Email,
-		&user.Phone,
-		&user.EmailVerified,
-		&user.PhoneVerified,
-		&user.LoginIdentifier,
-		&user.Locale,
-		&user.PasswordCredential,
-		&user.WebAuthnCredential,
-		&user.MFACredential,
-		&user.PasswordLocked,
-		&user.WebAuthnLocked,
-		&user.MFALocked,
-		&user.FailedLoginAttemptsPassword,
-		&user.FailedLoginAttemptsWebAuthn,
-		&user.FailedLoginAttemptsMFA,
-		&rolesJSON,
-		&groupsJSON,
-		&entitlementsJSON,
-		&consentJSON,
-		&attributesJSON,
-		&createdAt,
-		&updatedAt,
-		&lastLoginAt,
-		&user.FederatedIDP,
-		&user.FederatedID,
-		&trustedDevicesJSON,
-	)
+	var err error
+	switch r := scanner.(type) {
+	case *sql.Row:
+		err = r.Scan(
+			&user.ID,
+			&user.Tenant,
+			&user.Realm,
+			&user.Username,
+			&user.Status,
+			&user.DisplayName,
+			&user.GivenName,
+			&user.FamilyName,
+			&user.ProfilePictureURI,
+			&user.Email,
+			&user.Phone,
+			&user.EmailVerified,
+			&user.PhoneVerified,
+			&user.LoginIdentifier,
+			&user.Locale,
+			&user.PasswordCredential,
+			&user.WebAuthnCredential,
+			&user.MFACredential,
+			&user.PasswordLocked,
+			&user.WebAuthnLocked,
+			&user.MFALocked,
+			&user.FailedLoginAttemptsPassword,
+			&user.FailedLoginAttemptsWebAuthn,
+			&user.FailedLoginAttemptsMFA,
+			&rolesJSON,
+			&groupsJSON,
+			&entitlementsJSON,
+			&consentJSON,
+			&attributesJSON,
+			&createdAt,
+			&updatedAt,
+			&lastLoginAt,
+			&user.FederatedIDP,
+			&user.FederatedID,
+			&trustedDevicesJSON,
+		)
+	case *sql.Rows:
+		err = r.Scan(
+			&user.ID,
+			&user.Tenant,
+			&user.Realm,
+			&user.Username,
+			&user.Status,
+			&user.DisplayName,
+			&user.GivenName,
+			&user.FamilyName,
+			&user.ProfilePictureURI,
+			&user.Email,
+			&user.Phone,
+			&user.EmailVerified,
+			&user.PhoneVerified,
+			&user.LoginIdentifier,
+			&user.Locale,
+			&user.PasswordCredential,
+			&user.WebAuthnCredential,
+			&user.MFACredential,
+			&user.PasswordLocked,
+			&user.WebAuthnLocked,
+			&user.MFALocked,
+			&user.FailedLoginAttemptsPassword,
+			&user.FailedLoginAttemptsWebAuthn,
+			&user.FailedLoginAttemptsMFA,
+			&rolesJSON,
+			&groupsJSON,
+			&entitlementsJSON,
+			&consentJSON,
+			&attributesJSON,
+			&createdAt,
+			&updatedAt,
+			&lastLoginAt,
+			&user.FederatedIDP,
+			&user.FederatedID,
+			&trustedDevicesJSON,
+		)
+	default:
+		return nil, fmt.Errorf("unsupported scanner type: %T", scanner)
+	}
+
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // not found
@@ -211,6 +251,7 @@ func (s *SQLiteUserDB) scanUserFromRow(row *sql.Row) (*model.User, error) {
 	user.Attributes = map[string]string{}
 	user.Entitlements = []string{}
 	user.Consent = []string{}
+	user.TrustedDevices = []string{}
 
 	if rolesJSON != "" && rolesJSON != "null" {
 		_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
@@ -390,6 +431,48 @@ func (s *SQLiteUserDB) CountUsers(ctx context.Context, tenant, realm string) (in
 	return count, err
 }
 
+// ListUsers implements model.UserDB.
+func (s *SQLiteUserDB) ListUsers(ctx context.Context, tenant string, realm string) ([]model.User, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, tenant, realm, username,
+		       status,
+		       display_name, given_name, family_name,
+		       profile_picture_uri,
+		       email, phone, email_verified, phone_verified,
+		       login_identifier,
+		       locale,
+		       password_credential, webauthn_credential, mfa_credential,
+		       password_locked, webauthn_locked, mfa_locked,
+		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
+		       roles, groups, entitlements, consent, attributes,
+		       created_at, updated_at, last_login_at,
+		       federated_idp, federated_id,
+		       trusted_devices
+		FROM users 
+		WHERE tenant = ? AND realm = ?
+	`, tenant, realm)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []model.User
+	for rows.Next() {
+		user, err := s.scanUserFromRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, *user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func (s *SQLiteUserDB) ListUsersWithPagination(ctx context.Context, tenant, realm string, offset, limit int) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, tenant, realm, username,
@@ -417,87 +500,11 @@ func (s *SQLiteUserDB) ListUsersWithPagination(ctx context.Context, tenant, real
 
 	var users []model.User
 	for rows.Next() {
-		var user model.User
-		var rolesJSON, groupsJSON, attributesJSON, trustedDevicesJSON, entitlementsJSON, consentJSON string
-		var createdAt, updatedAt string
-		var lastLoginAt sql.NullString
-
-		err := rows.Scan(
-			&user.ID,
-			&user.Tenant,
-			&user.Realm,
-			&user.Username,
-			&user.Status,
-			&user.DisplayName,
-			&user.GivenName,
-			&user.FamilyName,
-			&user.ProfilePictureURI,
-			&user.Email,
-			&user.Phone,
-			&user.EmailVerified,
-			&user.PhoneVerified,
-			&user.LoginIdentifier,
-			&user.Locale,
-			&user.PasswordCredential,
-			&user.WebAuthnCredential,
-			&user.MFACredential,
-			&user.PasswordLocked,
-			&user.WebAuthnLocked,
-			&user.MFALocked,
-			&user.FailedLoginAttemptsPassword,
-			&user.FailedLoginAttemptsWebAuthn,
-			&user.FailedLoginAttemptsMFA,
-			&rolesJSON,
-			&groupsJSON,
-			&entitlementsJSON,
-			&consentJSON,
-			&attributesJSON,
-			&createdAt,
-			&updatedAt,
-			&lastLoginAt,
-			&user.FederatedIDP,
-			&user.FederatedID,
-			&trustedDevicesJSON,
-		)
+		user, err := s.scanUserFromRow(rows)
 		if err != nil {
 			return nil, err
 		}
-
-		// Parse timestamps
-		user.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
-		user.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
-		if lastLoginAt.Valid {
-			lastLogin, _ := time.Parse(time.RFC3339, lastLoginAt.String)
-			user.LastLoginAt = &lastLogin
-		}
-
-		// Parse JSON fields
-		user.Roles = []string{}
-		user.Groups = []string{}
-		user.Attributes = map[string]string{}
-		user.Entitlements = []string{}
-		user.Consent = []string{}
-
-		if rolesJSON != "" && rolesJSON != "null" {
-			_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
-		}
-		if groupsJSON != "" && groupsJSON != "null" {
-			_ = json.Unmarshal([]byte(groupsJSON), &user.Groups)
-		}
-		if attributesJSON != "" && attributesJSON != "null" {
-			_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
-		}
-		if entitlementsJSON != "" && entitlementsJSON != "null" {
-			_ = json.Unmarshal([]byte(entitlementsJSON), &user.Entitlements)
-		}
-		if consentJSON != "" && consentJSON != "null" {
-			_ = json.Unmarshal([]byte(consentJSON), &user.Consent)
-		}
-		if trustedDevicesJSON != "" && trustedDevicesJSON != "null" {
-			_ = json.Unmarshal([]byte(trustedDevicesJSON), &user.TrustedDevices)
-		}
-
-		users = append(users, user)
+		users = append(users, *user)
 	}
 
 	if err = rows.Err(); err != nil {

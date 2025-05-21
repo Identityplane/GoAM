@@ -372,10 +372,11 @@ func TemplateTestUpdateUserDoesNotChangeOtherFields(t *testing.T, db UserDB) {
 
 	// Create a userBefore
 	user := model.User{
-		Tenant:   testTenant,
-		Realm:    testRealm,
-		Username: "testuser2",
-		Status:   "active",
+		Tenant:         testTenant,
+		Realm:          testRealm,
+		Username:       "testuser2",
+		Status:         "active",
+		TrustedDevices: []string{"device1", "device2"},
 	}
 
 	// Create the user
@@ -394,7 +395,7 @@ func TemplateTestUpdateUserDoesNotChangeOtherFields(t *testing.T, db UserDB) {
 	jsonBeforeString := string(jsonBefore)
 
 	// Wait for 2 seconds to ensure that the updatedAt field is different
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	// Update the user
 	err = db.UpdateUser(ctx, userBefore)

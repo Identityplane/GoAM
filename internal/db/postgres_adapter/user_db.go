@@ -334,16 +334,23 @@ func (p *PostgresUserDB) ListUsers(ctx context.Context, tenant, realm string) ([
 		user.Attributes = map[string]string{}
 
 		if rolesJSON != "" && rolesJSON != "null" {
-			_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
+			err = json.Unmarshal([]byte(rolesJSON), &user.Roles)
 		}
 		if groupsJSON != "" && groupsJSON != "null" {
-			_ = json.Unmarshal([]byte(groupsJSON), &user.Groups)
+			err = json.Unmarshal([]byte(groupsJSON), &user.Groups)
 		}
 		if attributesJSON != "" && attributesJSON != "null" {
-			_ = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
+			err = json.Unmarshal([]byte(attributesJSON), &user.Attributes)
 		}
 
-		user.TrustedDevices = trustedDevicesJSON
+		if trustedDevicesJSON != "" && trustedDevicesJSON != "null" {
+			err = json.Unmarshal([]byte(trustedDevicesJSON), &user.TrustedDevices)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
 		users = append(users, user)
 	}
 
@@ -596,6 +603,7 @@ func (p *PostgresUserDB) scanUserFromRow(row pgx.Row) (*model.User, error) {
 	user.Attributes = map[string]string{}
 	user.Entitlements = []string{}
 	user.Consent = []string{}
+	user.TrustedDevices = []string{}
 
 	if rolesJSON != "" && rolesJSON != "null" {
 		_ = json.Unmarshal([]byte(rolesJSON), &user.Roles)
@@ -612,8 +620,9 @@ func (p *PostgresUserDB) scanUserFromRow(row pgx.Row) (*model.User, error) {
 	if consentJSON != "" && consentJSON != "null" {
 		_ = json.Unmarshal([]byte(consentJSON), &user.Consent)
 	}
-
-	user.TrustedDevices = trustedDevicesJSON
+	if trustedDevicesJSON != "" && trustedDevicesJSON != "null" {
+		_ = json.Unmarshal([]byte(trustedDevicesJSON), &user.TrustedDevices)
+	}
 
 	return &user, nil
 }

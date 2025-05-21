@@ -59,10 +59,10 @@ type User struct {
 	Entitlements []string `json:"entitlements" example:"['read:users', 'write:users']"`
 
 	// User consents
-	Consent []string `json:"consent" example:"['marketing', 'analytics', 'cookies']"`
+	Consent []string `json:"consent,omitempty" example:"['marketing', 'analytics']"`
 
 	// Extensibility
-	Attributes map[string]string `json:"attributes" example:"{'department': 'IT', 'location': 'HQ'}"`
+	Attributes map[string]string `json:"attributes,omitempty" example:"{'key1': 'value1', 'key2': 'value2'}"`
 
 	// Audit
 	CreatedAt   time.Time  `json:"created_at" example:"2024-01-01T00:00:00Z"`
@@ -74,7 +74,7 @@ type User struct {
 	FederatedID  *string `json:"federated_id,omitempty" example:"123456789"`
 
 	// Devices
-	TrustedDevices string `json:"trusted_devices,omitempty" example:"device1,device2"`
+	TrustedDevices []string `json:"trusted_devices,omitempty" example:"['device1', 'device2']"`
 }
 
 // UserStats represents user statistics

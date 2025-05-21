@@ -1,6 +1,7 @@
-package integration
+package integration_admin_api
 
 import (
+	"goiam/test/integration"
 	"net/http"
 	"testing"
 )
@@ -16,7 +17,7 @@ import (
 // The test uses a test tenant "acme" and realm "test_realm" for all operations.
 
 func TestRealmAPI_E2E(t *testing.T) {
-	e := SetupIntegrationTest(t, "")
+	e := integration.SetupIntegrationTest(t, "")
 
 	// Test realm data
 	tenant := "acme"

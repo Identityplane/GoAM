@@ -1,4 +1,4 @@
-package integration
+package integration_admin_api
 
 import (
 	"context"

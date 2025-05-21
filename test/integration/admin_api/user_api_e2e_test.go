@@ -1,6 +1,7 @@
-package integration
+package integration_admin_api
 
 import (
+	"goiam/test/integration"
 	"net/http"
 	"testing"
 )
@@ -16,7 +17,7 @@ import (
 // The test uses a test tenant "acme" and realm "customers" for all operations.
 
 func TestUserAPI_E2E(t *testing.T) {
-	e := SetupIntegrationTest(t, "")
+	e := integration.SetupIntegrationTest(t, "")
 
 	// Test user data
 	testUser := map[string]interface{}{
@@ -34,6 +35,7 @@ func TestUserAPI_E2E(t *testing.T) {
 		"login_identifier":    "admin_test@example.com",
 		"entitlements":        []string{"read:users", "write:users"},
 		"consent":             []string{"marketing", "analytics"},
+		"trusted_devices":     []string{"device1"},
 	}
 
 	// Test creating a user
@@ -49,7 +51,8 @@ func TestUserAPI_E2E(t *testing.T) {
 			HasValue("profile_picture_uri", testUser["profile_picture_uri"]).
 			HasValue("login_identifier", testUser["login_identifier"]).
 			HasValue("entitlements", testUser["entitlements"]).
-			HasValue("consent", testUser["consent"])
+			HasValue("consent", testUser["consent"]).
+			HasValue("trusted_devices", testUser["trusted_devices"])
 	})
 
 	// Test getting user stats
@@ -100,7 +103,8 @@ func TestUserAPI_E2E(t *testing.T) {
 			HasValue("profile_picture_uri", testUser["profile_picture_uri"]).
 			HasValue("login_identifier", testUser["login_identifier"]).
 			HasValue("entitlements", testUser["entitlements"]).
-			HasValue("consent", testUser["consent"])
+			HasValue("consent", testUser["consent"]).
+			HasValue("trusted_devices", testUser["trusted_devices"])
 	})
 
 	// Test updating a user

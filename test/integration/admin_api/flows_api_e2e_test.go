@@ -1,6 +1,7 @@
-package integration
+package integration_admin_api
 
 import (
+	"goiam/test/integration"
 	"net/http"
 	"testing"
 
@@ -18,7 +19,7 @@ import (
 // The test uses a test tenant "acme" and realm "test_realm" for all operations.
 
 func TestFlowAPI_E2E(t *testing.T) {
-	e := SetupIntegrationTest(t, "")
+	e := integration.SetupIntegrationTest(t, "")
 
 	// Test flow data
 	tenant := "acme"
@@ -104,7 +105,7 @@ func TestFlowAPI_E2E(t *testing.T) {
 func TestFlowValidation(t *testing.T) {
 
 	// Test flow validation
-	e := SetupIntegrationTest(t, "")
+	e := integration.SetupIntegrationTest(t, "")
 
 	// Happy case - valid flow definition
 	validFlow := `name: Valid Flow
@@ -221,7 +222,7 @@ nodes:
 }
 
 func TestFlowUpdate(t *testing.T) {
-	e := SetupIntegrationTest(t, "")
+	e := integration.SetupIntegrationTest(t, "")
 
 	originalFlowDefYaml := e.GET("/admin/acme/customers/flows/login/definition").
 		Expect().

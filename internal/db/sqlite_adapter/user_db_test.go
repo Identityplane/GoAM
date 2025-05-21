@@ -30,34 +30,10 @@ func setupTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
-func TestListUsersWithPagination(t *testing.T) {
+func TestUserDb(t *testing.T) {
 	sqldb := setupTestDB(t)
 	userDB, err := NewUserDB(sqldb)
 	require.NoError(t, err)
 
-	db.TemplateTestListUsersWithPagination(t, userDB)
-}
-
-func TestGetUserStats(t *testing.T) {
-	sqldb := setupTestDB(t)
-	userDB, err := NewUserDB(sqldb)
-	require.NoError(t, err)
-
-	db.TemplateTestGetUserStats(t, userDB)
-}
-
-func TestUserCRUD(t *testing.T) {
-	sqldb := setupTestDB(t)
-	userDB, err := NewUserDB(sqldb)
-	require.NoError(t, err)
-
-	db.TemplateTestUserCRUD(t, userDB)
-}
-
-func TestSQLiteUserDB_DeleteUser(t *testing.T) {
-	sqldb := setupTestDB(t)
-	userDB, err := NewUserDB(sqldb)
-	require.NoError(t, err)
-
-	db.TemplateTestDeleteUser(t, userDB)
+	db.UserDBTests(t, userDB)
 }
