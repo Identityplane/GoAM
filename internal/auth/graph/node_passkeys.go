@@ -73,22 +73,64 @@ func RunAskEnrollPasskeyNode(state *model.AuthenticationSession, node *model.Gra
 
 }
 
-func RunCheckUserHasPasskeyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
-	ctx := context.Background()
-	username := state.Context["username"]
+func tryLoadUserFromFlowContext(state *model.AuthenticationSession, services *repository.Repositories) (*model.User, error) {
 
-	// Load user from DB
-	userModel, err := services.UserRepo.GetByUsername(ctx, username)
-	if err != nil || userModel == nil {
+	userId := state.Context["user_id"]
+	username := state.Context["username"]
+	email := state.Context["email"]
+	loginIdentifier := state.Context["loginIdentifier"]
+
+	if userId != "" {
+		user, err := services.UserRepo.GetByID(context.Background(), userId)
+
+		if err != nil || user != nil {
+			return user, err
+		}
+	}
+	if username != "" {
+		user, err := services.UserRepo.GetByUsername(context.Background(), username)
+
+		if err != nil || user != nil {
+			return user, err
+		}
+	}
+	if email != "" {
+		user, err := services.UserRepo.GetByEmail(context.Background(), email)
+
+		if err != nil || user != nil {
+			return user, err
+		}
+	}
+	if loginIdentifier != "" {
+		user, err := services.UserRepo.GetByLoginIdentifier(context.Background(), loginIdentifier)
+
+		if err != nil || user != nil {
+			return user, err
+		}
+	}
+
+	return nil, nil
+}
+
+func RunCheckUserHasPasskeyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+
+	// Check if user is already loaded, if not we load it by id/email/username
+	user := state.User
+	var err error
+	if user == nil {
+		user, err = tryLoadUserFromFlowContext(state, services)
+
+		if err != nil {
+			return model.NewNodeResultWithError(err)
+		}
+	}
+
+	if user == nil {
 		return model.NewNodeResultWithCondition("user_not_found")
 	}
 
-	// since we load the user we can also add it to the state
-	state.User = userModel
-
 	// Check if the user has a passkey registered
-	_, ok := userModel.Attributes["webauthn_credential"]
-	if !ok {
+	if user.WebAuthnCredential == "" {
 		state.Context["hasPasskeyRegistered"] = "not_registered"
 		return model.NewNodeResultWithCondition("not_registered")
 	} else {

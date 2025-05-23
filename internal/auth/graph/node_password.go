@@ -38,7 +38,7 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 	loginIdentifier := state.Context["loginIdentifier"]
 
 	// if max_failed_password_attempts is set use else default to 5
-	maxFailedPasswordAttempts := 5
+	maxFailedPasswordAttempts := 10
 	var err error
 	if node.CustomConfig["max_failed_password_attempts"] != "" {
 		maxFailedPasswordAttempts, err = strconv.Atoi(node.CustomConfig["max_failed_password_attempts"])
