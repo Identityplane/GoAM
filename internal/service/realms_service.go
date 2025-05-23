@@ -40,15 +40,14 @@ type LoadedRealm struct {
 	Repositories *repository.Repositories // services for this realm
 }
 
-func NewLoadedRealm(realmConfig *model.Realm, userRepo repository.UserRepository) *LoadedRealm {
+func NewLoadedRealm(realmConfig *model.Realm, repos repository.Repositories) *LoadedRealm {
 
 	realmId := realmConfig.Tenant + "/" + realmConfig.Realm
-	repos := &repository.Repositories{UserRepo: userRepo}
 
 	return &LoadedRealm{
 		Config:       realmConfig,
 		RealmID:      realmId,
-		Repositories: repos,
+		Repositories: &repos,
 	}
 }
 
@@ -81,8 +80,13 @@ func (s *realmServiceImpl) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
 	}
 
 	// Load the realm with repo
-	userRepo := db.NewUserRepository(tenant, realm, s.userDb)
-	loadedRealm := NewLoadedRealm(realmConfig, userRepo)
+	userRepo := repository.NewUserRepository(tenant, realm, s.userDb)
+	emailSender := repository.NewDefaultEmailSender()
+	repos := &repository.Repositories{
+		UserRepo:    &userRepo,
+		EmailSender: emailSender,
+	}
+	loadedRealm := NewLoadedRealm(realmConfig, *repos)
 
 	return loadedRealm, true
 }
@@ -100,8 +104,13 @@ func (s *realmServiceImpl) GetAllRealms() (map[string]*LoadedRealm, error) {
 	for _, realmConfig := range realmConfigs {
 
 		// Load the realm with repo
-		userRepo := db.NewUserRepository(realmConfig.Tenant, realmConfig.Tenant, s.userDb)
-		loadedRealm := NewLoadedRealm(&realmConfig, userRepo)
+		userRepo := repository.NewUserRepository(realmConfig.Tenant, realmConfig.Realm, s.userDb)
+		emailSender := repository.NewDefaultEmailSender()
+		repos := &repository.Repositories{
+			UserRepo:    &userRepo,
+			EmailSender: emailSender,
+		}
+		loadedRealm := NewLoadedRealm(&realmConfig, *repos)
 
 		loadedRealms[loadedRealm.RealmID] = loadedRealm
 	}

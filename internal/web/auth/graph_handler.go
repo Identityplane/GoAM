@@ -72,7 +72,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	// If there is an error we render the error, otherwiese the ProcessAuthRequest will render the result
 	if err != nil {
-		RenderError(ctx, err.Error())
+		RenderError(ctx, err.Error(), session, loadedRealm.Config.BaseUrl)
 		return
 	}
 

@@ -20,6 +20,7 @@ import (
 var (
 	baseTemplates      *template.Template
 	LayoutTemplatePath = "templates/layout.html"
+	ErrorTemplatePath  = "templates/error.html"
 	NodeTemplatesPath  = "templates/nodes"
 	ComponentsPath     = "templates/components"
 	AssetsManifestPath = "templates/static/manifest.json"
@@ -157,7 +158,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	// Lookup current node
 	currentGraphNode, ok := flow.Nodes[state.Current]
 	if !ok {
-		RenderError(ctx, "Did not find current graph node: "+state.Current)
+		RenderError(ctx, "Did not find current graph node: "+state.Current, state, baseUrl)
 		return
 	}
 
@@ -173,6 +174,11 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	}
 
 	loginUri := state.LoginUri
+	//Keep debug query parameter if flow is debug mode
+	if debug {
+		loginUri += "?debug"
+	}
+
 	stylePath := baseUrl + "/static/style.css"
 	scriptPath := baseUrl + "/static/style.js"
 
@@ -206,7 +212,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	// Clone the base template
 	tmpl, err := baseTemplates.Clone()
 	if err != nil {
-		RenderError(ctx, "Template clone error: "+err.Error())
+		RenderError(ctx, "Template clone error: "+err.Error(), state, baseUrl)
 		return
 	}
 
@@ -214,14 +220,14 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	filepath := filepath.Join(NodeTemplatesPath, templateFile)
 	_, err = tmpl.ParseFS(templatesFS, filepath)
 	if err != nil {
-		RenderError(ctx, "Parse error: "+err.Error())
+		RenderError(ctx, "Parse error: "+err.Error(), state, baseUrl)
 		return
 	}
 
 	// Execute the template
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, "layout", view); err != nil {
-		RenderError(ctx, "Render error: "+err.Error())
+		RenderError(ctx, "Render error: "+err.Error(), state, baseUrl)
 		return
 	}
 
@@ -230,10 +236,89 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	ctx.SetBody(buf.Bytes())
 }
 
-func RenderError(ctx *fasthttp.RequestCtx, msg string) {
+func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.AuthenticationSession, baseUrl string) {
+
+	if state == nil {
+
+		msg := "Error without state"
+		SimpleErrorHtml(ctx, msg)
+		return
+	}
+
+	// Debug information
+	debug := isDebugMode(ctx)
+	var stateJSON string
+	if debug {
+		if js, err := json.MarshalIndent(state, "", "  "); err == nil {
+			stateJSON = string(js)
+		}
+	}
+
+	// CSP
+	cspNonce := lib.GenerateSecureSessionID()
+	ctx.SetUserValue("cspNonce", cspNonce)
+
+	var stylePath, scriptPath string
+	if baseUrl != "" {
+		stylePath = baseUrl + "/static/style.css"
+		scriptPath = baseUrl + "/static/style.js"
+	}
+
+	// Create the view data
+	view := &ViewData{
+		Title:      state.Current,
+		NodeName:   state.Current,
+		Debug:      debug,
+		Error:      msg,
+		State:      state,
+		StateJSON:  stateJSON,
+		StylePath:  stylePath,
+		ScriptPath: scriptPath,
+		Tenant:     ctx.UserValue("tenant").(string),
+		Realm:      ctx.UserValue("realm").(string),
+		CspNonce:   cspNonce,
+	}
+
+	tmpl, err := getErrorTemplate()
+
+	if err != nil {
+
+		msg := "Cannot load error template"
+		SimpleErrorHtml(ctx, msg)
+		return
+	}
+
+	// Execute the template
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, "error", view); err != nil {
+		msg := "Cannot execute error template: " + err.Error()
+		SimpleErrorHtml(ctx, msg)
+		return
+	}
+
+	ctx.SetContentType("text/html")
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.SetBody(buf.Bytes())
+
+}
+
+func SimpleErrorHtml(ctx *fasthttp.RequestCtx, msg string) {
 	ctx.SetContentType("text/html")
 	ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 	ctx.SetBodyString(fmt.Sprintf("<html><body><h2>Error</h2><p>%s</p></body></html>", msg))
+}
+
+func getErrorTemplate() (*template.Template, error) {
+	// Parse the base layout template
+	tmpl, err := template.New("error").Funcs(template.FuncMap{
+		"title": title,
+	}).ParseFS(templatesFS, ErrorTemplatePath)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse base template: %w", err)
+	}
+
+	return tmpl, nil
 }
 
 // HandleStaticAssets serves the static assets from memory

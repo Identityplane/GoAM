@@ -19,6 +19,7 @@ var EmailOTPNode = &NodeDefinition{
 	PossiblePrompts:      map[string]string{"otp": "number"},
 	OutputContext:        []string{"emailOTP"},
 	PossibleResultStates: []string{"success", "failure", "locked"},
+	CustomConfigOptions:  []string{"smtp_server", "smtp_port", "smtp_username", "smtp_password", "smtp_sender_email"},
 	Run:                  RunEmailOTPNode,
 }
 
@@ -52,7 +53,7 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 			}
 
 			otp = generateOTP()
-			sendEmailOTP(email, otp)
+			sendEmailOTP(email, otp, node, services)
 		}
 
 		state.Context["email_otp"] = otp
@@ -88,8 +89,54 @@ func generateOTP() string {
 	return fmt.Sprintf("%06d", otp)
 }
 
-func sendEmailOTP(email string, otp string) {
+func sendEmailOTP(email string, otp string, node *model.GraphNode, services *repository.Repositories) error {
 
 	// As a mock we just log the OTP for now
 	logger.Info("OTP sent to %s: %s", email, otp)
+
+	smtpServer := node.CustomConfig["smtp_server"]
+	smtpPort := node.CustomConfig["smtp_port"]
+	smtpUsername := node.CustomConfig["smtp_username"]
+	smtpPassword := node.CustomConfig["smtp_password"]
+	smtpSenderEmail := node.CustomConfig["smtp_sender_email"]
+
+	if smtpServer == "" || smtpPort == "" || smtpUsername == "" || smtpPassword == "" || smtpSenderEmail == "" {
+		msg := "smtp server, port, username, password, and sender email must be provided in the custom config. Otherwise the email will not be sent and fail silently."
+		logger.ErrorNoContext(msg)
+		return nil
+	}
+
+	body, subject, err := generateEmailBody(otp)
+	if err != nil {
+		msg := "error generating email body: %s"
+		logger.ErrorNoContext(msg, err)
+		return errors.New(msg)
+	}
+
+	err = services.EmailSender.SendEmail(subject, body, email, smtpServer, smtpPort, smtpUsername, smtpPassword, smtpSenderEmail)
+	if err != nil {
+		msg := "error sending email: %s"
+		logger.ErrorNoContext(msg, err)
+		return errors.New(msg)
+	}
+
+	return nil
 }
+
+func generateEmailBody(otp string) (string, string, error) {
+
+	body := fmt.Sprintf(defaultEmailBodyTemplate, otp)
+	subject := defaultEmailSubject
+
+	return body, subject, nil
+}
+
+const defaultEmailBodyTemplate = `Subject: Verify your identity with OTP
+Please use the verification code below to confirm your identity.
+
+
+Verification code:
+
+%s`
+
+const defaultEmailSubject = "Verify your identity"
