@@ -13,6 +13,7 @@ type UserDB interface {
 	GetUserByID(ctx context.Context, tenant, realm, userID string) (*model.User, error)
 	GetUserByLoginIdentifier(ctx context.Context, tenant, realm, loginIdentifier string) (*model.User, error)
 	GetUserByEmail(ctx context.Context, tenant, realm, email string) (*model.User, error)
+	GetUserByFederatedIdentifier(ctx context.Context, tenant, realm, provider, identifier string) (*model.User, error)
 	UpdateUser(ctx context.Context, user *model.User) error
 	ListUsers(ctx context.Context, tenant, realm string) ([]model.User, error)
 	ListUsersWithPagination(ctx context.Context, tenant, realm string, offset, limit int) ([]model.User, error)

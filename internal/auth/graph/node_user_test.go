@@ -50,6 +50,14 @@ func (m *MockUserRepository) GetByID(ctx context.Context, id string) (*model.Use
 	return args.Get(0).(*model.User), args.Error(1)
 }
 
+func (m *MockUserRepository) GetByFederatedIdentifier(ctx context.Context, provider, identifier string) (*model.User, error) {
+	args := m.Called(ctx, provider, identifier)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.User), args.Error(1)
+}
+
 func (m *MockUserRepository) Create(ctx context.Context, user *model.User) error {
 	args := m.Called(ctx, user)
 	return args.Error(0)

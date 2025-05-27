@@ -34,6 +34,10 @@ var NodeDefinitions = map[string]*NodeDefinition{
 
 	// Hcaptcha
 	HcaptchaNode.Name: HcaptchaNode,
+
+	// Social Login
+	GithubLoginNode.Name:      GithubLoginNode,
+	GithubCreateUserNode.Name: GithubCreateUserNode,
 }
 
 func GetNodeDefinitionByName(name string) *NodeDefinition {

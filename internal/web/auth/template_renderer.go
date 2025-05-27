@@ -146,6 +146,12 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		}
 	}
 
+	// Special prompt __redirect is used to redirect the user to a different page
+	if redirect, ok := prompts["__redirect"]; ok {
+		ctx.Redirect(redirect, fasthttp.StatusSeeOther)
+		return
+	}
+
 	// Choosing the right template file
 	if state.Result != nil {
 		templateFile = "result.html"
