@@ -72,3 +72,7 @@ func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*mod
 func (r *UserRepositoryImpl) GetByLoginIdentifier(ctx context.Context, loginIdentifier string) (*model.User, error) {
 	return r.db.GetUserByLoginIdentifier(ctx, r.tenant, r.realm, loginIdentifier)
 }
+
+func (r *UserRepositoryImpl) GetByFederatedIdentifier(ctx context.Context, provider, identifier string) (*model.User, error) {
+	return r.db.GetUserByFederatedIdentifier(ctx, r.tenant, r.realm, provider, identifier)
+}

@@ -695,3 +695,26 @@ func (p *PostgresUserDB) GetUserByLoginIdentifier(ctx context.Context, tenant, r
 
 	return p.scanUserFromRow(row)
 }
+
+func (p *PostgresUserDB) GetUserByFederatedIdentifier(ctx context.Context, tenant, realm, provider, identifier string) (*model.User, error) {
+	row := p.db.QueryRow(ctx, `
+		SELECT id, tenant, realm, username,
+		       status,
+		       display_name, given_name, family_name,
+		       profile_picture_uri,
+		       email, phone, email_verified, phone_verified,
+		       login_identifier,
+		       locale,
+		       password_credential, webauthn_credential, mfa_credential,
+		       password_locked, webauthn_locked, mfa_locked,
+		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
+		       roles, groups, entitlements, consent, attributes,
+		       created_at, updated_at, last_login_at,
+		       federated_idp, federated_id,
+		       trusted_devices
+		FROM users 
+		WHERE tenant = $1 AND realm = $2 AND federated_idp = $3 AND federated_id = $4
+	`, tenant, realm, provider, identifier)
+
+	return p.scanUserFromRow(row)
+}

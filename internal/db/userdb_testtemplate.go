@@ -34,6 +34,10 @@ func UserDBTests(t *testing.T, db UserDB) {
 		clearUserDB(t, db)
 		TemplateTestDeleteUser(t, db)
 	})
+	t.Run("TestGetUserByFederatedIdentifier", func(t *testing.T) {
+		clearUserDB(t, db)
+		TemplateTestGetUserByFederatedIdentifier(t, db)
+	})
 }
 
 func clearUserDB(t *testing.T, db UserDB) {
@@ -416,4 +420,55 @@ func TemplateTestUpdateUserDoesNotChangeOtherFields(t *testing.T, db UserDB) {
 
 	// Check that the json before and after are the same
 	assert.Equal(t, jsonBeforeString, jsonAfterString)
+}
+
+// TemplateTestGetUserByFederatedIdentifier tests the GetUserByFederatedIdentifier functionality
+func TemplateTestGetUserByFederatedIdentifier(t *testing.T, db UserDB) {
+	ctx := context.Background()
+	testTenant := "test-tenant"
+	testRealm := "test-realm"
+
+	// Create test user with federated identity
+	testUser := model.User{
+		Tenant:       testTenant,
+		Realm:        testRealm,
+		Username:     "federated-user",
+		Status:       "active",
+		Email:        "federated@example.com",
+		FederatedIDP: stringPtr("google"),
+		FederatedID:  stringPtr("google-123"),
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	// Create the user
+	err := db.CreateUser(ctx, testUser)
+	require.NoError(t, err)
+
+	t.Run("GetExistingFederatedUser", func(t *testing.T) {
+		user, err := db.GetUserByFederatedIdentifier(ctx, testTenant, testRealm, "google", "google-123")
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.Equal(t, testUser.Username, user.Username)
+		assert.Equal(t, testUser.Email, user.Email)
+		assert.Equal(t, testUser.FederatedIDP, user.FederatedIDP)
+		assert.Equal(t, testUser.FederatedID, user.FederatedID)
+	})
+
+	t.Run("GetNonExistentFederatedUser", func(t *testing.T) {
+		user, err := db.GetUserByFederatedIdentifier(ctx, testTenant, testRealm, "google", "nonexistent")
+		assert.NoError(t, err)
+		assert.Nil(t, user)
+	})
+
+	t.Run("GetUserWithDifferentProvider", func(t *testing.T) {
+		user, err := db.GetUserByFederatedIdentifier(ctx, testTenant, testRealm, "github", "google-123")
+		assert.NoError(t, err)
+		assert.Nil(t, user)
+	})
+}
+
+// Helper function to create string pointers
+func stringPtr(s string) *string {
+	return &s
 }

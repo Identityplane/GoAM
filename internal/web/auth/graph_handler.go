@@ -128,9 +128,7 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 
 	// Load the inputs from the request
 	var input map[string]string
-	if ctx.IsPost() {
-		input = extractPromptsFromRequest(ctx, flow.Definition, session.Current)
-	}
+	input = extractPromptsFromRequest(ctx, flow.Definition, session.Current)
 
 	// Run the flow engine with the current state and input
 	newSession, err := graph.Run(flow.Definition, &session, input, registry)
@@ -219,10 +217,22 @@ func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *model.FlowDefinit
 	// Check the definiton to see which inputs are allowed
 	def := graph.NodeDefinitions[node.Use]
 	for key := range def.PossiblePrompts {
-		val := string(ctx.PostArgs().Peek(key))
+
+		// read from query parameters (this is needed for example for oauth2 flows)
+		val := string(ctx.QueryArgs().Peek(key))
 		if val != "" {
 			input[key] = val
 		}
+
+		// read from post body, overwrites any query parameter
+		val = string(ctx.PostArgs().Peek(key))
+		if val != "" {
+			input[key] = val
+		}
+	}
+
+	if len(input) == 0 {
+		return nil
 	}
 
 	return input
