@@ -9,7 +9,6 @@ import (
 	"goiam/internal/logger"
 	"goiam/internal/model"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -40,6 +39,9 @@ var GithubCreateUserNode = &NodeDefinition{
 const (
 	githubProvider = "github"
 	githubAuthURL  = "https://github.com/login/oauth/authorize"
+)
+
+var (
 	githubTokenURL = "https://github.com/login/oauth/access_token"
 	githubUserURL  = "https://api.github.com/user"
 )
@@ -234,7 +236,7 @@ func getGithubAccessToken(code, clientID, clientSecret string) (*githubAccessTok
 	// POST request to set URL
 	req, reqerr := http.NewRequest(
 		"POST",
-		"https://github.com/login/oauth/access_token",
+		githubTokenURL,
 		bytes.NewBuffer(requestJSON),
 	)
 	if reqerr != nil {
@@ -265,7 +267,7 @@ func getGithubData(accessToken string) (*GitHubUser, error) {
 	// Get request to a set URL
 	req, reqerr := http.NewRequest(
 		"GET",
-		"https://api.github.com/user",
+		githubUserURL,
 		nil,
 	)
 	if reqerr != nil {
@@ -279,7 +281,7 @@ func getGithubData(accessToken string) (*GitHubUser, error) {
 	// Make the request
 	resp, resperr := http.DefaultClient.Do(req)
 	if resperr != nil {
-		log.Panic("Request failed")
+		return nil, resperr
 	}
 
 	// Read the response as a byte slice

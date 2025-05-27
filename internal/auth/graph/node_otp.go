@@ -101,23 +101,20 @@ func sendEmailOTP(email string, otp string, node *model.GraphNode, services *rep
 	smtpSenderEmail := node.CustomConfig["smtp_sender_email"]
 
 	if smtpServer == "" || smtpPort == "" || smtpUsername == "" || smtpPassword == "" || smtpSenderEmail == "" {
-		msg := "smtp server, port, username, password, and sender email must be provided in the custom config. Otherwise the email will not be sent and fail silently."
-		logger.ErrorNoContext(msg)
+		logger.ErrorNoContext("smtp server, port, username, password, and sender email must be provided in the custom config. Otherwise the email will not be sent and fail silently.")
 		return nil
 	}
 
 	body, subject, err := generateEmailBody(otp)
 	if err != nil {
-		msg := "error generating email body: %s"
-		logger.ErrorNoContext(msg, err)
-		return errors.New(msg)
+		logger.ErrorNoContext("error generating email body: %s", err)
+		return errors.New("error generating email body")
 	}
 
 	err = services.EmailSender.SendEmail(subject, body, email, smtpServer, smtpPort, smtpUsername, smtpPassword, smtpSenderEmail)
 	if err != nil {
-		msg := "error sending email: %s"
-		logger.ErrorNoContext(msg, err)
-		return errors.New(msg)
+		logger.ErrorNoContext("error sending email: %s", err)
+		return errors.New("error sending email")
 	}
 
 	return nil
