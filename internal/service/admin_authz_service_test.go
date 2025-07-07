@@ -1,8 +1,9 @@
 package service
 
 import (
-	"goiam/internal/model"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 func TestGetEntitlements(t *testing.T) {

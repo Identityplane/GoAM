@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"goiam/internal/auth/graph"
-	"goiam/internal/db"
-	"goiam/internal/lib"
-	"goiam/internal/model"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/graph"
+	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/gianlucafrei/GoAM/internal/lib"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // FlowService defines the business logic for flow operations

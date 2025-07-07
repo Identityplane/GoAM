@@ -2,7 +2,8 @@ package db
 
 import (
 	"context"
-	"goiam/internal/model"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // ClientSessionDB defines the database operations for client sessions

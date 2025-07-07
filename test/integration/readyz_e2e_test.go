@@ -1,9 +1,10 @@
 package integration
 
 import (
-	"goiam/internal/web"
 	"net/http"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/web"
 
 	"github.com/valyala/fasthttp"
 )

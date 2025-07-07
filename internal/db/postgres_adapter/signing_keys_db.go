@@ -3,8 +3,9 @@ package postgres_adapter
 import (
 	"context"
 	"fmt"
-	"goiam/internal/model"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

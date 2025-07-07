@@ -2,11 +2,12 @@ package web
 
 import (
 	"encoding/json"
-	"goiam/internal/config"
-	"goiam/internal/web/admin_api"
-	"goiam/internal/web/auth"
-	"goiam/internal/web/debug"
-	"goiam/internal/web/oauth2"
+
+	"github.com/gianlucafrei/GoAM/internal/config"
+	"github.com/gianlucafrei/GoAM/internal/web/admin_api"
+	"github.com/gianlucafrei/GoAM/internal/web/auth"
+	"github.com/gianlucafrei/GoAM/internal/web/debug"
+	"github.com/gianlucafrei/GoAM/internal/web/oauth2"
 
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"

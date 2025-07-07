@@ -2,12 +2,13 @@ package service
 
 import (
 	"fmt"
-	"goiam/internal/logger"
-	"goiam/internal/model"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"gopkg.in/yaml.v3"
 )

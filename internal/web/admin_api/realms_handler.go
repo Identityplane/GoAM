@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"goiam/internal/model"
-	"goiam/internal/service"
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

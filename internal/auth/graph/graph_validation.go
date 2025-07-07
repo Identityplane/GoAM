@@ -3,7 +3,8 @@ package graph
 import (
 	"errors"
 	"fmt"
-	"goiam/internal/model"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // ValidateFlowDefinition checks for basic structural integrity of the flow

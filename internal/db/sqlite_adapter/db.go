@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"goiam/internal/logger"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/logger"
 
 	_ "modernc.org/sqlite" // sqlite driver
 )

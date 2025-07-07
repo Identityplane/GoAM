@@ -3,10 +3,11 @@ package graph
 import (
 	"context"
 	"fmt"
-	"goiam/internal/auth/repository"
-	"goiam/internal/lib"
-	"goiam/internal/model"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/lib"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/google/uuid"
 )

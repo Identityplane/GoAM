@@ -1,9 +1,10 @@
 package integration
 
 import (
-	"goiam/internal/web"
 	"os"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/web"
 )
 
 func TestNotFoundRedirectNoUrl(t *testing.T) {

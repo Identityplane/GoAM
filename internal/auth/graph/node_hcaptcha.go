@@ -3,10 +3,11 @@ package graph
 import (
 	"encoding/json"
 	"errors"
-	"goiam/internal/auth/repository"
-	"goiam/internal/model"
 	"net/http"
 	"net/url"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // HCaptchaVerifier defines the interface for hCaptcha verification

@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"goiam/internal/db"
-	"goiam/internal/model"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 type SQLiteClientSessionDB struct {

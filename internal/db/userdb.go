@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"goiam/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // Interface for the user db

@@ -1,8 +1,9 @@
 package session
 
 import (
-	"goiam/internal/model"
 	"sync"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 var sessions = struct {

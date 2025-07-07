@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"goiam/internal/db"
-	"goiam/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // PaginationParams represents pagination parameters

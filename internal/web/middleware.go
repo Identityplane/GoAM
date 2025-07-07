@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"goiam/internal/config"
-	"goiam/internal/logger"
-	"goiam/internal/model"
-	"goiam/internal/service"
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/config"
+	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"

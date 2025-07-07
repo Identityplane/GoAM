@@ -5,8 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"goiam/internal/db"
-	"goiam/internal/model"
+
+	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/google/uuid"
 )

@@ -1,10 +1,11 @@
 package lib
 
 import (
-	"goiam/internal/model"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/stretchr/testify/assert"
 )

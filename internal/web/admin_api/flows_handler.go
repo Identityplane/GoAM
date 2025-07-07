@@ -3,10 +3,11 @@ package admin_api
 import (
 	"encoding/json"
 	"fmt"
-	"goiam/internal/auth/graph"
-	"goiam/internal/model"
-	"goiam/internal/service"
 	"net/http"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/graph"
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 	"gopkg.in/yaml.v2"

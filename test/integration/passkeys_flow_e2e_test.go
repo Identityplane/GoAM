@@ -2,10 +2,11 @@ package integration
 
 import (
 	"context"
-	"goiam/internal/model"
-	"goiam/internal/service"
 	"net/http"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/service"
 )
 
 func TestPasskeysRegistration(t *testing.T) {

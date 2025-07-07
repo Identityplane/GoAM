@@ -2,9 +2,10 @@ package lib
 
 import (
 	"fmt"
-	"goiam/internal/model"
 	"os"
 	"path/filepath"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"gopkg.in/yaml.v3"
 )

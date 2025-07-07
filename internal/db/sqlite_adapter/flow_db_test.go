@@ -2,9 +2,10 @@ package sqlite_adapter
 
 import (
 	"context"
-	"goiam/internal/db"
-	"goiam/internal/model"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/stretchr/testify/require"
 )

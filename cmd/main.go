@@ -1,9 +1,9 @@
 package main
 
 import (
-	"goiam/internal" // lint:ignore ST1019 (This should be fixed, but is not a priority)
-	"goiam/internal/logger"
-	"goiam/internal/web"
+	"github.com/gianlucafrei/GoAM/internal" // lint:ignore ST1019 (This should be fixed, but is not a priority)
+	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/gianlucafrei/GoAM/internal/web"
 
 	// lint:ignore ST1019
 

@@ -3,8 +3,9 @@ package repository
 import (
 	"context"
 	"fmt"
-	"goiam/internal/db"
-	"goiam/internal/model"
+
+	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // The user repository is a simplified interface for the user database, to be used by the auth service

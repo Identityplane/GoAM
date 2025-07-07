@@ -3,9 +3,10 @@ package logger_test
 import (
 	"encoding/json"
 	"errors"
-	"goiam/internal/logger"
 	"strings"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/logger"
 )
 
 func TestLogger_InfoFormatting(t *testing.T) {

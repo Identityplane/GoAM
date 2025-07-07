@@ -1,9 +1,10 @@
 package graph
 
 import (
-	"goiam/internal/auth/repository"
-	"goiam/internal/model"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // MockHCaptchaVerifier implements HCaptchaVerifier for testing

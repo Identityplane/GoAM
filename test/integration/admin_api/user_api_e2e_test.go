@@ -1,9 +1,10 @@
 package integration_admin_api
 
 import (
-	"goiam/test/integration"
 	"net/http"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/test/integration"
 )
 
 // This test performs a complete end-to-end test of the admin API user management functionality.

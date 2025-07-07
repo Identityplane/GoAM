@@ -2,7 +2,8 @@ package repository
 
 import (
 	"context"
-	"goiam/internal/model"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 type Repositories struct {

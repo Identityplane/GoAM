@@ -4,10 +4,11 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"goiam/internal/logger"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/logger"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"

@@ -2,11 +2,12 @@ package admin_api
 
 import (
 	"encoding/json"
-	"goiam/internal/config"
-	"goiam/internal/model"
-	"goiam/internal/service"
 	"net/http"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/config"
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )
