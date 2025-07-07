@@ -2,10 +2,11 @@ package visual
 
 import (
 	"fmt"
-	"goiam/internal/auth/graph"
-	"goiam/internal/model"
 	"log"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/graph"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // RenderDOTGraph generates a Graphviz DOT representation of a flow.

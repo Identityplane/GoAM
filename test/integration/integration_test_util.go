@@ -3,22 +3,23 @@ package integration
 import (
 	"context"
 	"fmt"
-	"goiam/internal"
-	"goiam/internal/config"
-	"goiam/internal/model"
-	"goiam/internal/web"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/gianlucafrei/GoAM/internal"
+	"github.com/gianlucafrei/GoAM/internal/config"
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/web"
+
 	"github.com/fasthttp/router"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
 
-	"goiam/internal/service"
+	"github.com/gianlucafrei/GoAM/internal/service"
 )
 
 var (

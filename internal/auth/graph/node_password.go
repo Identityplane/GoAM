@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"goiam/internal/auth/repository"
-	"goiam/internal/lib"
-	"goiam/internal/model"
 	"strconv"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/lib"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 var UpdatePasswordNode = &NodeDefinition{

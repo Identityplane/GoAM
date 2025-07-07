@@ -1,8 +1,9 @@
 package sqlite_adapter
 
 import (
-	"goiam/internal/db"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/db"
 
 	"github.com/stretchr/testify/require"
 )

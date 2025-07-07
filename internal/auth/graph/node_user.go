@@ -3,8 +3,9 @@ package graph
 import (
 	"context"
 	"fmt"
-	"goiam/internal/auth/repository"
-	"goiam/internal/model"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 var LoadUserByUsernameNode = &NodeDefinition{

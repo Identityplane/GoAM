@@ -2,13 +2,14 @@ package auth
 
 import (
 	"fmt"
-	"goiam/internal/auth/graph"
-	"goiam/internal/auth/repository"
-	"goiam/internal/logger"
-	"goiam/internal/model"
-	"goiam/internal/service"
 	"net/url"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/graph"
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

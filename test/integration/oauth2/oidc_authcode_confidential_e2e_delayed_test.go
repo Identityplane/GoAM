@@ -1,11 +1,12 @@
 package integration
 
 import (
-	"goiam/test/integration"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/test/integration"
 
 	"github.com/stretchr/testify/assert"
 )

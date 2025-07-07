@@ -2,10 +2,11 @@ package web
 
 import (
 	"encoding/json"
-	"goiam/internal/service"
 	"reflect"
 	"runtime"
 	"strconv"
+
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

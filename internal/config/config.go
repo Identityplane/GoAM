@@ -1,11 +1,12 @@
 package config
 
 import (
-	"goiam/internal/db/postgres_adapter"
-	"goiam/internal/db/sqlite_adapter"
-	"goiam/internal/logger"
 	"os"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/db/postgres_adapter"
+	"github.com/gianlucafrei/GoAM/internal/db/sqlite_adapter"
+	"github.com/gianlucafrei/GoAM/internal/logger"
 )
 
 // Manages global configuration for the whole server

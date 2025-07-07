@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"goiam/internal/logger"
-	"goiam/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 type SQLiteSigningKeyDB struct {

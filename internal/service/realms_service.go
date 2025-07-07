@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"goiam/internal/auth/repository"
-	"goiam/internal/db"
-	"goiam/internal/logger"
-	"goiam/internal/model"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/pkg/errors"
 )

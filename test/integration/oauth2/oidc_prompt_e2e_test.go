@@ -2,13 +2,14 @@ package integration
 
 import (
 	"context"
-	"goiam/internal/model"
-	"goiam/internal/service"
-	"goiam/test/integration"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/gianlucafrei/GoAM/test/integration"
 )
 
 // This test performs end-to-end tests of the OIDC prompt parameter functionality.

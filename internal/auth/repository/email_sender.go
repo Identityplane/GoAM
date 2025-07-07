@@ -2,8 +2,9 @@ package repository
 
 import (
 	"fmt"
-	"goiam/internal/logger"
 	"net/smtp"
+
+	"github.com/gianlucafrei/GoAM/internal/logger"
 )
 
 type DefaultEmailSender struct {

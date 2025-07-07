@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	"goiam/internal/db"
-	"goiam/internal/logger"
-	"goiam/internal/model"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 const (

@@ -3,15 +3,16 @@ package oauth2
 import (
 	"encoding/json"
 	"fmt"
-	"goiam/internal/auth/graph"
-	"goiam/internal/lib/oauth2"
-	"goiam/internal/logger"
-	"goiam/internal/model"
-	"goiam/internal/service"
-	"goiam/internal/web/auth"
 	"net/url"
 	"slices"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/graph"
+	"github.com/gianlucafrei/GoAM/internal/lib/oauth2"
+	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/gianlucafrei/GoAM/internal/web/auth"
 
 	"github.com/valyala/fasthttp"
 )

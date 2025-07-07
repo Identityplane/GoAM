@@ -3,15 +3,16 @@ package service
 import (
 	"context"
 	"fmt"
-	"goiam/internal/auth/graph"
-	"goiam/internal/lib"
-	"goiam/internal/lib/oauth2"
-	"goiam/internal/model"
 	"maps"
 	"net/url"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/graph"
+	"github.com/gianlucafrei/GoAM/internal/lib"
+	"github.com/gianlucafrei/GoAM/internal/lib/oauth2"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // OAuth2Service handles OAuth2 related operations

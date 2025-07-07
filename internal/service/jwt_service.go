@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"goiam/internal/db"
-	"goiam/internal/lib/jwt_ec256"
-	"goiam/internal/model"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/gianlucafrei/GoAM/internal/lib/jwt_ec256"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/google/uuid"
 )

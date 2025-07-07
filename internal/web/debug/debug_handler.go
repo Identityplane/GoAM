@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"goiam/internal/auth/graph/visual"
-	"goiam/internal/service"
 	"os/exec"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/graph/visual"
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

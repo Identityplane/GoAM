@@ -3,7 +3,7 @@ package integration
 import (
 	"testing"
 
-	"goiam/internal/service"
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/stretchr/testify/assert"
 )

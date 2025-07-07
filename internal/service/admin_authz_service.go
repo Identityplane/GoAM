@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"goiam/internal/model"
 	"regexp"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 type AuthzEntitlement struct {

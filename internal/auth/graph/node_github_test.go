@@ -2,13 +2,14 @@ package graph
 
 import (
 	"encoding/json"
-	"goiam/internal/auth/repository"
-	"goiam/internal/model"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

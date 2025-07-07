@@ -5,11 +5,12 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"goiam/internal/lib"
-	"goiam/internal/model"
 	"html/template"
 	"path/filepath"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/lib"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"crypto/md5"
 

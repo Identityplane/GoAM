@@ -2,8 +2,9 @@ package graph
 
 import (
 	"context"
-	"goiam/internal/auth/repository"
-	"goiam/internal/model"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 var CheckUsernameAvailableNode = &NodeDefinition{

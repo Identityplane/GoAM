@@ -2,12 +2,13 @@ package internal
 
 import (
 	"database/sql"
-	"goiam/internal/config"
-	"goiam/internal/db/postgres_adapter"
-	"goiam/internal/db/sqlite_adapter"
-	"goiam/internal/logger"
-	"goiam/internal/service"
 	"strings"
+
+	"github.com/gianlucafrei/GoAM/internal/config"
+	"github.com/gianlucafrei/GoAM/internal/db/postgres_adapter"
+	"github.com/gianlucafrei/GoAM/internal/db/sqlite_adapter"
+	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

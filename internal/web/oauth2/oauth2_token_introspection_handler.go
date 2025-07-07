@@ -2,7 +2,8 @@ package oauth2
 
 import (
 	"encoding/json"
-	"goiam/internal/service"
+
+	"github.com/gianlucafrei/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

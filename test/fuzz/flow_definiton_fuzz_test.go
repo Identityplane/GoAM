@@ -1,9 +1,10 @@
 package fuzz
 
 import (
-	"goiam/internal/lib"
 	"os"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/lib"
 
 	"github.com/stretchr/testify/require"
 )

@@ -1,12 +1,13 @@
 package graph
 
 import (
-	"goiam/internal/auth/repository"
-	"goiam/internal/model"
 	"regexp"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

@@ -2,12 +2,13 @@ package integration_admin_api
 
 import (
 	"context"
-	"goiam/internal/config"
-	"goiam/internal/model"
-	"goiam/internal/service"
-	"goiam/test/integration"
 	"net/http"
 	"testing"
+
+	"github.com/gianlucafrei/GoAM/internal/config"
+	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/gianlucafrei/GoAM/test/integration"
 
 	"github.com/stretchr/testify/assert"
 )

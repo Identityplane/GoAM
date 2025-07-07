@@ -1,9 +1,10 @@
 package web
 
 import (
-	"goiam/internal/config"
 	"os"
 	"path/filepath"
+
+	"github.com/gianlucafrei/GoAM/internal/config"
 
 	"github.com/valyala/fasthttp"
 )

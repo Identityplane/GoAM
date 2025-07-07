@@ -2,8 +2,9 @@ package graph
 
 import (
 	"fmt"
-	"goiam/internal/auth/repository"
-	"goiam/internal/model"
+
+	"github.com/gianlucafrei/GoAM/internal/auth/repository"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 var InitNode = &NodeDefinition{

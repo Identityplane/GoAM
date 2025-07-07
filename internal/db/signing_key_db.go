@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"goiam/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/model"
 )
 
 // SigningKeyDB interface for signing key database operations

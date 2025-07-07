@@ -3,7 +3,7 @@ package graph
 import (
 	"testing"
 
-	"goiam/internal/model"
+	"github.com/gianlucafrei/GoAM/internal/model"
 
 	"github.com/stretchr/testify/assert"
 )
