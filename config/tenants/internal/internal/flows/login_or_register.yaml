@@ -1,98 +1,252 @@
-description: 'Login or register with username and password'
+description: ''
 start: init
 nodes:
-  askPassword:
-    name: askPassword
-    use: askPassword
-    next:
-      submitted: validateUsernamePassword
-  askUsername:
-    name: askUsername
-    use: askUsername
-    next:
-      submitted: node_c29533d5
-  authFailure:
-    name: failureResult
-    use: failureResult
-    next: {}
-  authSuccess:
-    name: successResult
-    use: successResult
-    next: {}
   init:
     name: init
     use: init
     next:
-      start: askUsername
-  validateUsernamePassword:
-    name: validateUsernamePassword
-    use: validateUsernamePassword
-    next:
-      fail: askPassword
-      locked: authFailure
-      success: authSuccess
-  node_c29533d5:
-    name: checkUsernameAvailable
-    use: checkUsernameAvailable
-    next:
-      taken: askPassword
-      available: node_a1e9d8fa
-  node_26e37459:
-    name: askPassword
-    use: askPassword
-    next:
-      submitted: node_e0d0650f
-  node_e0d0650f:
-    name: createUser
-    use: createUser
-    next:
-      success: authSuccess
-      fail: node_e7f24f80
-  node_e7f24f80:
+      start: node_faa090c7
+  node_75e21c1d:
     name: failureResult
     use: failureResult
     next: {}
-  node_a1e9d8fa:
+  node_8840e55b:
+    name: successResult
+    use: successResult
+    next: {}
+  node_faa090c7:
+    name: passwordOrSocialLogin
+    use: passwordOrSocialLogin
+    custom_config:
+      showForgotPassword: 'true'
+      showPasskeys: 'true'
+      showSocial1: 'true'
+      showSocial2: 'true'
+      useEmail: 'true'
+      social1: github
+      social2: google
+    next:
+      password: node_7208801c
+      passkey: node_0161cf22
+      forgotPassword: node_2128ba72
+      social1: node_1a1dd336
+  node_7208801c:
+    name: validateUsernamePassword
+    use: validateUsernamePassword
+    custom_config:
+      user_lookup_method: email
+    next:
+      fail: node_faa090c7
+      noPassword: node_588305c3
+      locked: node_57d27334
+      success: node_0f6a914f
+  node_0161cf22:
+    name: verifyPasskey
+    use: verifyPasskey
+    next:
+      success: node_8840e55b
+      failure: node_768aa494
+  node_768aa494:
     name: messageConfirmation
     use: messageConfirmation
     custom_config:
-      message: We did not found an account. Should we create a new one for you?
-      message_title: Account not found
-      button_text: Create Account
+      message: Failed to verify passkey
     next:
-      submitted: node_26e37459
+      submitted: node_faa090c7
+  node_588305c3:
+    name: messageConfirmation
+    use: messageConfirmation
+    custom_config:
+      message: You need to set a password
+    next:
+      submitted: node_75e21c1d
+  node_0bc0189e:
+    name: emailOTP
+    use: emailOTP
+    next:
+      success: node_373b7959
+      failure: node_0bc0189e
+  node_373b7959:
+    name: askPassword
+    use: askPassword
+    next:
+      submitted: node_786584de
+  node_b66791da:
+    name: askEmail
+    use: askEmail
+    next:
+      submitted: node_0bc0189e
+  node_786584de:
+    name: updatePassword
+    use: updatePassword
+    next:
+      fail: node_4da6c496
+      success: node_0f6a914f
+  node_4da6c496:
+    name: failureResult
+    use: failureResult
+    next: {}
+  node_57d27334:
+    name: failureResult
+    use: failureResult
+    next: {}
+  node_9947043a:
+    name: messageConfirmation
+    use: messageConfirmation
+    custom_config:
+      messsage: Password updated
+    next:
+      submitted: node_8840e55b
+  node_2128ba72:
+    name: hcaptcha
+    use: hcaptcha
+    custom_config:
+      hcaptcha_sitekey: cbc470e2-3f70-4594-8eb6-cb8cf9b40fc2
+      hcaptcha_secret: ES_32af749e4a304dffba3fde5b663b4787
+    next:
+      failure: node_2128ba72
+      success: node_b66791da
+  node_0f6a914f:
+    name: askEnrollPasskey
+    use: askEnrollPasskey
+    next:
+      'no': node_8840e55b
+      'yes': node_7fbaff87
+  node_7fbaff87:
+    name: registerPasskey
+    use: registerPasskey
+    next:
+      failure: node_0f6a914f
+      success: node_e4ababa9
+  node_e4ababa9:
+    name: messageConfirmation
+    use: messageConfirmation
+    custom_config:
+      message: Passkeys registered. Your next login will be more secure
+    next:
+      submitted: node_8840e55b
+  node_7126e798:
+    name: checkPasskeyRegistered
+    use: checkPasskeyRegistered
+    next:
+      not_registered: node_0f6a914f
+      registered: node_8840e55b
+  node_4ec7f2d9:
+    name: emailOTP
+    use: emailOTP
+    custom_config:
+      smtp_server: smtp.eu.mailgun.org
+      smtp_port: '465'
+      smtp_username: goaiam@mail.identityplane.cloud
+      smtp_password: L4HITYEsRjvVSDeObqiaKRX9
+      smtp_sender_email: noreply@mail.identityplane.cloud
+    next:
+      success: node_7126e798
+      failure: node_4ec7f2d9
+      locked: node_57d27334
+  node_1a1dd336:
+    name: githubLogin
+    use: githubLogin
+    custom_config:
+      github-client-id: Iv23liEpPyKAuqwXlnJQ
+      github-client-secret: e98ae05eea9a4de2e6889a6dafb7b703a30ab34b
+      github-scope: user:email
+      create-user-if-not-exists: 'true'
+    next:
+      sucess: node_486f74aa
+      failure: node_5181e5ce
+      new-user: node_18ff8547
+      existing-user: node_486f74aa
+  node_486f74aa:
+    name: messageConfirmation
+    use: messageConfirmation
+    custom_config:
+      message: Login With Github success
+    next:
+      submitted: node_8840e55b
+  node_5181e5ce:
+    name: failureResult
+    use: failureResult
+    next: {}
+  node_18ff8547:
+    name: githubCreateUser
+    use: githubCreateUser
+    next:
+      created: node_486f74aa
 editor:
   nodes:
-    askPassword:
-      x: 547.8758620689656
-      'y': 314.3393103448276
-    askUsername:
-      x: -133.4896551724138
-      'y': -138.25379310344826
-    authFailure:
-      x: 1226.8806180351849
-      'y': 571.3382253477163
-    authSuccess:
-      x: 1798.5018168635538
-      'y': 113.16576446449545
     init:
-      x: -250.49241379310342
-      'y': 71.36827586206894
-    validateUsernamePassword:
-      x: 892.8068965517239
-      'y': 311.9572413793104
-    node_c29533d5:
-      x: 220.6662068965519
-      'y': -164.8289655172414
-    node_26e37459:
-      x: 875.17
-      'y': -144.99967714156776
-    node_e0d0650f:
-      x: 1189.093250553476
-      'y': -180.07883370231724
-    node_e7f24f80:
-      x: 1486.2767484329013
-      'y': -12.326167169916488
-    node_a1e9d8fa:
-      x: 541.0047015352252
-      'y': -178.4953700847626
+      x: -260.485422277655
+      'y': 272.0359567534323
+    node_75e21c1d:
+      x: 1725.2410401983816
+      'y': 456.7608032671696
+    node_8840e55b:
+      x: 2536.8105623021984
+      'y': -135.00669244188887
+    node_faa090c7:
+      x: 24.83466345896636
+      'y': 95.34729895187075
+    node_7208801c:
+      x: 651.7515784614593
+      'y': 31.306950884480756
+    node_0161cf22:
+      x: 661.2750406645147
+      'y': 329.3873161588487
+    node_768aa494:
+      x: 1430.7049386301433
+      'y': 608.0202022021725
+    node_588305c3:
+      x: 1405.3639805986727
+      'y': 377.3096668767531
+    node_0bc0189e:
+      x: 709.1742542052245
+      'y': 872.7121493140177
+    node_373b7959:
+      x: 1118.478291517376
+      'y': 914.5414374354515
+    node_b66791da:
+      x: 486.92779193232764
+      'y': 837.5678100050922
+    node_786584de:
+      x: 1566.124342941036
+      'y': 891.6555480920131
+    node_4da6c496:
+      x: 1881.549256339334
+      'y': 1152.1832540119717
+    node_57d27334:
+      x: 1375.7018000124165
+      'y': 157.43447832734643
+    node_9947043a:
+      x: 1925.9050302262585
+      'y': 618.3079142716069
+    node_2128ba72:
+      x: 57.72929405786215
+      'y': 758.4476387983926
+    node_0f6a914f:
+      x: 1905.2756037633803
+      'y': 7.41501446077757
+    node_7fbaff87:
+      x: 1598.2437083713983
+      'y': -322.6431722681937
+    node_e4ababa9:
+      x: 2122.105695576266
+      'y': -288.60073660383273
+    node_7126e798:
+      x: 1412.8502352690227
+      'y': -85.49416827635264
+    node_4ec7f2d9:
+      x: 984.2761304943319
+      'y': -60.55440456437759
+    node_1a1dd336:
+      x: 360.22342201657284
+      'y': 1116.4516726384982
+    node_486f74aa:
+      x: 1076.3616978427374
+      'y': 1191.809001838935
+    node_5181e5ce:
+      x: 822.5649400001037
+      'y': 1448.9581223431794
+    node_18ff8547:
+      x: 779.1965561836068
+      'y': 1321.4628314300967
