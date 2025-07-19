@@ -16,6 +16,8 @@ type Config struct {
 	DSN    string
 }
 
+var log = logger.GetLogger()
+
 func Init(cfg Config) (*sql.DB, error) {
 	var err error
 	database, err := sql.Open(cfg.Driver, cfg.DSN)
@@ -53,7 +55,9 @@ func RunMigrations(db *sql.DB) error {
 		// Only expecute up migrations
 		if strings.Contains(migration.Name(), "up.sql") {
 			// Log name of migration
-			logger.DebugNoContext("Running migration: %s", migration.Name())
+			log.Debug().
+				Str("migration", migration.Name()).
+				Msg("running migration")
 
 			// run migration
 			_, err = db.Exec(string(migrationFile))

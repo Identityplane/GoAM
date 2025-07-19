@@ -316,7 +316,8 @@ func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.
 		return "", fmt.Errorf("failed to update user: %w", err)
 	}
 
-	logger.InfoNoContext("Successfully registered credential ID: %s", cred.ID)
+	log := logger.GetLogger()
+	log.Info().Str("credential_id", string(cred.ID)).Msg("successfully registered credential")
 	return "success", nil
 }
 
@@ -351,6 +352,7 @@ func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *mode
 }
 
 func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (string, error) {
+	log := logger.GetLogger()
 
 	// Load session from context
 	sessionJSON := state.Context["passkeysSession"]
@@ -367,7 +369,7 @@ func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNo
 	}
 
 	credentialID := parsedCredential.ID
-	logger.DebugNoContext("Credential ID: %s", credentialID)
+	log.Debug().Str("credential_id", credentialID).Msg("credential id")
 
 	// Load user by login identifier
 	user, err := services.UserRepo.GetByLoginIdentifier(context.Background(), credentialID)
@@ -423,7 +425,7 @@ func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNo
 
 	state.User = user
 
-	logger.DebugNoContext("User %s successfully verified via passkey", user.ID)
+	log.Debug().Str("user_id", user.ID).Msg("user successfully verified via passkey")
 	return "success", nil
 }
 

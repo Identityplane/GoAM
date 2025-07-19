@@ -38,6 +38,7 @@ func (s *cachedFlowService) getFlowByPathCacheKey(tenant, realm, path string) st
 }
 
 func (s *cachedFlowService) GetFlowById(tenant, realm, id string) (*model.Flow, bool) {
+	log := logger.GetLogger()
 	// Try to get from cache first
 	cacheKey := s.getFlowByIdCacheKey(tenant, realm, id)
 	if cached, exists := s.cache.Get(cacheKey); exists {
@@ -55,14 +56,14 @@ func (s *cachedFlowService) GetFlowById(tenant, realm, id string) (*model.Flow, 
 	// Cache the result
 	err := s.cache.Cache(cacheKey, flow, flowCacheTTL, 1)
 	if err != nil {
-		// Log error but continue - caching is not critical
-		logger.InfoNoContext("Failed to cache flow by id: %v", err)
+		log.Info().Err(err).Msg("failed to cache flow by id")
 	}
 
 	return flow, true
 }
 
 func (s *cachedFlowService) GetFlowByPath(tenant, realm, path string) (*model.Flow, bool) {
+	log := logger.GetLogger()
 	// Try to get from cache first
 	cacheKey := s.getFlowByPathCacheKey(tenant, realm, path)
 	if cached, exists := s.cache.Get(cacheKey); exists {
@@ -80,8 +81,7 @@ func (s *cachedFlowService) GetFlowByPath(tenant, realm, path string) (*model.Fl
 	// Cache the result
 	err := s.cache.Cache(cacheKey, flow, flowCacheTTL, 1)
 	if err != nil {
-		// Log error but continue - caching is not critical
-		logger.InfoNoContext("Failed to cache flow by path: %v", err)
+		log.Info().Err(err).Msg("failed to cache flow by path")
 	}
 
 	return flow, true

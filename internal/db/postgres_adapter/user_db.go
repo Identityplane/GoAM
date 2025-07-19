@@ -22,14 +22,13 @@ type PostgresUserDB struct {
 
 // NewPostgresUserDB creates a new PostgresUserDB instance
 func NewPostgresUserDB(db *pgxpool.Pool) (*PostgresUserDB, error) {
-
 	// Check if the connection works and users table exists by executing a query
 	_, err := db.Exec(context.Background(), `
 		SELECT 1 FROM users LIMIT 1
 	`)
 	if err != nil {
-
-		logger.DebugNoContext("Warning: failed to check if users table exists: %v", err)
+		log := logger.GetLogger()
+		log.Debug().Err(err).Msg("warning: failed to check if users table exists")
 	}
 
 	return &PostgresUserDB{db: db}, nil

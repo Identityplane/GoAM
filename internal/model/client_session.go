@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/rs/zerolog"
+)
 
 // ClientSession represents a client session in the system
 type ClientSession struct {
@@ -48,4 +53,21 @@ type ClientSession struct {
 
 	// Expire is the timestamp when the session expires
 	Expire time.Time `json:"expire"`
+}
+
+// GetLogger returns a zerolog logger with contextual information from the client session
+func (s *ClientSession) GetLogger() zerolog.Logger {
+	log := logger.GetLogger()
+
+	// Add client session context to the logger
+	event := log.With().
+		Str("tenant", s.Tenant).
+		Str("realm", s.Realm).
+		Str("session_id", s.ClientSessionID[:8]). // First 8 chars for readability
+		Str("client_id", s.ClientID).
+		Str("grant_type", s.GrantType).
+		Str("user_id", s.UserID).
+		Str("scope", s.Scope)
+
+	return event.Logger()
 }

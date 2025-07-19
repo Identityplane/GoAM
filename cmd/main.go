@@ -14,7 +14,8 @@ func main() {
 
 	// Printout current working dir
 	wd, _ := os.Getwd()
-	logger.DebugNoContext("Starting GoIAM 0.0.1 with pwd: %s\n", wd)
+	log := logger.GetLogger()
+	log.Debug().Str("pwd", wd).Msg("starting goiam 0.0.1")
 
 	pkg.Run()
 }

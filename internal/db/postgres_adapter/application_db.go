@@ -82,7 +82,13 @@ func (p *PostgresApplicationDB) CreateApplication(ctx context.Context, app model
 }
 
 func (p *PostgresApplicationDB) GetApplication(ctx context.Context, tenant, realm, id string) (*model.Application, error) {
-	logger.DebugNoContext("sql query application %s for tenant %s and realm %s", id, tenant, realm)
+	log := logger.GetLogger()
+
+	log.Debug().
+		Str("id", id).
+		Str("tenant", tenant).
+		Str("realm", realm).
+		Msg("sql query application")
 
 	row := p.db.QueryRow(ctx, `
 		SELECT tenant, realm, client_id, client_secret, confidential, consent_required,

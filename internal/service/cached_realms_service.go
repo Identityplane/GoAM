@@ -35,26 +35,22 @@ func (s *cachedRealmService) getCacheKey(tenant, realm string) string {
 func (s *cachedRealmService) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
 	// Try to get from cache first
 	cacheKey := s.getCacheKey(tenant, realm)
-	if cached, exists := s.cache.Get(cacheKey); exists {
+	if cached, found := s.cache.Get(cacheKey); found && cached != nil {
 		if loadedRealm, ok := cached.(*LoadedRealm); ok {
 			return loadedRealm, true
 		}
 	}
 
 	// If not in cache, get from service
-	loadedRealm, exists := s.realmService.GetRealm(tenant, realm)
-	if !exists {
-		return nil, false
+	loadedRealm, found := s.realmService.GetRealm(tenant, realm)
+	if found {
+		// Cache the realm
+		if err := s.cache.Cache(cacheKey, loadedRealm, realmCacheTTL, 1); err != nil {
+			log := logger.GetLogger()
+			log.Info().Err(err).Msg("failed to cache realm")
+		}
 	}
-
-	// Cache the result
-	err := s.cache.Cache(cacheKey, loadedRealm, realmCacheTTL, 1)
-	if err != nil {
-		// Log error but continue - caching is not critical
-		logger.InfoNoContext("Failed to cache realm: %v", err)
-	}
-
-	return loadedRealm, true
+	return loadedRealm, found
 }
 
 func (s *cachedRealmService) GetAllRealms() (map[string]*LoadedRealm, error) {

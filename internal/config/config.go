@@ -34,12 +34,14 @@ func GetDbDriverName() string {
 
 // Reads database connection string from command line args, env var, or returns default
 func getDBConnString() string {
+	log := logger.GetLogger()
+
 	// Check command line args first
 	args := os.Args[1:]
 	for i := 0; i < len(args)-1; i++ {
 		if args[i] == "--db" || args[i] == "-d" {
 			connString := args[i+1]
-			logger.DebugNoContext("Using DB connection string from command line: %s", connString)
+			log.Debug().Str("conn_string", connString).Msg("using db connection string from command line")
 			return connString
 		}
 	}
@@ -47,23 +49,25 @@ func getDBConnString() string {
 	// Check environment variable second
 	connString := os.Getenv("GOIAM_DB_CONN_STRING")
 	if connString != "" {
-		logger.DebugNoContext("Using DB connection string from environment: %s", connString)
+		log.Debug().Str("conn_string", connString).Msg("using db connection string from environment")
 		return connString
 	}
 
 	// Use default as last resort
 	connString = "goiam.db?_foreign_keys=on"
-	logger.DebugNoContext("Using default DB connection string: %s", connString)
+	log.Debug().Str("conn_string", connString).Msg("using default db connection string")
 	return connString
 }
 
 func getConfigPath() string {
+	log := logger.GetLogger()
+
 	// Check command line args first
 	args := os.Args[1:]
 	for i := 0; i < len(args)-1; i++ {
 		if args[i] == "--config" || args[i] == "-c" {
 			path := args[i+1]
-			logger.DebugNoContext("Using config path from command line: %s", path)
+			log.Debug().Str("config_path", path).Msg("using config path from command line")
 			return path
 		}
 	}
@@ -71,7 +75,7 @@ func getConfigPath() string {
 	// Check environment variable second
 	path := os.Getenv("GOIAM_CONFIG_PATH")
 	if path != "" {
-		logger.DebugNoContext("Using config path from environment: %s", path)
+		log.Debug().Str("config_path", path).Msg("using config path from environment")
 		return path
 	}
 
@@ -79,10 +83,10 @@ func getConfigPath() string {
 	path = "../config" // fallback for local dev
 	pwd, err := os.Getwd()
 	if err != nil {
-		logger.ErrorNoContext("Failed to get current working directory: %s", err)
+		log.Error().Err(err).Msg("failed to get current working directory")
 	}
 
-	logger.DebugNoContext("Using default config path: %s, current working directory: %s", path, pwd)
+	log.Debug().Str("config_path", path).Str("pwd", pwd).Msg("using default config path")
 	return path
 }
 
@@ -95,10 +99,11 @@ func IsXForwardedForEnabled() bool {
 }
 
 func InitConfiguration() {
+	log := logger.GetLogger()
 
 	disableAdminAuthzCheck := os.Getenv("GOIAM_UNSAFE_DISABLE_ADMIN_AUTHZ_CHECK")
 	if disableAdminAuthzCheck == "true" {
-		logger.DebugNoContext("Disabling admin authz check")
+		log.Debug().Msg("disabling admin authz check")
 		UnsafeDisableAdminAuthzCheck = true
 	}
 

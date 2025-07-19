@@ -25,6 +25,7 @@ type DB struct {
 }
 
 func Init(cfg Config) (*pgxpool.Pool, error) {
+	log := logger.GetLogger()
 
 	poolConfig, err := pgxpool.ParseConfig(cfg.DSN)
 	if err != nil {
@@ -58,10 +59,16 @@ func Init(cfg Config) (*pgxpool.Pool, error) {
 		if err := rows.Scan(&oid, &datname); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
-		logger.DebugNoContext("Database: %s (oid: %d)", datname, oid)
+		log.Debug().
+			Str("database", datname).
+			Uint32("oid", oid).
+			Msg("database info")
 	}
 
-	logger.DebugNoContext("Initialized connection pool with min pool size %d and max pool size %d", poolConfig.MinConns, poolConfig.MaxConns)
+	log.Debug().
+		Int32("min_pool_size", poolConfig.MinConns).
+		Int32("max_pool_size", poolConfig.MaxConns).
+		Msg("initialized connection pool")
 	return pool, nil
 }
 
@@ -111,7 +118,8 @@ func setupTestDB(t *testing.T) (*pgxpool.Pool, error) {
 var migrationsFS embed.FS
 
 // Uses embed fs to load migrations and run them over the database connection in order
-func RunMigrations(conn *pgxpool.Pool) error {
+func RunMigrations(db *pgxpool.Pool) error {
+	log := logger.GetLogger()
 
 	// Open migrations folder
 	migrations, err := migrationsFS.ReadDir("migrations")
@@ -130,10 +138,12 @@ func RunMigrations(conn *pgxpool.Pool) error {
 		// Only expecute up migrations
 		if strings.Contains(migration.Name(), "up.sql") {
 			// Log name of migration
-			logger.DebugNoContext("Running migration: %s", migration.Name())
+			log.Debug().
+				Str("migration", migration.Name()).
+				Msg("running migration")
 
 			// run migration
-			_, err = conn.Exec(context.Background(), string(migrationFile))
+			_, err = db.Exec(context.Background(), string(migrationFile))
 			if err != nil {
 				return fmt.Errorf("failed to run migration: %w", err)
 			}

@@ -20,7 +20,8 @@ func NewSigningKeyDB(db *sql.DB) (*SQLiteSigningKeyDB, error) {
 		SELECT 1 FROM signing_keys LIMIT 1
 	`)
 	if err != nil {
-		logger.DebugNoContext("Warning: failed to check if signing_keys table exists: %v", err)
+		log := logger.GetLogger()
+		log.Debug().Err(err).Msg("warning: failed to check if signing_keys table exists")
 	}
 
 	return &SQLiteSigningKeyDB{db: db}, nil

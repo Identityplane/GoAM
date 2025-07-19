@@ -131,7 +131,8 @@ func (s *sessionsService) GetAuthenticationSessionByID(ctx context.Context, tena
 func (s *sessionsService) GetAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) (*model.AuthenticationSession, bool) {
 	persistentSession, err := s.authSessionDB.GetAuthSessionByHash(ctx, tenant, realm, sessionIDHash)
 	if err != nil {
-		logger.ErrorNoContext("Failed to get auth session: %v", err)
+		log := logger.GetLogger()
+		log.Error().Err(err).Msg("failed to get auth session")
 		return nil, false
 	}
 	if persistentSession == nil {
@@ -143,14 +144,16 @@ func (s *sessionsService) GetAuthenticationSession(ctx context.Context, tenant, 
 		// Delete expired session
 		err := s.authSessionDB.DeleteAuthSession(ctx, tenant, realm, sessionIDHash)
 		if err != nil {
-			logger.ErrorNoContext("Failed to delete expired session: %v", err)
+			log := logger.GetLogger()
+			log.Error().Err(err).Msg("failed to delete expired session")
 		}
 		return nil, false
 	}
 
 	session, err := persistentSession.ToAuthenticationSession()
 	if err != nil {
-		logger.ErrorNoContext("Failed to convert persistent session to auth session: %v", err)
+		log := logger.GetLogger()
+		log.Error().Err(err).Msg("failed to convert persistent session to auth session")
 		return nil, false
 	}
 
@@ -202,7 +205,6 @@ func (s *sessionsService) CreateAuthCodeSession(ctx context.Context, tenant, rea
 }
 
 func (s *sessionsService) CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int) (string, *model.ClientSession, error) {
-
 	sessionID := lib.GenerateSecureSessionID()
 	accessToken := lib.GenerateSecureSessionID()
 	accessTokenHash := lib.HashString(accessToken)
@@ -225,14 +227,15 @@ func (s *sessionsService) CreateAccessTokenSession(ctx context.Context, tenant, 
 		return "", nil, fmt.Errorf("failed to create access token session: %w", err)
 	}
 
-	logger.InfoNoContext("Creating client access token session tenant=%s realm=%s id=%s hash=%s", tenant, realm, sessionID[:8], accessTokenHash[:8])
+	// Use the session logger for contextual logging
+	sessionLog := session.GetLogger()
+	sessionLog.Info().Msg("creating client access token session")
 
 	return accessToken, session, nil
 }
 
 // CreateRefreshTokenSession creates a new refresh token session
 func (s *sessionsService) CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int) (string, *model.ClientSession, error) {
-
 	sessionID := lib.GenerateSecureSessionID()
 	refreshToken := lib.GenerateSecureSessionID()
 	refreshTokenHash := lib.HashString(refreshToken)
@@ -255,7 +258,9 @@ func (s *sessionsService) CreateRefreshTokenSession(ctx context.Context, tenant,
 		return "", nil, fmt.Errorf("failed to create refresh token session: %w", err)
 	}
 
-	logger.InfoNoContext("Creating client refresh token session tenant=%s realm=%s id=%s hash=%s", tenant, realm, sessionID[:8], refreshTokenHash[:8])
+	// Use the session logger for contextual logging
+	sessionLog := session.GetLogger()
+	sessionLog.Info().Msg("creating client refresh token session")
 
 	return refreshToken, session, nil
 }
@@ -263,8 +268,6 @@ func (s *sessionsService) CreateRefreshTokenSession(ctx context.Context, tenant,
 // GetClientSessionByAccessToken retrieves a client session by its access token
 func (s *sessionsService) GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessToken string) (*model.ClientSession, error) {
 	accessTokenHash := lib.HashString(accessToken)
-
-	logger.DebugNoContext("Getting client session by access token tenant=%s realm=%s hash=%s", tenant, realm, accessTokenHash[:8])
 
 	session, err := s.clientSessionDB.GetClientSessionByAccessToken(ctx, tenant, realm, accessTokenHash)
 	if err != nil {
@@ -279,6 +282,10 @@ func (s *sessionsService) GetClientSessionByAccessToken(ctx context.Context, ten
 	if s.timeProvider.Now().After(session.Expire) {
 		return nil, fmt.Errorf("session expired")
 	}
+
+	// Use the session logger for contextual logging
+	sessionLog := session.GetLogger()
+	sessionLog.Debug().Msg("getting client session by access token")
 
 	return session, nil
 }
