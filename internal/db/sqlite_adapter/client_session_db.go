@@ -104,8 +104,12 @@ func (s *SQLiteClientSessionDB) GetClientSessionByID(ctx context.Context, tenant
 	}
 
 	// Parse timestamps
-	session.Created, _ = time.Parse(time.RFC3339, createdStr)
-	session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+	created, _ := time.Parse(time.RFC3339, createdStr)
+	expire, _ := time.Parse(time.RFC3339, expireStr)
+
+	// Convert to local time to match PostgreSQL behavior
+	session.Created = created.Local()
+	session.Expire = expire.Local()
 
 	return &session, nil
 }
@@ -147,8 +151,12 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Contex
 	}
 
 	// Parse timestamps
-	session.Created, _ = time.Parse(time.RFC3339, createdStr)
-	session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+	created, _ := time.Parse(time.RFC3339, createdStr)
+	expire, _ := time.Parse(time.RFC3339, expireStr)
+
+	// Convert to local time to match PostgreSQL behavior
+	session.Created = created.Local()
+	session.Expire = expire.Local()
 
 	return &session, nil
 }
@@ -190,8 +198,12 @@ func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Conte
 	}
 
 	// Parse timestamps
-	session.Created, _ = time.Parse(time.RFC3339, createdStr)
-	session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+	created, _ := time.Parse(time.RFC3339, createdStr)
+	expire, _ := time.Parse(time.RFC3339, expireStr)
+
+	// Convert to local time to match PostgreSQL behavior
+	session.Created = created.Local()
+	session.Expire = expire.Local()
 
 	return &session, nil
 }
@@ -233,8 +245,12 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, 
 	}
 
 	// Parse timestamps
-	session.Created, _ = time.Parse(time.RFC3339, createdStr)
-	session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+	created, _ := time.Parse(time.RFC3339, createdStr)
+	expire, _ := time.Parse(time.RFC3339, expireStr)
+
+	// Convert to local time to match PostgreSQL behavior
+	session.Created = created.Local()
+	session.Expire = expire.Local()
 
 	return &session, nil
 }
@@ -281,8 +297,12 @@ func (s *SQLiteClientSessionDB) ListClientSessions(ctx context.Context, tenant, 
 		}
 
 		// Parse timestamps
-		session.Created, _ = time.Parse(time.RFC3339, createdStr)
-		session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+		created, _ := time.Parse(time.RFC3339, createdStr)
+		expire, _ := time.Parse(time.RFC3339, expireStr)
+
+		// Convert to local time to match PostgreSQL behavior
+		session.Created = created.Local()
+		session.Expire = expire.Local()
 
 		sessions = append(sessions, session)
 	}
@@ -332,8 +352,12 @@ func (s *SQLiteClientSessionDB) ListUserClientSessions(ctx context.Context, tena
 		}
 
 		// Parse timestamps
-		session.Created, _ = time.Parse(time.RFC3339, createdStr)
-		session.Expire, _ = time.Parse(time.RFC3339, expireStr)
+		created, _ := time.Parse(time.RFC3339, createdStr)
+		expire, _ := time.Parse(time.RFC3339, expireStr)
+
+		// Convert to local time to match PostgreSQL behavior
+		session.Created = created.Local()
+		session.Expire = expire.Local()
 
 		sessions = append(sessions, session)
 	}

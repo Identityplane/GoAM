@@ -239,11 +239,17 @@ func (s *SQLiteUserDB) scanUserFromRow(scanner interface{}) (*model.User, error)
 	}
 
 	// Parse timestamps
-	user.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
-	user.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
+	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
+	updatedAtTime, _ := time.Parse(time.RFC3339, updatedAt)
+
+	// Convert to local time to match PostgreSQL behavior
+	user.CreatedAt = createdAtTime.Local()
+	user.UpdatedAt = updatedAtTime.Local()
+
 	if lastLoginAt.Valid {
 		lastLogin, _ := time.Parse(time.RFC3339, lastLoginAt.String)
-		user.LastLoginAt = &lastLogin
+		lastLoginLocal := lastLogin.Local()
+		user.LastLoginAt = &lastLoginLocal
 	}
 
 	// Parse JSON fields

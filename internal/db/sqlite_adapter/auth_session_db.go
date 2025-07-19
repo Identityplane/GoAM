@@ -116,8 +116,12 @@ func (s *SQLiteAuthSessionDB) GetAuthSessionByID(ctx context.Context, tenant, re
 	}
 
 	// Parse timestamps
-	session.CreatedAt, _ = time.Parse(time.RFC3339, createdAtStr)
-	session.ExpiresAt, _ = time.Parse(time.RFC3339, expiresAtStr)
+	createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
+	expiresAt, _ := time.Parse(time.RFC3339, expiresAtStr)
+
+	// Convert to local time to match PostgreSQL behavior
+	session.CreatedAt = createdAt.Local()
+	session.ExpiresAt = expiresAt.Local()
 
 	return &session, nil
 }
@@ -150,8 +154,12 @@ func (s *SQLiteAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant, 
 	}
 
 	// Parse timestamps
-	session.CreatedAt, _ = time.Parse(time.RFC3339, createdAtStr)
-	session.ExpiresAt, _ = time.Parse(time.RFC3339, expiresAtStr)
+	createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
+	expiresAt, _ := time.Parse(time.RFC3339, expiresAtStr)
+
+	// Convert to local time to match PostgreSQL behavior
+	session.CreatedAt = createdAt.Local()
+	session.ExpiresAt = expiresAt.Local()
 
 	return &session, nil
 }
@@ -189,8 +197,12 @@ func (s *SQLiteAuthSessionDB) ListAuthSessions(ctx context.Context, tenant, real
 		}
 
 		// Parse timestamps
-		session.CreatedAt, _ = time.Parse(time.RFC3339, createdAtStr)
-		session.ExpiresAt, _ = time.Parse(time.RFC3339, expiresAtStr)
+		createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
+		expiresAt, _ := time.Parse(time.RFC3339, expiresAtStr)
+
+		// Convert to local time to match PostgreSQL behavior
+		session.CreatedAt = createdAt.Local()
+		session.ExpiresAt = expiresAt.Local()
 
 		sessions = append(sessions, session)
 	}
@@ -231,8 +243,12 @@ func (s *SQLiteAuthSessionDB) ListAllAuthSessions(ctx context.Context, tenant st
 		}
 
 		// Parse timestamps
-		session.CreatedAt, _ = time.Parse(time.RFC3339, createdAtStr)
-		session.ExpiresAt, _ = time.Parse(time.RFC3339, expiresAtStr)
+		createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
+		expiresAt, _ := time.Parse(time.RFC3339, expiresAtStr)
+
+		// Convert to local time to match PostgreSQL behavior
+		session.CreatedAt = createdAt.Local()
+		session.ExpiresAt = expiresAt.Local()
 
 		sessions = append(sessions, session)
 	}
