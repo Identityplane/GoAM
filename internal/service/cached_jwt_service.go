@@ -60,7 +60,8 @@ func (s *cachedJWTService) LoadPublicKeys(tenant, realm string) (string, error) 
 	err = s.cache.Cache(cacheKey, jwks, jwksCacheTTL, 1)
 	if err != nil {
 		// Log error but continue - caching is not critical
-		logger.InfoNoContext("Failed to cache JWKS: %v", err)
+		log := logger.GetLogger()
+		log.Info().Err(err).Msg("failed to cache jwks")
 	}
 
 	return jwks, nil
@@ -126,7 +127,8 @@ func (s *cachedJWTService) getActiveSigningKey(ctx context.Context, tenant, real
 	err = s.cache.Cache(cacheKey, key, signingKeyCacheTTL, 1)
 	if err != nil {
 		// Log error but continue - caching is not critical
-		logger.InfoNoContext("Failed to cache signing key: %v", err)
+		log := logger.GetLogger()
+		log.Info().Err(err).Msg("failed to cache signing key")
 	}
 
 	return key, nil

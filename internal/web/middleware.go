@@ -21,9 +21,16 @@ import (
 // top level middleware, called before the router
 func TopLevelMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
+		log := logger.GetLogger()
 
 		// here we can handle request before the router
 		next(ctx)
+
+		log.Info().
+			Str("method", string(ctx.Method())).
+			Str("path", string(ctx.Path())).
+			Int("status", ctx.Response.StatusCode()).
+			Msg("request processed")
 	}
 }
 
@@ -69,18 +76,20 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		}
 
 		// Log response details
-		logger.InfoWithFields(traceID, "HTTP Response", map[string]interface{}{
-			"status":      ctx.Response.StatusCode(),
-			"method":      method,
-			"path":        path,
-			"ip":          userIP,
-			"user_agent":  string(ctx.UserAgent()),
-			"referer":     string(ctx.Referer()),
-			"host":        string(ctx.Host()),
-			"duration_ms": durationMs,
-			"size_bytes":  len(ctx.Response.Body()),
-			"protocol":    string(ctx.Request.URI().Scheme()),
-		})
+		log := logger.GetLogger()
+		log.Info().
+			Str("trace_id", traceID).
+			Int("status", ctx.Response.StatusCode()).
+			Str("method", method).
+			Str("path", path).
+			Str("ip", userIP).
+			Str("user_agent", string(ctx.UserAgent())).
+			Str("referer", string(ctx.Referer())).
+			Str("host", string(ctx.Host())).
+			Int("duration_ms", int(durationMs)).
+			Int("size_bytes", len(ctx.Response.Body())).
+			Str("protocol", string(ctx.Request.URI().Scheme())).
+			Msg("http response")
 	}
 }
 

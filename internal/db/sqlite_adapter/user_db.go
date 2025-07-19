@@ -21,13 +21,13 @@ type SQLiteUserDB struct {
 
 // NewUserDB creates a new SQLiteUserDB instance
 func NewUserDB(db *sql.DB) (*SQLiteUserDB, error) {
-
 	// Check if the connection works and users table exists by executing a query
 	_, err := db.Exec(`
 		SELECT 1 FROM users LIMIT 1
 	`)
 	if err != nil {
-		logger.DebugNoContext("Warning: failed to check if users table exists: %v", err)
+		log := logger.GetLogger()
+		log.Debug().Err(err).Msg("warning: failed to check if users table exists")
 	}
 
 	return &SQLiteUserDB{db: db}, nil

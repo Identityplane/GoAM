@@ -27,7 +27,8 @@ func Initialize() {
 	config.InitConfiguration()
 
 	// Print config path
-	logger.DebugNoContext("Using config path: %s", config.ConfigPath)
+	log := logger.GetLogger()
+	log.Debug().Str("config_path", config.ConfigPath).Msg("using config path")
 
 	// Step 1: Initialize database connections
 	dbConnections := initDatabase()
@@ -41,61 +42,62 @@ func Initialize() {
 func initDatabase() *service.DatabaseConnections {
 	connections := &service.DatabaseConnections{}
 	var err error
+	log := logger.GetLogger()
 
 	if strings.HasPrefix(config.DBConnString, "postgres://") {
 
 		// Init database connection
 		postgresdb, err := initPostgresDB()
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize postgres database: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize postgres database")
 		}
 
 		// Run migrations
 		err = postgres_adapter.RunMigrations(postgresdb)
 		if err != nil {
-			logger.PanicNoContext("Failed to run postgres migrations: %v", err)
+			log.Panic().Err(err).Msg("failed to run postgres migrations")
 		}
 
 		// Init user db
 		connections.UserDB, err = postgres_adapter.NewPostgresUserDB(postgresdb)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize postgres user db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize postgres user db")
 		}
 
 		// Init signing key db
 		connections.SigningKeyDB, err = postgres_adapter.NewPostgresSigningKeysDB(postgresdb)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize postgres signing key db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize postgres signing key db")
 		}
 
 		// Init auth session db
 		connections.AuthSessionDB, err = postgres_adapter.NewPostgresAuthSessionDB(postgresdb)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize postgres auth session db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize postgres auth session db")
 		}
 
 		// Init client session db
 		connections.ClientSessionDB, err = postgres_adapter.NewPostgresClientSessionDB(postgresdb)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize postgres client session db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize postgres client session db")
 		}
 
 		// Init realm db
 		connections.RealmDB, err = postgres_adapter.NewPostgresRealmDB(postgresdb)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize postgres realm db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize postgres realm db")
 		}
 
 		// Init flow db
 		connections.FlowDB, err = postgres_adapter.NewPostgresFlowDB(postgresdb)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize postgres flow db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize postgres flow db")
 		}
 
 		// Init application db
 		connections.ApplicationsDB, err = postgres_adapter.NewPostgresApplicationDB(postgresdb)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize postgres application db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize postgres application db")
 		}
 
 	} else {
@@ -103,60 +105,60 @@ func initDatabase() *service.DatabaseConnections {
 		// init database connection
 		sqliteDB, err := initSQLiteDB()
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize sqlite database: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize sqlite database")
 		}
 
 		// Migrate database, currently we only do this for sqlite
 		err = sqlite_adapter.RunMigrations(sqliteDB)
 		if err != nil {
-			logger.PanicNoContext("Failed to migrate sqlite database: %v", err)
+			log.Panic().Err(err).Msg("failed to migrate sqlite database")
 		}
 
 		// init user db
 		connections.UserDB, err = sqlite_adapter.NewUserDB(sqliteDB)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize sqlite user db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize sqlite user db")
 		}
 
 		// init realms db
 		connections.RealmDB, err = sqlite_adapter.NewRealmDB(sqliteDB)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize sqlite realm db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize sqlite realm db")
 		}
 
 		// init flows db
 		connections.FlowDB, err = sqlite_adapter.NewFlowDB(sqliteDB)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize sqlite flows db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize sqlite flows db")
 		}
 
 		// init applications db
 		connections.ApplicationsDB, err = sqlite_adapter.NewApplicationDB(sqliteDB)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize sqlite application db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize sqlite application db")
 		}
 
 		// init client session db
 		connections.ClientSessionDB, err = sqlite_adapter.NewClientSessionDB(sqliteDB)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize sqlite client session db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize sqlite client session db")
 		}
 
 		// init signing key db
 		connections.SigningKeyDB, err = sqlite_adapter.NewSigningKeyDB(sqliteDB)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize sqlite signing key db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize sqlite signing key db")
 		}
 
 		// init auth session db
 		connections.AuthSessionDB, err = sqlite_adapter.NewAuthSessionDB(sqliteDB)
 		if err != nil {
-			logger.PanicNoContext("Failed to initialize sqlite auth session db: %v", err)
+			log.Panic().Err(err).Msg("failed to initialize sqlite auth session db")
 		}
 	}
 
 	if err != nil {
-		logger.PanicNoContext("Failed to initialize database: %v", err)
+		log.Panic().Err(err).Msg("failed to initialize database")
 	}
 
 	return connections
@@ -164,7 +166,8 @@ func initDatabase() *service.DatabaseConnections {
 
 // initPostgresDB initializes a PostgreSQL database connection
 func initPostgresDB() (*pgxpool.Pool, error) {
-	logger.DebugNoContext("Initializing postgres database")
+	log := logger.GetLogger()
+	log.Debug().Msg("initializing postgres database")
 	db, err := postgres_adapter.Init(postgres_adapter.Config{
 		Driver: "postgres",
 		DSN:    config.DBConnString,
@@ -178,7 +181,8 @@ func initPostgresDB() (*pgxpool.Pool, error) {
 
 // initSQLiteDB initializes a SQLite database connection
 func initSQLiteDB() (*sql.DB, error) {
-	logger.DebugNoContext("Initializing sqlite database")
+	log := logger.GetLogger()
+	log.Debug().Msg("initializing sqlite database")
 	db, err := sqlite_adapter.Init(sqlite_adapter.Config{
 		Driver: "sqlite",
 		DSN:    config.DBConnString,
@@ -198,8 +202,10 @@ func initServices(dbConnections *service.DatabaseConnections) {
 	// Use the static configuration service to load the realm configurations
 	err := services.StaticConfigurationService.LoadConfigurationFromFiles(config.ConfigPath)
 	if err != nil {
-		logger.PanicNoContext("Failed to load static configuration: %v", err)
+		log := logger.GetLogger()
+		log.Panic().Err(err).Msg("failed to load static configuration")
 	}
 
-	logger.DebugNoContext("Initialized services and realms")
+	log := logger.GetLogger()
+	log.Debug().Msg("initialized services and realms")
 }

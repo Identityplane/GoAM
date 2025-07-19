@@ -9,3 +9,4 @@ test/integration/config/tenants/acme/customers/static/style.css.fasthttp.gz
 auth-js/node_modules/*
 node_modules/*
 auth-js/dist/*
+goiam.db

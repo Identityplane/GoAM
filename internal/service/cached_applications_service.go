@@ -32,29 +32,25 @@ func (s *cachedApplicationService) getApplicationCacheKey(tenant, realm, clientI
 	return fmt.Sprintf("/%s/%s/application/%s", tenant, realm, clientId)
 }
 
-func (s *cachedApplicationService) GetApplication(tenant, realm, clientId string) (*model.Application, bool) {
+func (s *cachedApplicationService) GetApplication(tenant, realm, id string) (*model.Application, bool) {
 	// Try to get from cache first
-	cacheKey := s.getApplicationCacheKey(tenant, realm, clientId)
-	if cached, exists := s.cache.Get(cacheKey); exists {
+	cacheKey := s.getApplicationCacheKey(tenant, realm, id)
+	if cached, found := s.cache.Get(cacheKey); found && cached != nil {
 		if app, ok := cached.(*model.Application); ok {
 			return app, true
 		}
 	}
 
 	// If not in cache, get from service
-	app, exists := s.applicationService.GetApplication(tenant, realm, clientId)
-	if !exists {
-		return nil, false
+	app, found := s.applicationService.GetApplication(tenant, realm, id)
+	if found {
+		// Cache the application
+		if err := s.cache.Cache(cacheKey, app, applicationCacheTTL, 1); err != nil {
+			log := logger.GetLogger()
+			log.Info().Err(err).Msg("failed to cache application")
+		}
 	}
-
-	// Cache the result
-	err := s.cache.Cache(cacheKey, app, applicationCacheTTL, 1)
-	if err != nil {
-		// Log error but continue - caching is not critical
-		logger.InfoNoContext("Failed to cache application: %v", err)
-	}
-
-	return app, true
+	return app, found
 }
 
 // Direct pass-through methods (no caching)

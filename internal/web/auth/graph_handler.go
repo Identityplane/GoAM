@@ -134,7 +134,8 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 	// Run the flow engine with the current state and input
 	newSession, err := graph.Run(flow.Definition, &session, input, registry)
 	if err != nil {
-		logger.DebugNoContext("flow resulted in error: %v", err)
+		log := logger.GetLogger()
+		log.Debug().Err(err).Msg("flow resulted in error")
 		return nil, err
 	}
 
@@ -148,12 +149,18 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 }
 
 func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, bool) {
+	log := logger.GetLogger()
+
 	// Try load the session cookie from the request
 	cookie := string(ctx.Request.Header.Cookie(sessionCookieName))
 
 	// if present we load the session from the session service
 	session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(ctx, tenant, realm, cookie)
-	return session, ok
+	if !ok {
+		log.Debug().Msg("session not found")
+		return nil, false
+	}
+	return session, true
 }
 
 func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow) (*model.AuthenticationSession, error) {
@@ -175,6 +182,7 @@ func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, 
 }
 
 func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow) (*model.AuthenticationSession, error) {
+	log := logger.GetLogger()
 
 	// if not we create a new session
 	loginUri := baseUrl + "/auth/" + flow.Route
@@ -200,6 +208,8 @@ func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, bas
 	}
 	ctx.Response.Header.SetCookie(c)
 
+	log.Debug().Msg("created new authentication session")
+
 	return session, nil
 }
 
@@ -213,7 +223,8 @@ func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *model.FlowDefinit
 	}
 
 	body := string(ctx.PostBody())
-	logger.DebugNoContext("body: %s", body)
+	log := logger.GetLogger()
+	log.Debug().Str("body", string(body)).Msg("response body")
 
 	// Check the definiton to see which inputs are allowed
 	def := graph.NodeDefinitions[node.Use]

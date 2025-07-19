@@ -112,7 +112,12 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 
 	// Return error if present
 	if err != nil {
-		logger.DebugNoContext("Error processing node id=%s of type %s: %v", node.Name, def.Type, err)
+		log := logger.GetLogger()
+		log.Debug().
+			Err(err).
+			Str("node_id", node.Name).
+			Str("node_type", string(def.Type)).
+			Msg("error processing node")
 		return nil, err
 	}
 
@@ -128,12 +133,18 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 		// turn the nodeResult.Prompts into a strong for logging
 		promptsString, err := json.Marshal(nodeResult.Prompts)
 		if err != nil {
-			logger.DebugNoContext("Error marshalling prompts: %v", err)
+			log := logger.GetLogger()
+			log.Debug().Err(err).Msg("error marshalling prompts")
 			return nil, err
 		}
 
 		// log the node name, type and prompts
-		logger.DebugNoContext("Node %s of type %s resulted in prompts %s", node.Name, def.Type, promptsString)
+		log := logger.GetLogger()
+		log.Debug().
+			Str("node", node.Name).
+			Str("node_type", string(def.Type)).
+			Str("prompts", string(promptsString)).
+			Msg("node resulted in prompts")
 		state.History = append(state.History, fmt.Sprintf("%s:prompted:%s", node.Name, promptsString))
 
 		// Update prompts in string and return

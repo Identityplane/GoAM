@@ -81,20 +81,23 @@ func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNod
 	// Get the access token from Github
 	githubResponse, err := getGithubAccessToken(code, githubClientID, githubClientSecret)
 	if err != nil {
-		logger.DebugNoContext("Failed to get Github access token: %v", err)
+		log := logger.GetLogger()
+		log.Debug().Err(err).Msg("failed to get github access token")
 		return model.NewNodeResultWithCondition("failure")
 	}
 
 	// If the access token is not set we return with failure state
 	if githubResponse.AccessToken == "" {
-		logger.DebugNoContext("Failed to get Github access token: %v", err)
+		log := logger.GetLogger()
+		log.Debug().Err(err).Msg("failed to get github access token")
 		return model.NewNodeResultWithCondition("failure")
 	}
 
 	// Get the user data from Github
 	githubData, err := getGithubData(githubResponse.AccessToken)
 	if err != nil {
-		logger.DebugNoContext("Failed to get Github user data: %v", err)
+		log := logger.GetLogger()
+		log.Debug().Err(err).Msg("failed to get github user data")
 		return model.NewNodeResultWithCondition("failure")
 	}
 
@@ -225,7 +228,6 @@ type githubAccessTokenResponse struct {
 }
 
 func getGithubAccessToken(code, clientID, clientSecret string) (*githubAccessTokenResponse, error) {
-
 	// Set us the request body as JSON
 	requestBodyMap := map[string]string{
 		"client_id":     clientID,

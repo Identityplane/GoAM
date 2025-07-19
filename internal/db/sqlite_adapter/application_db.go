@@ -92,7 +92,13 @@ func (s *SQLiteApplicationDB) CreateApplication(ctx context.Context, app model.A
 }
 
 func (s *SQLiteApplicationDB) GetApplication(ctx context.Context, tenant, realm, id string) (*model.Application, error) {
-	logger.DebugNoContext("sql query application %s for tenant %s and realm %s", id, tenant, realm)
+	log := logger.GetLogger()
+
+	log.Debug().
+		Str("id", id).
+		Str("tenant", tenant).
+		Str("realm", realm).
+		Msg("sql query application")
 
 	row := s.db.QueryRowContext(ctx, `
 		SELECT tenant, realm, client_id, client_secret, confidential, consent_required,

@@ -1,129 +1,192 @@
 package logger
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
-// LogFuncType defines the type for the logging function
-type LogFuncType func(v ...interface{})
+// Initialize the global logger
+var globalLogger zerolog.Logger
 
-// PanicFuncType defines the type for panic handling
-type PanicFuncType func(v ...interface{})
+// customCallerFormat returns a formatted caller string with only package/file:line
+func customCallerFormat(pc uintptr, file string, line int) string {
+	// Extract just the filename from the full path
+	filename := filepath.Base(file)
 
-// LogFunc is the function used to log output
-var LogFunc LogFuncType = func(v ...interface{}) {
-	fmt.Fprintln(os.Stdout, v...)
-}
-
-// PanicFunc is the function used to handle panic
-var PanicFunc PanicFuncType = log.Panicln
-
-// LogEntry defines the structure of a log
-type LogEntry struct {
-	Timestamp string                 `json:"timestamp"`
-	Level     string                 `json:"level"`
-	TraceId   string                 `json:"trace_id,omitempty"`
-	Message   string                 `json:"message,omitempty"`
-	Fields    map[string]interface{} `json:"fields,omitempty"`
-}
-
-// customLog formats and outputs a structured JSON log
-func customLog(level, traceId, message string, fields map[string]interface{}) {
-	entry := LogEntry{
-		Timestamp: time.Now().Format(time.RFC3339),
-		Level:     level,
-		TraceId:   traceId,
-		Message:   message,
-		Fields:    fields,
+	// Get the function name to extract package
+	fn := runtime.FuncForPC(pc)
+	if fn != nil {
+		funcName := fn.Name()
+		// Look for the last package name in the function path
+		// Function names are typically: github.com/user/repo/path/to/package.FunctionName
+		parts := strings.Split(funcName, ".")
+		if len(parts) >= 2 {
+			// Get everything before the last dot (package path)
+			pkgPath := strings.Join(parts[:len(parts)-1], ".")
+			// Split by "/" and get the last part (package name)
+			pkgParts := strings.Split(pkgPath, "/")
+			if len(pkgParts) > 0 {
+				pkgName := pkgParts[len(pkgParts)-1]
+				return fmt.Sprintf("%s/%s:%d", pkgName, filename, line)
+			}
+		}
 	}
 
-	data, err := json.Marshal(entry)
-	if err != nil {
-		LogFunc(fmt.Sprintf("LOGGING ERROR [%s] traceId=%s %s", level, traceId, message))
-		return
+	// Fallback to just filename if we can't parse the package
+	return fmt.Sprintf("%s:%d", filename, line)
+}
+
+func init() {
+	// Configure zerolog for pretty console output with timestamp
+	zerolog.TimeFieldFormat = time.RFC3339
+
+	// Create console writer with custom caller format
+	consoleWriter := zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		TimeFormat: time.RFC3339,
+		FormatCaller: func(i interface{}) string {
+			if c, ok := i.(string); ok {
+				// Parse the caller string and format it
+				// The caller string is typically in format: /full/path/to/file.go:line
+				parts := strings.Split(c, ":")
+				if len(parts) == 2 {
+					filePath := parts[0]
+					line := parts[1]
+
+					// Extract just the filename
+					filename := filepath.Base(filePath)
+
+					// Try to extract package name from the path
+					// Look for internal/ or pkg/ in the path
+					if strings.Contains(filePath, "/internal/") {
+						internalParts := strings.Split(filePath, "/internal/")
+						if len(internalParts) == 2 {
+							pkgPath := internalParts[1]
+							pkgParts := strings.Split(pkgPath, "/")
+							if len(pkgParts) >= 2 {
+								pkgName := pkgParts[0]
+								return fmt.Sprintf("%s/%s:%s", pkgName, filename, line)
+							}
+						}
+					} else if strings.Contains(filePath, "/pkg/") {
+						pkgParts := strings.Split(filePath, "/pkg/")
+						if len(pkgParts) == 2 {
+							pkgPath := pkgParts[1]
+							pkgParts := strings.Split(pkgPath, "/")
+							if len(pkgParts) >= 2 {
+								pkgName := pkgParts[0]
+								return fmt.Sprintf("%s/%s:%s", pkgName, filename, line)
+							}
+						}
+					}
+
+					// Fallback to just filename
+					return fmt.Sprintf("%s:%s", filename, line)
+				}
+				return c
+			}
+			return ""
+		},
 	}
 
-	LogFunc(string(data))
+	globalLogger = zerolog.New(consoleWriter).
+		Level(zerolog.TraceLevel).
+		With().
+		Timestamp().
+		CallerWithSkipFrameCount(3).
+		Int("pid", os.Getpid()).
+		Logger()
+	globalLogger.Info().Msg("logger initialized")
 }
 
-// Info logs a basic info message with formatting
-func Info(traceId, format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	customLog("INFO", traceId, message, nil)
+// GetLogger returns the global logger instance for direct zerolog usage
+func GetLogger() zerolog.Logger {
+	return globalLogger
 }
 
-// InfoNoContext logs an info message without trace id
-func InfoNoContext(format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	customLog("INFO", "", message, nil)
-}
-
-// InfoWithFields logs an info message with structured fields
-func InfoWithFields(traceId, message string, fields map[string]interface{}) {
-	customLog("INFO", traceId, message, fields)
-}
-
-func InfoWithFieldsNoContext(message string, fields map[string]interface{}) {
-	customLog("INFO", "", message, fields)
-}
-
-// Debug logs a debug message
-func Debug(traceId, format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	customLog("DEBUG", traceId, message, nil)
-}
-
-func DebugNoContext(format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	customLog("DEBUG", "", message, nil)
-}
-
-// Error logs an error message
-func Error(traceId, format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	customLog("ERROR", traceId, message, nil)
-}
-
-func ErrorNoContext(format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	customLog("ERROR", "", message, nil)
-}
-
-// Panic logs a panic message and calls panic
-func Panic(traceId, format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-
-	entry := LogEntry{
-		Timestamp: time.Now().Format(time.RFC3339),
-		Level:     "PANIC",
-		TraceId:   traceId,
-		Message:   message,
+// SetLogLevel sets the global log level
+func SetLogLevel(level string) {
+	var logLevel zerolog.Level
+	switch level {
+	case "trace":
+		logLevel = zerolog.TraceLevel
+	case "debug":
+		logLevel = zerolog.DebugLevel
+	case "info":
+		logLevel = zerolog.InfoLevel
+	case "warn":
+		logLevel = zerolog.WarnLevel
+	case "error":
+		logLevel = zerolog.ErrorLevel
+	case "fatal":
+		logLevel = zerolog.FatalLevel
+	case "panic":
+		logLevel = zerolog.PanicLevel
+	default:
+		logLevel = zerolog.InfoLevel
 	}
 
-	data, err := json.Marshal(entry)
-	if err != nil {
-		PanicFunc(fmt.Sprintf("PANIC LOGGING ERROR traceId=%s %s", traceId, message))
-		return
+	// Create console writer with custom caller format
+	consoleWriter := zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		TimeFormat: time.RFC3339,
+		FormatCaller: func(i interface{}) string {
+			if c, ok := i.(string); ok {
+				// Parse the caller string and format it
+				// The caller string is typically in format: /full/path/to/file.go:line
+				parts := strings.Split(c, ":")
+				if len(parts) == 2 {
+					filePath := parts[0]
+					line := parts[1]
+
+					// Extract just the filename
+					filename := filepath.Base(filePath)
+
+					// Try to extract package name from the path
+					// Look for internal/ or pkg/ in the path
+					if strings.Contains(filePath, "/internal/") {
+						internalParts := strings.Split(filePath, "/internal/")
+						if len(internalParts) == 2 {
+							pkgPath := internalParts[1]
+							pkgParts := strings.Split(pkgPath, "/")
+							if len(pkgParts) >= 2 {
+								pkgName := pkgParts[0]
+								return fmt.Sprintf("%s/%s:%s", pkgName, filename, line)
+							}
+						}
+					} else if strings.Contains(filePath, "/pkg/") {
+						pkgParts := strings.Split(filePath, "/pkg/")
+						if len(pkgParts) == 2 {
+							pkgPath := pkgParts[1]
+							pkgParts := strings.Split(pkgPath, "/")
+							if len(pkgParts) >= 2 {
+								pkgName := pkgParts[0]
+								return fmt.Sprintf("%s/%s:%s", pkgName, filename, line)
+							}
+						}
+					}
+
+					// Fallback to just filename
+					return fmt.Sprintf("%s:%s", filename, line)
+				}
+				return c
+			}
+			return ""
+		},
 	}
 
-	PanicFunc(string(data))
-}
-
-func PanicNoContext(format string, args ...interface{}) {
-	Panic("", format, args...)
-}
-
-// ObjectToFields converts any struct to a map[string]interface{}
-func ObjectToFields(obj interface{}) map[string]interface{} {
-	var result map[string]interface{}
-	data, err := json.Marshal(obj)
-	if err != nil {
-		return nil
-	}
-	json.Unmarshal(data, &result)
-	return result
+	// Create a new logger with the updated level
+	globalLogger = zerolog.New(consoleWriter).
+		Level(logLevel).
+		With().
+		Timestamp().
+		CallerWithSkipFrameCount(3).
+		Int("pid", os.Getpid()).
+		Logger()
 }

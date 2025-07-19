@@ -25,7 +25,6 @@ var EmailOTPNode = &NodeDefinition{
 }
 
 func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
-
 	otp := input["otp"]
 	email := state.Context["email"]
 
@@ -91,9 +90,10 @@ func generateOTP() string {
 }
 
 func sendEmailOTP(email string, otp string, node *model.GraphNode, services *repository.Repositories) error {
+	log := logger.GetLogger()
 
 	// As a mock we just log the OTP for now
-	logger.Info("OTP sent to %s: %s", email, otp)
+	log.Info().Str("email", email).Str("otp", otp).Msg("otp sent")
 
 	smtpServer := node.CustomConfig["smtp_server"]
 	smtpPort := node.CustomConfig["smtp_port"]
@@ -102,19 +102,19 @@ func sendEmailOTP(email string, otp string, node *model.GraphNode, services *rep
 	smtpSenderEmail := node.CustomConfig["smtp_sender_email"]
 
 	if smtpServer == "" || smtpPort == "" || smtpUsername == "" || smtpPassword == "" || smtpSenderEmail == "" {
-		logger.ErrorNoContext("smtp server, port, username, password, and sender email must be provided in the custom config. Otherwise the email will not be sent and fail silently.")
+		log.Error().Msg("smtp server, port, username, password, and sender email must be provided in the custom config. otherwise the email will not be sent and fail silently")
 		return nil
 	}
 
 	body, subject, err := generateEmailBody(otp)
 	if err != nil {
-		logger.ErrorNoContext("error generating email body: %s", err)
+		log.Error().Err(err).Msg("error generating email body")
 		return errors.New("error generating email body")
 	}
 
 	err = services.EmailSender.SendEmail(subject, body, email, smtpServer, smtpPort, smtpUsername, smtpPassword, smtpSenderEmail)
 	if err != nil {
-		logger.ErrorNoContext("error sending email: %s", err)
+		log.Error().Err(err).Msg("error sending email")
 		return errors.New("error sending email")
 	}
 

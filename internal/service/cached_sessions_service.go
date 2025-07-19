@@ -46,7 +46,8 @@ func (s *cachedSessionsService) CreateOrUpdateAuthenticationSession(ctx context.
 		// Cache the session
 		cacheKey := fmt.Sprintf("auth_session:%s:%s:%s", tenant, realm, session.SessionIdHash)
 		if err := s.cache.Cache(cacheKey, &session, sessionCacheTTL, 1); err != nil {
-			logger.ErrorNoContext("Failed to cache auth session: %v", err)
+			log := logger.GetLogger()
+			log.Error().Err(err).Msg("failed to cache auth session")
 		}
 	}
 	return err
@@ -72,7 +73,8 @@ func (s *cachedSessionsService) GetAuthenticationSession(ctx context.Context, te
 	if found {
 		// Cache the session
 		if err := s.cache.Cache(cacheKey, session, sessionCacheTTL, 1); err != nil {
-			logger.ErrorNoContext("Failed to cache auth session: %v", err)
+			log := logger.GetLogger()
+			log.Error().Err(err).Msg("failed to cache auth session")
 		}
 	}
 	return session, found
@@ -85,7 +87,8 @@ func (s *cachedSessionsService) DeleteAuthenticationSession(ctx context.Context,
 		// Remove from cache
 		cacheKey := fmt.Sprintf("auth_session:%s:%s:%s", tenant, realm, sessionIDHash)
 		if err := s.cache.Invalidate(cacheKey); err != nil {
-			logger.ErrorNoContext("Failed to remove auth session from cache: %v", err)
+			log := logger.GetLogger()
+			log.Error().Err(err).Msg("failed to remove auth session from cache")
 		}
 	}
 	return err
@@ -96,9 +99,10 @@ func (s *cachedSessionsService) CreateAuthCodeSession(ctx context.Context, tenan
 	code, session, err := s.sessionsService.CreateAuthCodeSession(ctx, tenant, realm, clientID, userID, scope, grantType, codeChallenge, codeChallengeMethod, loginSession)
 	if err == nil {
 		// Cache the session
-		cacheKey := fmt.Sprintf("auth_code:%s:%s:%s", tenant, realm, code)
+		cacheKey := fmt.Sprintf("auth_code_session:%s:%s:%s", tenant, realm, session.ClientSessionID)
 		if err := s.cache.Cache(cacheKey, session, sessionCacheTTL, 1); err != nil {
-			logger.ErrorNoContext("Failed to cache auth code session: %v", err)
+			log := logger.GetLogger()
+			log.Error().Err(err).Msg("failed to cache auth code session")
 		}
 	}
 	return code, session, err
@@ -109,9 +113,10 @@ func (s *cachedSessionsService) CreateAccessTokenSession(ctx context.Context, te
 	token, session, err := s.sessionsService.CreateAccessTokenSession(ctx, tenant, realm, clientID, userID, scope, grantType, lifetime)
 	if err == nil {
 		// Cache the session
-		cacheKey := fmt.Sprintf("access_token:%s:%s:%s", tenant, realm, token)
+		cacheKey := fmt.Sprintf("access_token_session:%s:%s:%s", tenant, realm, session.ClientSessionID)
 		if err := s.cache.Cache(cacheKey, session, sessionCacheTTL, 1); err != nil {
-			logger.ErrorNoContext("Failed to cache access token session: %v", err)
+			log := logger.GetLogger()
+			log.Error().Err(err).Msg("failed to cache access token session")
 		}
 	}
 	return token, session, err
@@ -137,7 +142,8 @@ func (s *cachedSessionsService) GetClientSessionByAccessToken(ctx context.Contex
 	if err == nil && session != nil {
 		// Cache the session
 		if err := s.cache.Cache(cacheKey, session, sessionCacheTTL, 1); err != nil {
-			logger.ErrorNoContext("Failed to cache access token session: %v", err)
+			log := logger.GetLogger()
+			log.Error().Err(err).Msg("failed to cache access token session")
 		}
 	}
 	return session, err
@@ -178,7 +184,8 @@ func (c *cachedAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, ses
 	err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 	if err != nil {
 		// Log error but continue - caching is not critical
-		logger.InfoNoContext("Failed to cache auth session: %v", err)
+		log := logger.GetLogger()
+		log.Error().Err(err).Msg("failed to cache auth session")
 	}
 
 	return nil
@@ -211,7 +218,8 @@ func (c *cachedAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant, 
 	err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 	if err != nil {
 		// Log error but continue - caching is not critical
-		logger.InfoNoContext("Failed to cache auth session: %v", err)
+		log := logger.GetLogger()
+		log.Error().Err(err).Msg("failed to cache auth session")
 	}
 
 	return session, nil
@@ -269,14 +277,16 @@ func (c *cachedClientSessionDB) CreateClientSession(ctx context.Context, tenant,
 		cacheKey := c.getClientSessionCacheKey(tenant, realm, session.AuthCodeHash, "auth-code")
 		err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 		if err != nil {
-			logger.InfoNoContext("Failed to cache auth code session: %v", err)
+			log := logger.GetLogger()
+			log.Info().Err(err).Msg("failed to cache auth code session")
 		}
 	}
 	if session.AccessTokenHash != "" {
 		cacheKey := c.getClientSessionCacheKey(tenant, realm, session.AccessTokenHash, "access-token")
 		err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 		if err != nil {
-			logger.InfoNoContext("Failed to cache access token session: %v", err)
+			log := logger.GetLogger()
+			log.Info().Err(err).Msg("failed to cache access token session")
 		}
 	}
 
@@ -309,7 +319,8 @@ func (c *cachedClientSessionDB) GetClientSessionByAccessToken(ctx context.Contex
 	// Cache the result
 	err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 	if err != nil {
-		logger.InfoNoContext("Failed to cache access token session: %v", err)
+		log := logger.GetLogger()
+		log.Info().Err(err).Msg("failed to cache access token session")
 	}
 
 	return session, nil
@@ -336,7 +347,8 @@ func (c *cachedClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, 
 	// Cache the result
 	err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 	if err != nil {
-		logger.InfoNoContext("Failed to cache auth code session: %v", err)
+		log := logger.GetLogger()
+		log.Info().Err(err).Msg("failed to cache auth code session")
 	}
 
 	return session, nil

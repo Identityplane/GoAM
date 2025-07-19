@@ -161,7 +161,8 @@ func peekGraphExecutionForPromptParameter(session *model.AuthenticationSession, 
 	// Run the flow engine with the current state and input
 	newSession, err := graph.Run(flow.Definition, session, nil, registry)
 	if err != nil {
-		logger.DebugNoContext("flow resulted in error: %v", err)
+		log := logger.GetLogger()
+		log.Debug().Err(err).Msg("flow resulted in error")
 		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorServerError, ErrorDescription: "Internal server error. Flow resulted in error"}
 	}
 

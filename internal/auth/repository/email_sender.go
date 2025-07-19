@@ -15,6 +15,8 @@ func NewDefaultEmailSender() EmailSender {
 }
 
 func (s *DefaultEmailSender) SendEmail(subject, body, recipientEmail, smtpServer, smtpPort, smtpUsername, smtpPassword, smtpSenderEmail string) error {
+	log := logger.GetLogger()
+
 	// Create a channel to receive the error
 	errChan := make(chan error, 1)
 
@@ -27,13 +29,10 @@ func (s *DefaultEmailSender) SendEmail(subject, body, recipientEmail, smtpServer
 		err := smtp.SendMail(smtpServerString, auth, smtpSenderEmail, []string{recipientEmail}, []byte(body))
 		errChan <- err
 
-		logger.InfoWithFieldsNoContext("Email sent", map[string]interface{}{
-			"subject":      subject,
-			"recipient":    recipientEmail,
-			"smtpServer":   smtpServer,
-			"smtpPort":     smtpPort,
-			"smtpUsername": smtpUsername,
-		})
+		log.Info().
+			Str("to", recipientEmail).
+			Str("subject", subject).
+			Msg("email sent")
 	}()
 
 	// Return immediately, the email will be sent in the background

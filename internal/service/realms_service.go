@@ -67,16 +67,18 @@ func NewRealmService(realmDb db.RealmDB, userDb db.UserDB) RealmService {
 }
 
 func (s *realmServiceImpl) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
+	log := logger.GetLogger()
 
 	// Use the database to get the realm config
 	realmConfig, err := s.realmDb.GetRealm(context.Background(), tenant, realm)
 
 	if err != nil {
-		logger.DebugNoContext("cannot load realm %s/%s", tenant, realm)
+		log.Debug().Str("tenant", tenant).Str("realm", realm).Msg("cannot load realm")
 		return nil, false
 	}
 
 	if realmConfig == nil {
+		log.Debug().Msg("realm not found")
 		return nil, false
 	}
 

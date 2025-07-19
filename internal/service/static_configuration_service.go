@@ -35,6 +35,7 @@ func NewStaticConfigurationService() StaticConfigurationService {
 }
 
 func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot string) error {
+	log := logger.GetLogger()
 
 	var realmService RealmService = GetServices().RealmService
 	var flowService FlowService = GetServices().FlowService
@@ -52,7 +53,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 		// If realm does not already exist, create it
 		_, exists := realmService.GetRealm(realm.Tenant, realm.Realm)
 		if !exists {
-			logger.DebugNoContext("Creating realm: %s", realm.Realm)
+			log.Debug().Str("realm", realm.Realm).Msg("creating realm")
 			err := realmService.CreateRealm(&model.Realm{
 				Realm:     realm.Realm,
 				RealmName: realm.RealmName,
@@ -60,7 +61,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				BaseUrl:   realm.BaseUrl,
 			})
 			if err != nil {
-				logger.PanicNoContext("Failed to create realm %s: %s", realm.Realm, err)
+				log.Panic().Err(err).Str("realm", realm.Realm).Msg("failed to create realm")
 			}
 		}
 
@@ -68,10 +69,10 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 		for _, flow := range realm.Flows {
 			_, exists := flowService.GetFlowById(realm.Tenant, realm.Realm, flow.Id)
 			if !exists {
-				logger.DebugNoContext("Creating flow: %s", flow.Id)
+				log.Debug().Str("flow_id", flow.Id).Msg("creating flow")
 				err := flowService.CreateFlow(realm.Tenant, realm.Realm, *flow)
 				if err != nil {
-					logger.PanicNoContext("Failed to create flow %s: %s", flow.Id, err)
+					log.Panic().Err(err).Str("flow_id", flow.Id).Msg("failed to create flow")
 				}
 			}
 		}
@@ -80,10 +81,10 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 		for _, application := range realm.Applications {
 			_, exists := applicationService.GetApplication(realm.Tenant, realm.Realm, application.ClientId)
 			if !exists {
-				logger.DebugNoContext("Creating application: %s", application.ClientId)
+				log.Debug().Str("client_id", application.ClientId).Msg("creating application")
 				err := applicationService.CreateApplication(realm.Tenant, realm.Realm, *application)
 				if err != nil {
-					logger.PanicNoContext("Failed to create application %s: %s", application.ClientId, err)
+					log.Panic().Err(err).Str("client_id", application.ClientId).Msg("failed to create application")
 				}
 			}
 		}
@@ -98,7 +99,8 @@ func loadRealmsFromConfigDir(configRoot string) ([]realmYaml, error) {
 	var newRealms []realmYaml
 
 	tenantsPath := filepath.Join(configRoot, "tenants")
-	logger.DebugNoContext("Walking config dir: %s", tenantsPath)
+	log := logger.GetLogger()
+	log.Debug().Str("tenants_path", tenantsPath).Msg("walking config dir")
 
 	// We need this to calculate the depth of the current path
 	baseDepth := strings.Count(tenantsPath, string(os.PathSeparator))
@@ -118,7 +120,7 @@ func loadRealmsFromConfigDir(configRoot string) ([]realmYaml, error) {
 			return nil
 		}
 
-		logger.DebugNoContext("Loading realm config: %s\n", path)
+		log.Debug().Str("path", path).Msg("loading realm config")
 
 		cfg, err := loadRealmConfigFromFilePath(path)
 		if err != nil {
@@ -133,7 +135,7 @@ func loadRealmsFromConfigDir(configRoot string) ([]realmYaml, error) {
 		return nil, fmt.Errorf("failed to walk realm config directory %s: %w", configRoot, err)
 	}
 
-	logger.DebugNoContext("Loaded %d realms from config directory", len(newRealms))
+	log.Debug().Int("realms_count", len(newRealms)).Msg("loaded realms from config directory")
 	return newRealms, nil
 
 }
