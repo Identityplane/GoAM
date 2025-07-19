@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/logger"
 )
 
 func TestLogger_InfoFormatting(t *testing.T) {

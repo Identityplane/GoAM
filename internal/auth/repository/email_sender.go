@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/smtp"
 
-	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/logger"
 )
 
 type DefaultEmailSender struct {

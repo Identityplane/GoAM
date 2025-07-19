@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gianlucafrei/GoAM/internal/db"
-	"github.com/gianlucafrei/GoAM/internal/lib"
-	"github.com/gianlucafrei/GoAM/internal/logger"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/internal/lib"
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/model"
 
 	"github.com/google/uuid"
 )

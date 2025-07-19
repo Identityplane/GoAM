@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/logger"
 
 	_ "modernc.org/sqlite" // sqlite driver
 )

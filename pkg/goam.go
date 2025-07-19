@@ -1,9 +1,9 @@
 package pkg
 
 import (
-	"github.com/gianlucafrei/GoAM/internal"
-	"github.com/gianlucafrei/GoAM/internal/logger"
-	"github.com/gianlucafrei/GoAM/internal/web"
+	"github.com/Identityplane/GoAM/internal"
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/web"
 	"github.com/valyala/fasthttp"
 )
 

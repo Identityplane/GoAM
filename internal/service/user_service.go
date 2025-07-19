@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/gianlucafrei/GoAM/internal/db"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/internal/model"
 )
 
 // PaginationParams represents pagination parameters

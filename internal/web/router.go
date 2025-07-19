@@ -3,11 +3,11 @@ package web
 import (
 	"encoding/json"
 
-	"github.com/gianlucafrei/GoAM/internal/config"
-	"github.com/gianlucafrei/GoAM/internal/web/admin_api"
-	"github.com/gianlucafrei/GoAM/internal/web/auth"
-	"github.com/gianlucafrei/GoAM/internal/web/debug"
-	"github.com/gianlucafrei/GoAM/internal/web/oauth2"
+	"github.com/Identityplane/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/internal/web/admin_api"
+	"github.com/Identityplane/GoAM/internal/web/auth"
+	"github.com/Identityplane/GoAM/internal/web/debug"
+	"github.com/Identityplane/GoAM/internal/web/oauth2"
 
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"

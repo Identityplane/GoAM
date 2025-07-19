@@ -49,7 +49,7 @@ This flow includes:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/gianlucafrei/GoAM.git
+   git clone https://github.com/Identityplane/GoAM.git
    cd goiam
    ```
 

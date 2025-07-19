@@ -3,7 +3,7 @@ package admin_api
 import (
 	"encoding/json"
 
-	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/gianlucafrei/GoAM/internal/auth/repository"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/model"
 )
 
 // HCaptchaVerifier defines the interface for hCaptcha verification

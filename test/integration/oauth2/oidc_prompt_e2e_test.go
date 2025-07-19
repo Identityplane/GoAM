@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal/model"
-	"github.com/gianlucafrei/GoAM/internal/service"
-	"github.com/gianlucafrei/GoAM/test/integration"
+	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/test/integration"
 )
 
 // This test performs end-to-end tests of the OIDC prompt parameter functionality.

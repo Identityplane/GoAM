@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gianlucafrei/GoAM/internal/auth/repository"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/model"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

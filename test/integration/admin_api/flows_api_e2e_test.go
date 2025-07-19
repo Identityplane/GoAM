@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/test/integration"
+	"github.com/Identityplane/GoAM/test/integration"
 
 	"github.com/stretchr/testify/assert"
 )

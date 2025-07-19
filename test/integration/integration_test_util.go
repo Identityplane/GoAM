@@ -9,17 +9,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal"
-	"github.com/gianlucafrei/GoAM/internal/config"
-	"github.com/gianlucafrei/GoAM/internal/model"
-	"github.com/gianlucafrei/GoAM/internal/web"
+	"github.com/Identityplane/GoAM/internal"
+	"github.com/Identityplane/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/web"
 
 	"github.com/fasthttp/router"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
 
-	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/service"
 )
 
 var (

@@ -3,7 +3,7 @@ package session
 import (
 	"sync"
 
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/model"
 )
 
 var sessions = struct {
