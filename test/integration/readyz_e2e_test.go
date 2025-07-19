@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal/web"
+	"github.com/Identityplane/GoAM/internal/web"
 
 	"github.com/valyala/fasthttp"
 )

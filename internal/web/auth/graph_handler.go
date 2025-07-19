@@ -5,11 +5,11 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/gianlucafrei/GoAM/internal/auth/graph"
-	"github.com/gianlucafrei/GoAM/internal/auth/repository"
-	"github.com/gianlucafrei/GoAM/internal/logger"
-	"github.com/gianlucafrei/GoAM/internal/model"
-	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/auth/graph"
+	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

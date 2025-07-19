@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/gianlucafrei/GoAM/internal/auth/graph/visual"
-	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/auth/graph/visual"
+	"github.com/Identityplane/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

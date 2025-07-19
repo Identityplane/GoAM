@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gianlucafrei/GoAM/internal/config"
-	"github.com/gianlucafrei/GoAM/internal/model"
-	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

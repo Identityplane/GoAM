@@ -8,9 +8,9 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/gianlucafrei/GoAM/internal/auth/repository"
-	"github.com/gianlucafrei/GoAM/internal/logger"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/model"
 )
 
 var EmailOTPNode = &NodeDefinition{

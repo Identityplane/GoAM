@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/internal/db"
 )
 
 // Services holds all service instances

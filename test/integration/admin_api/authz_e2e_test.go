@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal/config"
-	"github.com/gianlucafrei/GoAM/internal/model"
-	"github.com/gianlucafrei/GoAM/internal/service"
-	"github.com/gianlucafrei/GoAM/test/integration"
+	"github.com/Identityplane/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/test/integration"
 
 	"github.com/stretchr/testify/assert"
 )

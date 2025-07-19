@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/model"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

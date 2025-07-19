@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal/db"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/internal/model"
 
 	"github.com/stretchr/testify/require"
 )

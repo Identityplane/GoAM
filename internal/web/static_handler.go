@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gianlucafrei/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/internal/config"
 
 	"github.com/valyala/fasthttp"
 )

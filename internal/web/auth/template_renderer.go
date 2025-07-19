@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gianlucafrei/GoAM/internal/lib"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/lib"
+	"github.com/Identityplane/GoAM/internal/model"
 
 	"crypto/md5"
 

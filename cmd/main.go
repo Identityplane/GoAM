@@ -2,8 +2,8 @@ package main
 
 import (
 	// lint:ignore ST1019 (This should be fixed, but is not a priority)
-	"github.com/gianlucafrei/GoAM/internal/logger"
-	"github.com/gianlucafrei/GoAM/pkg"
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/pkg"
 
 	// lint:ignore ST1019
 

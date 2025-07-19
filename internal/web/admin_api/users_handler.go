@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gianlucafrei/GoAM/internal/model"
-	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
 )

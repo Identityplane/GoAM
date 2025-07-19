@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/test/integration"
+	"github.com/Identityplane/GoAM/test/integration"
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"

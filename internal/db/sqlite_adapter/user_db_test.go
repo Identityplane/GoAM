@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/internal/db"
 
 	"github.com/stretchr/testify/require"
 )

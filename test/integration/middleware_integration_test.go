@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal/web"
+	"github.com/Identityplane/GoAM/internal/web"
 )
 
 func TestNotFoundRedirectNoUrl(t *testing.T) {

@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gianlucafrei/GoAM/internal/auth/repository"
-	"github.com/gianlucafrei/GoAM/internal/logger"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/model"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"

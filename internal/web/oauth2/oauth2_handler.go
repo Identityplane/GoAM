@@ -7,12 +7,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/gianlucafrei/GoAM/internal/auth/graph"
-	"github.com/gianlucafrei/GoAM/internal/lib/oauth2"
-	"github.com/gianlucafrei/GoAM/internal/logger"
-	"github.com/gianlucafrei/GoAM/internal/model"
-	"github.com/gianlucafrei/GoAM/internal/service"
-	"github.com/gianlucafrei/GoAM/internal/web/auth"
+	"github.com/Identityplane/GoAM/internal/auth/graph"
+	"github.com/Identityplane/GoAM/internal/lib/oauth2"
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/web/auth"
 
 	"github.com/valyala/fasthttp"
 )

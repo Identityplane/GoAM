@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/model"
 )
 
 func TestGetEntitlements(t *testing.T) {

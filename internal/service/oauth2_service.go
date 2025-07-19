@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gianlucafrei/GoAM/internal/auth/graph"
-	"github.com/gianlucafrei/GoAM/internal/lib"
-	"github.com/gianlucafrei/GoAM/internal/lib/oauth2"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/auth/graph"
+	"github.com/Identityplane/GoAM/internal/lib"
+	"github.com/Identityplane/GoAM/internal/lib/oauth2"
+	"github.com/Identityplane/GoAM/internal/model"
 )
 
 // OAuth2Service handles OAuth2 related operations

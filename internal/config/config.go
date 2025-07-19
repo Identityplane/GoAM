@@ -4,9 +4,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gianlucafrei/GoAM/internal/db/postgres_adapter"
-	"github.com/gianlucafrei/GoAM/internal/db/sqlite_adapter"
-	"github.com/gianlucafrei/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/db/postgres_adapter"
+	"github.com/Identityplane/GoAM/internal/db/sqlite_adapter"
+	"github.com/Identityplane/GoAM/internal/logger"
 )
 
 // Manages global configuration for the whole server

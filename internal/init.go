@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/gianlucafrei/GoAM/internal/config"
-	"github.com/gianlucafrei/GoAM/internal/db/postgres_adapter"
-	"github.com/gianlucafrei/GoAM/internal/db/sqlite_adapter"
-	"github.com/gianlucafrei/GoAM/internal/logger"
-	"github.com/gianlucafrei/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/internal/db/postgres_adapter"
+	"github.com/Identityplane/GoAM/internal/db/sqlite_adapter"
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/service"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

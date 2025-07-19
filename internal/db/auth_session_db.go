@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/model"
 )
 
 // AuthSessionDB defines the interface for authentication session storage

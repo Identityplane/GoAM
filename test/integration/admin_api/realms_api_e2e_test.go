@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gianlucafrei/GoAM/test/integration"
+	"github.com/Identityplane/GoAM/test/integration"
 )
 
 // TestRealmAPI_E2E performs a complete end-to-end test of the admin API realm management functionality.

@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/gianlucafrei/GoAM/internal/db"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/internal/model"
 
 	"github.com/google/uuid"
 )

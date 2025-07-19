@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gianlucafrei/GoAM/internal/db"
-	"github.com/gianlucafrei/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/internal/model"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
