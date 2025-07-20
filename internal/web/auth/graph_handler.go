@@ -60,8 +60,13 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Check if debug is in the query parameters
+	debug := ctx.QueryArgs().Has("debug")
+
+	// TODO check if debug is allowed
+
 	// Create a new or load the authentication session
-	session, err := GetOrCreateAuthenticationSesssion(ctx, tenant, realm, loadedRealm.Config.BaseUrl, flow)
+	session, err := GetOrCreateAuthenticationSesssion(ctx, tenant, realm, loadedRealm.Config.BaseUrl, flow, debug)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		ctx.SetBodyString("Could not create session")
@@ -73,7 +78,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	// If there is an error we render the error, otherwiese the ProcessAuthRequest will render the result
 	if err != nil {
-		RenderError(ctx, err.Error(), session, loadedRealm.Config.BaseUrl)
+		RenderError(ctx, err.Error(), newSession, loadedRealm.Config.BaseUrl)
 		return
 	}
 
@@ -136,13 +141,13 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 	if err != nil {
 		log := logger.GetLogger()
 		log.Debug().Err(err).Msg("flow resulted in error")
-		return nil, err
+		return newSession, err
 	}
 
 	// This should be cleaned up in the future, its not beautiful to manually lookup the result node like this
 	currentNode := flow.Definition.Nodes[session.Current]
 	if currentNode == nil {
-		return nil, fmt.Errorf("result node not found")
+		return newSession, fmt.Errorf("result node not found")
 	}
 
 	return newSession, nil
@@ -163,30 +168,39 @@ func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*
 	return session, true
 }
 
-func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow) (*model.AuthenticationSession, error) {
+func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow, debug bool) (*model.AuthenticationSession, error) {
 
 	// Try to get existing session first
 	session, ok := GetAuthenticationSession(ctx, tenant, realm)
+
 	if !ok {
-		return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow)
+		return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow, debug)
 	}
 
 	// If the session if from a different flow we delete it and create a new one by overwriting it
 	if session != nil && session.FlowId != flow.Id {
 		service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, tenant, realm, session.SessionIdHash)
-		return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow)
+		return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow, debug)
+	}
+
+	// if the session was not debug, but now we have debug, we need to set the debug flag
+	if session != nil && !session.Debug && debug {
+		session.Debug = true
 	}
 
 	// If no session exists, create new one
 	return session, nil
 }
 
-func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow) (*model.AuthenticationSession, error) {
+func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow, debug bool) (*model.AuthenticationSession, error) {
 	log := logger.GetLogger()
 
 	// if not we create a new session
 	loginUri := baseUrl + "/auth/" + flow.Route
 	session, sessionID := service.GetServices().SessionsService.CreateAuthSessionObject(tenant, realm, flow.Id, loginUri)
+
+	// Set the debug flag
+	session.Debug = debug
 
 	isHttps := strings.HasPrefix(baseUrl, "https://")
 

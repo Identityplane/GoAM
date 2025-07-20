@@ -23,6 +23,14 @@ type AuthenticationSession struct {
 	CreatedAt                time.Time         `json:"created_at"`
 	ExpiresAt                time.Time         `json:"expires_at"`
 	LoginUri                 string            `json:"login_uri"` // Uri of the login flow
+	Debug                    bool              `json:"debug"`
+}
+
+func (s *AuthenticationSession) GetLatestHistory() string {
+	if len(s.History) == 0 {
+		return ""
+	}
+	return s.History[len(s.History)-1]
 }
 
 // GetLogger returns a zerolog logger with contextual information from the session

@@ -25,9 +25,10 @@ var GithubLoginNode = &NodeDefinition{
 	OutputContext:        []string{"github-username", "github-access-token", "github-refresh-token", "github-token-type", "github-scope", "github-user-id", "github-avatar-url", "github-email"},
 	PossibleResultStates: []string{"existing-user", "new-user", "failure"},
 	CustomConfigOptions: map[string]string{
-		"github-client-id":     "The client id of the Github app",
-		"github-client-secret": "The client secret of the Github app",
-		"github-scope":         "The list of scopes to request from Github, comma separated",
+		"github-client-id":          "The client id of the Github app",
+		"github-client-secret":      "The client secret of the Github app",
+		"github-scope":              "The list of scopes to request from Github, comma separated",
+		"create-user-if-not-exists": "If 'true' then create a new user if the user does not exist",
 	},
 	Run: RunGithubLoginNode,
 }

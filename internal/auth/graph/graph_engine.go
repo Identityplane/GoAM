@@ -55,6 +55,7 @@ func InitFlow(flow *model.FlowDefinition) *model.AuthenticationSession {
 }
 
 // Run processes one step of the flow and returns either
+// returns the state also in case of an error to allow for debugging
 // - flow state when graph is requesting prompt or is finished
 // - error if any internal error occurred
 func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs map[string]string, services *repository.Repositories) (*model.AuthenticationSession, error) {
@@ -66,7 +67,7 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 
 	// Check if history size limit is reached
 	if len(state.History) > MAX_HISTORY_SIZE {
-		return nil, errors.New("history size limit reached")
+		return state, errors.New("history size limit reached")
 	}
 
 	// If the state is empty we set it to the init node
@@ -77,13 +78,13 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 	// Check if node for current state exists in flow
 	node, ok := flow.Nodes[state.Current]
 	if !ok {
-		return nil, fmt.Errorf("node '%s' not found in flow", state.Current)
+		return state, fmt.Errorf("node '%s' not found in flow", state.Current)
 	}
 
 	// Load node definition from node name
 	def := getNodeDefinitionByName(node.Use)
 	if def == nil {
-		return nil, fmt.Errorf("node definition for '%s' not found", node.Use)
+		return state, fmt.Errorf("node definition for '%s' not found", node.Use)
 	}
 
 	var nodeResult *model.NodeResult
@@ -107,7 +108,7 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 		nodeResult, err = ProcessQueryWithLogicTypeNode(state, node, def, inputs, services)
 
 	default:
-		return nil, fmt.Errorf("unsupported node type: %s", def.Type)
+		return state, fmt.Errorf("unsupported node type: %s", def.Type)
 	}
 
 	// Return error if present
@@ -118,7 +119,7 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 			Str("node_id", node.Name).
 			Str("node_type", string(def.Type)).
 			Msg("error processing node")
-		return nil, err
+		return state, err
 	}
 
 	// End the graph if the node is a result node
