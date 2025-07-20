@@ -39,6 +39,35 @@ type FlowService interface {
 	ValidateFlowDefinition(content string) ([]FlowLintError, error)
 }
 
+const DEFAULT_FLOW_DEFINITION = `description: 'An empty flow'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    next:
+      start: failure
+  failure:
+    name: failureResult
+    use: failureResult
+    next: {}
+  sucess:
+    name: successResult
+    use: successResult
+    next: {}
+editor:
+  nodes:
+    init:
+      x: 0
+      'y': 200
+    node_75e21c1d:
+      x: 300
+      'y': 300
+    node_8840e55b:
+      x: 300
+      'y': 200
+`
+
 // flowServiceImpl implements FlowService
 type flowServiceImpl struct {
 	flowsDb db.FlowDB
@@ -138,6 +167,9 @@ func (s *flowServiceImpl) CreateFlow(tenant, realm string, flow model.Flow) erro
 		if len(lintErrors) > 0 {
 			return fmt.Errorf("flow definition is invalid: %v", lintErrors)
 		}
+	} else {
+		// If the flow definition is not set, we set it to an default flow definition
+		flow.DefinitionYaml = DEFAULT_FLOW_DEFINITION
 	}
 
 	// Create the flow in the database
