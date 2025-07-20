@@ -24,8 +24,12 @@ var GithubLoginNode = &NodeDefinition{
 	PossiblePrompts:      map[string]string{"__redirect": "url", "code": "string"},
 	OutputContext:        []string{"github-username", "github-access-token", "github-refresh-token", "github-token-type", "github-scope", "github-user-id", "github-avatar-url", "github-email"},
 	PossibleResultStates: []string{"existing-user", "new-user", "failure"},
-	CustomConfigOptions:  []string{"github-client-id", "github-client-secret", "github-scope"},
-	Run:                  RunGithubLoginNode,
+	CustomConfigOptions: map[string]string{
+		"github-client-id":     "The client id of the Github app",
+		"github-client-secret": "The client secret of the Github app",
+		"github-scope":         "The list of scopes to request from Github, comma separated",
+	},
+	Run: RunGithubLoginNode,
 }
 
 var GithubCreateUserNode = &NodeDefinition{

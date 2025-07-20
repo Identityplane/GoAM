@@ -27,8 +27,11 @@ var ValidateUsernamePasswordNode = &NodeDefinition{
 	RequiredContext:      []string{"username", "password"},
 	OutputContext:        []string{"auth_result"}, // or we may skip outputs if conditions imply it
 	PossibleResultStates: []string{"success", "fail", "locked", "noPassword"},
-	CustomConfigOptions:  []string{"max_failed_password_attempts", "user_lookup_method"},
-	Run:                  RunValidateUsernamePasswordNode,
+	CustomConfigOptions: map[string]string{
+		"max_failed_password_attempts": "Maximum number of failed password attempts before locking the user (default: 10)",
+		"user_lookup_method":           "Method to look up user: 'username', 'email', or 'loginIdentifier' (default: username)",
+	},
+	Run: RunValidateUsernamePasswordNode,
 }
 
 func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {

@@ -58,7 +58,11 @@ var MessageConfirmationNode = &NodeDefinition{
 		"confirmation": "boolean",
 	},
 	PossibleResultStates: []string{"submitted"},
-	CustomConfigOptions:  []string{"message", "message_title", "button_text"},
+	CustomConfigOptions: map[string]string{
+		"message":       "The message to display to the user",
+		"message_title": "The title of the message",
+		"button_text":   "The text of the button",
+	},
 }
 
 var AskUsernameNode = &NodeDefinition{
@@ -100,8 +104,11 @@ var SetVariableNode = &NodeDefinition{
 	RequiredContext:      []string{},
 	OutputContext:        []string{},
 	PossibleResultStates: []string{"done"},
-	CustomConfigOptions:  []string{"key(required)", "value(required)"},
-	Run:                  RunSetVariableNode,
+	CustomConfigOptions: map[string]string{
+		"key":   "The key to set in the context (required)",
+		"value": "The value to set for the key in the context (required)",
+	},
+	Run: RunSetVariableNode,
 }
 
 func RunInitNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {

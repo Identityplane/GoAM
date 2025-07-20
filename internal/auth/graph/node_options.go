@@ -14,8 +14,16 @@ var PasswordOrSocialLoginNode = &NodeDefinition{
 	PossiblePrompts:      map[string]string{"option": "text", "username": "text", "password": "password", "email": "email", "passkeysLoginOptions": "json", "passkeysFinishLoginJson": "json"},
 	OutputContext:        []string{"username", "password"},
 	PossibleResultStates: []string{"password", "forgotPassword", "passkey", "social1", "social2", "social3"},
-	CustomConfigOptions:  []string{"useEmail", "showForgotPassword", "showPasskeys", "showSocial1", "showSocial2", "social1Provider", "social2Provider"},
-	Run:                  RunPasswordOrSocialLoginNode,
+	CustomConfigOptions: map[string]string{
+		"useEmail":           "if 'true' then show email input, otherwise will as for username as input",
+		"showForgotPassword": "if 'true' then show forgot password input, otherwise hide it",
+		"showPasskeys":       "if 'true' then show passkeys options, otherwise hide it",
+		"showSocial1":        "if 'true' then show social1 input, otherwise hide it",
+		"showSocial2":        "if 'true' then show social2 input, otherwise hide it",
+		"social1Provider":    "Currently build in are 'google' and 'github'. If not set the default button will be shown",
+		"social2Provider":    "Currently build in are 'google' and 'github'. If not set the default button will be shown",
+	},
+	Run: RunPasswordOrSocialLoginNode,
 }
 
 func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {

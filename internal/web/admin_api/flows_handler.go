@@ -311,8 +311,8 @@ func HandleListNodes(ctx *fasthttp.RequestCtx) {
 			RequiredContext:      node.RequiredContext,
 			OutputContext:        node.OutputContext,
 			PossibleResultStates: node.PossibleResultStates,
-			Description:          "",  // TODO: Add description
-			CustomConfigOptions:  nil, // TODO: Add custom config options
+			Description:          "",                       // TODO: Add description
+			CustomConfigOptions:  node.CustomConfigOptions, // TODO: Add custom config options
 		})
 	}
 
