@@ -31,10 +31,10 @@ func TestNodesAPI_E2E(t *testing.T) {
 	// Check the fields of the first matching node
 	node.Object().
 		HasValue("use", "passwordOrSocialLogin").
-		HasValue("prettyName", "passwordOrSocialLogin").
+		HasValue("prettyName", "Password or Social Login").
 		HasValue("type", "queryWithLogic").
 		HasValue("category", "").
-		HasValue("description", "")
+		HasValue("description", "This node is used to login with password or social login")
 
 	node.Object().
 		Value("requiredContext").Array().ConsistsOf("")
@@ -57,8 +57,8 @@ func TestNodesAPI_E2E(t *testing.T) {
 		ContainsKey("useEmail").
 		ContainsKey("showForgotPassword").
 		ContainsKey("showPasskeys").
-		ContainsKey("showSocial1").
-		ContainsKey("showSocial2").
+		ContainsKey("social1").
+		ContainsKey("social2").
 		ContainsKey("social1Provider").
 		ContainsKey("social2Provider")
 

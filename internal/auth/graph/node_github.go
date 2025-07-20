@@ -19,6 +19,9 @@ import (
 
 var GithubLoginNode = &NodeDefinition{
 	Name:                 "githubLogin",
+	PrettyName:           "GitHub OAuth Login",
+	Description:          "Handles GitHub OAuth authentication flow, including redirect to GitHub and processing the authorization code",
+	Category:             "Social Login",
 	Type:                 model.NodeTypeQueryWithLogic,
 	RequiredContext:      []string{""},
 	PossiblePrompts:      map[string]string{"__redirect": "url", "code": "string"},
@@ -35,6 +38,9 @@ var GithubLoginNode = &NodeDefinition{
 
 var GithubCreateUserNode = &NodeDefinition{
 	Name:                 "githubCreateUser",
+	PrettyName:           "Create GitHub User",
+	Description:          "Creates a new user account using information from GitHub OAuth authentication",
+	Category:             "User Management",
 	Type:                 model.NodeTypeLogic,
 	RequiredContext:      []string{"github-username"},
 	PossibleResultStates: []string{"created"},

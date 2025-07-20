@@ -11,6 +11,9 @@ import (
 // Unlock account logic node
 var UnlockAccountNode = &NodeDefinition{
 	Name:                 "unlockAccount",
+	PrettyName:           "Unlock Account",
+	Description:          "Unlocks a user account that has been locked due to too many failed login attempts",
+	Category:             "User Management",
 	Type:                 model.NodeTypeLogic,
 	RequiredContext:      []string{"username"},
 	OutputContext:        []string{},

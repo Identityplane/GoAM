@@ -20,6 +20,9 @@ type DefaultHCaptchaVerifier struct{}
 
 var HcaptchaNode = &NodeDefinition{
 	Name:                 "hcaptcha",
+	PrettyName:           "hCaptcha Verification",
+	Description:          "Verifies hCaptcha responses to prevent automated attacks and ensure human interaction",
+	Category:             "Security",
 	Type:                 model.NodeTypeQueryWithLogic,
 	RequiredContext:      []string{"hcaptcha"},
 	PossiblePrompts:      map[string]string{"hcaptcha": "text"},

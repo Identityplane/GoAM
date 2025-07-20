@@ -14,6 +14,9 @@ import (
 
 var UpdatePasswordNode = &NodeDefinition{
 	Name:                 "updatePassword",
+	PrettyName:           "Update Password",
+	Description:          "Updates the user's password in the database with a new hashed password",
+	Category:             "User Management",
 	Type:                 model.NodeTypeLogic,
 	RequiredContext:      []string{"user"},
 	OutputContext:        []string{}, // or we may skip outputs if conditions imply it
@@ -23,6 +26,9 @@ var UpdatePasswordNode = &NodeDefinition{
 
 var ValidateUsernamePasswordNode = &NodeDefinition{
 	Name:                 "validateUsernamePassword",
+	PrettyName:           "Validate Username and Password",
+	Description:          "Validates the provided username and password against the database and handles account locking",
+	Category:             "Authentication",
 	Type:                 model.NodeTypeLogic,
 	RequiredContext:      []string{"username", "password"},
 	OutputContext:        []string{"auth_result"}, // or we may skip outputs if conditions imply it

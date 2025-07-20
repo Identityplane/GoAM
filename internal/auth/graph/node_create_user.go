@@ -14,6 +14,9 @@ import (
 
 var CreateUserNode = &NodeDefinition{
 	Name:                 "createUser",
+	PrettyName:           "Create User",
+	Description:          "Creates a new user account in the database with the provided username and password",
+	Category:             "User Management",
 	Type:                 model.NodeTypeLogic,
 	RequiredContext:      []string{"username", "password"},
 	OutputContext:        []string{"user_id"},

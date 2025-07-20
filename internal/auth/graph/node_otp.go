@@ -15,6 +15,9 @@ import (
 
 var EmailOTPNode = &NodeDefinition{
 	Name:                 "emailOTP",
+	PrettyName:           "Email OTP Verification",
+	Description:          "Sends a one-time password via email and verifies the user's response for multi-factor authentication",
+	Category:             "Multi-Factor Authentication",
 	Type:                 model.NodeTypeQueryWithLogic,
 	RequiredContext:      []string{"email"},
 	PossiblePrompts:      map[string]string{"otp": "number"},
