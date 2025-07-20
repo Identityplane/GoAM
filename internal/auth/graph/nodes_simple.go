@@ -138,16 +138,35 @@ func RunSetVariableNode(state *model.AuthenticationSession, node *model.GraphNod
 
 func RunAuthSuccessNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 
-	state.Result = &model.FlowResult{
-		UserID:        state.Context["user_id"],
-		Username:      state.Context["username"],
-		Authenticated: true}
+	// If there is a user in the context we use this one
+	if state.User != nil {
 
-	return &model.NodeResult{
-		Condition: "",
-		Prompts:   nil,
-	}, nil
+		state.Result = &model.FlowResult{
+			UserID:        state.User.ID,
+			Username:      state.User.Username,
+			Authenticated: true}
 
+		return &model.NodeResult{
+			Condition: "",
+			Prompts:   nil,
+		}, nil
+	}
+
+	// Else we check if we have a user_id in the context
+	if state.Context["user_id"] != "" {
+		state.Result = &model.FlowResult{
+			UserID:        state.Context["user_id"],
+			Username:      state.Context["username"],
+			Authenticated: true}
+
+		return &model.NodeResult{
+			Condition: "",
+			Prompts:   nil,
+		}, nil
+	}
+
+	// If we reach here but have no user we return an error as we have a suceess but no user
+	return model.NewNodeResultWithError(fmt.Errorf("auth success but no user found in context"))
 }
 
 func ptr[T any](v T) *T {

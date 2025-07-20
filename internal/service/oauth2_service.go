@@ -220,6 +220,16 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 			return nil, oauth2.NewOAuth2Error(oauth2.ErrorAccessDenied, "Authentication level unauthenticated")
 		}*/
 
+	// If the result is not authenticated we return an error
+	if !session.Result.Authenticated {
+		return nil, oauth2.NewOAuth2Error(oauth2.ErrorAccessDenied, "Authentication failed")
+	}
+
+	// If the result user is is empty we return an error
+	if session.Result.UserID == "" {
+		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. No user found in result")
+	}
+
 	// If all ok we create a client session and issue an auth code
 	scope := session.Oauth2SessionInformation.AuthorizeRequest.Scope
 	authCode, _, err := GetServices().SessionsService.CreateAuthCodeSession(
