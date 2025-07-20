@@ -1,0 +1,8 @@
+.secrets
+.git
+.gitignore
+README.md
+WHITEPAPER.md
+makefile
+node_modules/
+auth-js/dist/ 
