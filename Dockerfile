@@ -14,8 +14,6 @@ RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 COPY . .
 
-RUN make swagger
-
 # Explicitly declare ARG again to be safe
 ARG TARGETARCH
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o goiam ./cmd
@@ -26,7 +24,6 @@ FROM alpine
 WORKDIR /app
 
 COPY --from=builder /app/goiam .
-COPY --from=builder /app/cmd/goiam.db .
 COPY --from=builder /app/config ./config
 
 ENV GOIAM_CONFIG_PATH=/app/config

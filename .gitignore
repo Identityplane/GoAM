@@ -10,3 +10,4 @@ auth-js/node_modules/*
 node_modules/*
 auth-js/dist/*
 goiam.db
+.secrets
