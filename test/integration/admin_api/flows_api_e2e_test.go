@@ -25,7 +25,7 @@ func TestFlowAPI_E2E(t *testing.T) {
 	// Test flow data
 	tenant := "acme"
 	realm := "test_realm"
-	flowRoute := "test_flow"
+	flowRoute := "test_route"
 	flowId := "test_flow"
 	minimalFlow := map[string]interface{}{
 		"id":     flowId,

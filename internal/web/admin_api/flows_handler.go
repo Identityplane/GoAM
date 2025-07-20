@@ -133,7 +133,6 @@ func HandleCreateFlow(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Set route from URL parameter
-	flow.Route = flowId
 	flow.Tenant = tenant
 	flow.Realm = realm
 	flow.Id = flowId
