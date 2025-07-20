@@ -20,8 +20,14 @@ var EmailOTPNode = &NodeDefinition{
 	PossiblePrompts:      map[string]string{"otp": "number"},
 	OutputContext:        []string{"emailOTP"},
 	PossibleResultStates: []string{"success", "failure", "locked"},
-	CustomConfigOptions:  []string{"smtp_server", "smtp_port", "smtp_username", "smtp_password", "smtp_sender_email"},
-	Run:                  RunEmailOTPNode,
+	CustomConfigOptions: map[string]string{
+		"smtp_server":       "The SMTP server address used to send OTP emails",
+		"smtp_port":         "The port number for the SMTP server",
+		"smtp_username":     "The username for authenticating with the SMTP server",
+		"smtp_password":     "The password for authenticating with the SMTP server",
+		"smtp_sender_email": "The email address that will appear as the sender of the OTP email",
+	},
+	Run: RunEmailOTPNode,
 }
 
 func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {

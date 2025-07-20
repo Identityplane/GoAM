@@ -25,8 +25,11 @@ var HcaptchaNode = &NodeDefinition{
 	PossiblePrompts:      map[string]string{"hcaptcha": "text"},
 	OutputContext:        []string{},
 	PossibleResultStates: []string{"success", "failure"},
-	CustomConfigOptions:  []string{"hcaptcha_sitekey", "hcaptcha_secret"},
-	Run:                  RunHcaptchaNode,
+	CustomConfigOptions: map[string]string{
+		"hcaptcha_sitekey": "The sitekey of the hCaptcha app, you can get it from the hCaptcha dashboard",
+		"hcaptcha_secret":  "The secret of the hCaptcha app, you can get it from the hCaptcha dashboard",
+	},
+	Run: RunHcaptchaNode,
 }
 
 // Global verifier instance

@@ -24,7 +24,7 @@ type NodeDefinition struct {
 	OutputContext        []string          `json:"outputs"` // fields that the node will set in the flow context
 	PossiblePrompts      map[string]string `json:"prompts"` // key: label/type shown to user, will be returned via the user input argument
 	PossibleResultStates []string
-	CustomConfigOptions  []string                                                                                                                                               `json:"conditions"` // e.g. ["success", "fail"]
+	CustomConfigOptions  map[string]string                                                                                                                                      // e.g. ["success", "fail"]
 	Run                  func(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) // Run function for logic nodes, must either return a condition or a set of prompts
 }
 
