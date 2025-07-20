@@ -139,7 +139,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	var customMessage string
 
 	// Debug information
-	debug := isDebugMode(ctx)
+	debug := state.Debug
 	var stateJSON string
 	if debug {
 		if js, err := json.MarshalIndent(state, "", "  "); err == nil {
@@ -253,7 +253,7 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.Authenticati
 	}
 
 	// Debug information
-	debug := isDebugMode(ctx)
+	debug := state.Debug
 	var stateJSON string
 	if debug {
 		if js, err := json.MarshalIndent(state, "", "  "); err == nil {
@@ -325,6 +325,11 @@ func getErrorTemplate() (*template.Template, error) {
 		return nil, fmt.Errorf("failed to parse base template: %w", err)
 	}
 
+	// Load all component templates
+	if err := loadComponents(tmpl); err != nil {
+		return nil, fmt.Errorf("failed to load components: %w", err)
+	}
+
 	return tmpl, nil
 }
 
@@ -367,12 +372,6 @@ func HandleStaticAssets(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType(contentType)
 	ctx.SetBody(content)
 	ctx.SetStatusCode(fasthttp.StatusOK)
-}
-
-func isDebugMode(ctx *fasthttp.RequestCtx) bool {
-
-	debugParam := ctx.URI().QueryArgs().Peek("debug")
-	return debugParam != nil
 }
 
 func resolveErrorMessage(state *model.AuthenticationSession) string {

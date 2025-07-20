@@ -1,4 +1,5 @@
 [![CI](https://github.com/Identityplane/GoAM/actions/workflows/ci.yml/badge.svg)](https://github.com/Identityplane/GoAM/actions/workflows/ci.yml)
+[![CD](https://github.com/Identityplane/GoAM/actions/workflows/cd.yml/badge.svg)](https://github.com/Identityplane/GoAM/actions/workflows/cd.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Identityplane/GoAM)](https://goreportcard.com/report/github.com/Identityplane/GoAM)
 
 # GoIAM: Flexible and High-Performance Identity Access Management

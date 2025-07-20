@@ -1,0 +1,92 @@
+{{ define "debug" }}
+{{ if .Debug }}
+<div class="debug">
+  <hr><h3>Debug State</h3>
+  <div class="json-viewer">
+    <div id="json-content" class="json-content">
+      <pre id="debug-json">{{ .StateJSON }}</pre>
+    </div>
+  </div>
+
+  <svg width="1000" height="666">
+    <image xlink:href="/{{ .Tenant }}/{{ .Realm }}/debug/{{ .FlowPath }}/graph.svg" src="/{{ .Tenant }}/{{ .Realm }}/debug/{{ .FlowPath }}/graph.svg" width="100%" height="100%" />
+  </svg>
+</div>
+<style>
+  .json-viewer {
+    margin: 10px 0;
+  }
+  .json-content {
+    margin-top: 10px;
+  }
+  .json-content pre {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 11px;
+    line-height: 1.3;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 15px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    word-wrap: break-word;
+  }
+  .json-content pre .string { color: #6a9d5f; }
+  .json-content pre .number { color: #5a7bb8; }
+  .json-content pre .boolean { color: #b85a5a; }
+  .json-content pre .null { color: #8a8a8a; }
+  .json-content pre .key { color: #a85a8a; }
+</style>
+<script nonce="{{ .CspNonce }}">
+  // JSON syntax highlighting
+  function highlightJSON() {
+    const pre = document.getElementById('debug-json');
+    if (!pre || !pre.textContent) return;
+    
+    let text = pre.textContent;
+    
+    // Escape HTML first
+    text = text.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;');
+    
+    // Use a more careful approach - process in specific order
+    // 1. First, protect strings by replacing them with placeholders
+    const strings = [];
+    text = text.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, function(match, content) {
+      strings.push(match);
+      return `__STRING_${strings.length - 1}__`;
+    });
+    
+    // 2. Now highlight other elements safely
+    text = text.replace(/\b(-?\d+\.?\d*)\b/g, '<span class="number">$1</span>');
+    text = text.replace(/\b(true|false)\b/g, '<span class="boolean">$1</span>');
+    text = text.replace(/\bnull\b/g, '<span class="null">null</span>');
+    
+    // 3. Restore strings with highlighting
+    strings.forEach((str, index) => {
+      text = text.replace(`__STRING_${index}__`, `<span class="string">${str}</span>`);
+    });
+    
+    pre.innerHTML = text;
+  }
+  
+  // Run highlighting with multiple attempts to ensure it works
+  function runHighlighting() {
+    highlightJSON();
+  }
+  
+  // Try multiple times to ensure content is loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runHighlighting);
+  } else {
+    runHighlighting();
+  }
+  
+  // Additional attempts with delays
+  setTimeout(runHighlighting, 100);
+  setTimeout(runHighlighting, 500);
+  setTimeout(runHighlighting, 1000);
+</script>
+{{ end }}
+{{ end }} 

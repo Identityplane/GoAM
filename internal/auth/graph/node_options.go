@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/model"
@@ -18,8 +19,8 @@ var PasswordOrSocialLoginNode = &NodeDefinition{
 		"useEmail":           "if 'true' then show email input, otherwise will as for username as input",
 		"showForgotPassword": "if 'true' then show forgot password input, otherwise hide it",
 		"showPasskeys":       "if 'true' then show passkeys options, otherwise hide it",
-		"showSocial1":        "if 'true' then show social1 input, otherwise hide it",
-		"showSocial2":        "if 'true' then show social2 input, otherwise hide it",
+		"social1":            "if 'true' then show social1 input, otherwise hide it",
+		"social2":            "if 'true' then show social2 input, otherwise hide it",
 		"social1Provider":    "Currently build in are 'google' and 'github'. If not set the default button will be shown",
 		"social2Provider":    "Currently build in are 'google' and 'github'. If not set the default button will be shown",
 	},
@@ -29,8 +30,12 @@ var PasswordOrSocialLoginNode = &NodeDefinition{
 func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 
 	// if option is not set we return the prompt
+	// check if starts with passwordOrSocialLogin:prompted
+	latestHistory := state.GetLatestHistory()
+	latestIsOptionsNdoe := strings.HasPrefix(latestHistory, "passwordOrSocialLogin:prompted")
+
 	option, ok := input["option"]
-	if !ok {
+	if !latestIsOptionsNdoe || !ok {
 
 		// For passkey discovery we create a passkey challenge
 		passkeysLoginOptions, err := generatePasskeysChallenge(state, "", "")

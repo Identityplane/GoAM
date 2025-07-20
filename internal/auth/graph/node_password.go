@@ -68,16 +68,19 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 
 	// Check if user exists
 	if err != nil || user == nil {
+		state.Error = ptr("Invalid password")
 		return model.NewNodeResultWithCondition("fail")
 	}
 
 	// Check if user is locked or has too many failed login attempts
 	if user.FailedLoginAttemptsPassword >= maxFailedPasswordAttempts || user.PasswordLocked {
+		state.Error = ptr("User is locked")
 		return model.NewNodeResultWithCondition("locked")
 	}
 
 	// If the user has no password set we need to output no password state
 	if user.PasswordCredential == "" {
+		state.Error = ptr("User has no password")
 		return model.NewNodeResultWithCondition("noPassword")
 	}
 
@@ -91,9 +94,11 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 		_ = services.UserRepo.Update(ctx, user)
 
 		if user.FailedLoginAttemptsPassword >= maxFailedPasswordAttempts {
+			state.Error = ptr("User is locked")
 			return model.NewNodeResultWithCondition("locked")
 		}
 
+		state.Error = ptr("Invalid password")
 		return model.NewNodeResultWithCondition("fail")
 	}
 
