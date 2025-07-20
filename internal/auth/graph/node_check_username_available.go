@@ -9,6 +9,9 @@ import (
 
 var CheckUsernameAvailableNode = &NodeDefinition{
 	Name:                 "checkUsernameAvailable",
+	PrettyName:           "Check Username Availability",
+	Description:          "Checks if a username is available for registration by querying the user database",
+	Category:             "User Management",
 	Type:                 model.NodeTypeLogic,
 	RequiredContext:      []string{"username"},
 	OutputContext:        []string{},

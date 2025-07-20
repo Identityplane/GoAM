@@ -10,6 +10,8 @@ import (
 
 var PasswordOrSocialLoginNode = &NodeDefinition{
 	Name:                 "passwordOrSocialLogin",
+	PrettyName:           "Password or Social Login",
+	Description:          "This node is used to login with password or social login",
 	Type:                 model.NodeTypeQueryWithLogic,
 	RequiredContext:      []string{""},
 	PossiblePrompts:      map[string]string{"option": "text", "username": "text", "password": "password", "email": "email", "passkeysLoginOptions": "json", "passkeysFinishLoginJson": "json"},

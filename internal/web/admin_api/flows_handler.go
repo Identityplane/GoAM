@@ -302,15 +302,21 @@ func HandleListNodes(ctx *fasthttp.RequestCtx) {
 	// Get all node definitions and convert to API format
 	nodes := make([]NodeInfo, 0, len(graph.NodeDefinitions))
 	for _, node := range graph.NodeDefinitions {
+
+		prettyName := node.PrettyName
+		if prettyName == "" {
+			prettyName = node.Name
+		}
+
 		nodes = append(nodes, NodeInfo{
 			Use:                  node.Name,
 			Type:                 string(node.Type),
-			PrettyName:           node.Name, // TODO: Add pretty name
-			Category:             "",        // TODO: Add category
+			PrettyName:           prettyName, // TODO: Add pretty name
+			Category:             "",         // TODO: Add category
 			RequiredContext:      node.RequiredContext,
 			OutputContext:        node.OutputContext,
 			PossibleResultStates: node.PossibleResultStates,
-			Description:          "",                       // TODO: Add description
+			Description:          node.Description,
 			CustomConfigOptions:  node.CustomConfigOptions, // TODO: Add custom config options
 		})
 	}

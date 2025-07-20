@@ -16,6 +16,9 @@ import (
 
 var PasskeyRegisterNode = &NodeDefinition{
 	Name:            "registerPasskey",
+	PrettyName:      "Register Passkey",
+	Description:     "Registers a new passkey (WebAuthn credential) for the user to enable passwordless authentication",
+	Category:        "Passkeys",
 	Type:            model.NodeTypeQueryWithLogic,
 	RequiredContext: []string{"username"},
 	PossiblePrompts: map[string]string{
@@ -28,6 +31,9 @@ var PasskeyRegisterNode = &NodeDefinition{
 
 var PasskeysVerifyNode = &NodeDefinition{
 	Name:            "verifyPasskey",
+	PrettyName:      "Verify Passkey",
+	Description:     "Verifies a passkey (WebAuthn credential) for passwordless authentication",
+	Category:        "Passkeys",
 	Type:            model.NodeTypeQueryWithLogic,
 	RequiredContext: []string{"username"},
 	PossiblePrompts: map[string]string{
@@ -41,6 +47,9 @@ var PasskeysVerifyNode = &NodeDefinition{
 
 var PasskeysCheckUserRegistered = &NodeDefinition{
 	Name:                 "checkPasskeyRegistered",
+	PrettyName:           "Check Passkey Registration",
+	Description:          "Checks if a user has already registered a passkey for passwordless authentication",
+	Category:             "Passkeys",
 	Type:                 model.NodeTypeLogic,
 	RequiredContext:      []string{"username"},
 	PossiblePrompts:      nil,
@@ -51,6 +60,9 @@ var PasskeysCheckUserRegistered = &NodeDefinition{
 
 var AskEnrollPasskeyNode = &NodeDefinition{
 	Name:                 "askEnrollPasskey",
+	PrettyName:           "Ask to Enroll Passkey",
+	Description:          "Prompts the user to choose whether they want to enroll a passkey for future passwordless authentication",
+	Category:             "Passkeys",
 	Type:                 model.NodeTypeQueryWithLogic,
 	RequiredContext:      []string{},
 	PossiblePrompts:      map[string]string{"enrollPasskey": "boolean"},
