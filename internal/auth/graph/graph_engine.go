@@ -70,6 +70,11 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 		return state, errors.New("history size limit reached")
 	}
 
+	// If the flow is nil we return an error
+	if flow == nil {
+		return state, errors.New("invalid flow")
+	}
+
 	// If the state is empty we set it to the init node
 	if state.Current == "" {
 		state.Current = flow.Start

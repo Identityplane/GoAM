@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/web/webutils"
 
 	"github.com/valyala/fasthttp"
 )
@@ -49,10 +50,14 @@ func HandleOpenIDConfiguration(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// If the realm does not have a base url we infer it from the request
 	baseURL := loadedRealm.Config.BaseUrl
+	if baseURL == "" {
+		baseURL = webutils.GetFallbackUrl(ctx, tenant, realm)
+	}
 
 	config := OpenIDConfiguration{
-		Issuer:                            baseURL,
+		Issuer:                            loadedRealm.Config.BaseUrl,
 		AuthorizationEndpoint:             baseURL + "/oauth2/authorize",
 		TokenEndpoint:                     baseURL + "/oauth2/token",
 		UserinfoEndpoint:                  baseURL + "/oauth2/userinfo",
