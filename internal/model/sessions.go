@@ -9,21 +9,31 @@ import (
 
 // Represents a ongoing execution of a flow
 type AuthenticationSession struct {
-	RunID                    string            `json:"run_id"`
-	SessionIdHash            string            `json:"session_id_hash"`
-	FlowId                   string            `json:"flow_id"`
-	Current                  string            `json:"current"` // active node
-	Context                  map[string]string `json:"context"` // dynamic values (inputs + outputs)
-	History                  []string          `json:"history"` // executed node names
-	Error                    *string           `json:"error,omitempty"`
-	Result                   *FlowResult       `json:"result,omitempty"`
-	User                     *User             `json:"user,omitempty"`
+	RunID                    string            `json:"run_id"`            // Unique identifier for the flow execution
+	SessionIdHash            string            `json:"session_id_hash"`   // Hash of the session id
+	FlowId                   string            `json:"flow_id"`           // Id of the flow
+	Current                  string            `json:"current"`           // active node
+	Context                  map[string]string `json:"context"`           // dynamic values (inputs + outputs)
+	History                  []string          `json:"history"`           // executed node names
+	Error                    *string           `json:"error,omitempty"`   // Error message to be displayed to the user
+	Result                   *FlowResult       `json:"result,omitempty"`  // Result of the flow execution
+	User                     *User             `json:"user,omitempty"`    // The loaded user from the database
 	Prompts                  map[string]string `json:"prompts,omitempty"` // Prompts to be shown to the user, if applicable
 	Oauth2SessionInformation *Oauth2Session    `json:"oauth2_request,omitempty"`
-	CreatedAt                time.Time         `json:"created_at"`
-	ExpiresAt                time.Time         `json:"expires_at"`
-	LoginUri                 string            `json:"login_uri"` // Uri of the login flow
-	Debug                    bool              `json:"debug"`
+	CreatedAt                time.Time         `json:"created_at"` // Time the session was created
+	ExpiresAt                time.Time         `json:"expires_at"` // Time when this auth session will expire
+
+	// LoginUri is the uri of the login endpoints where the actual authentication takes place
+	LoginUri string `json:"login_uri"`
+
+	// FinishUri is the uri where the user will be redirected after the flow has been completed
+	// When using oaoth2 the graph handler will use this to redirect back oauth2/finishauthorize which will
+	// itself redirect to the client application
+	FinishUri string `json:"finish_uri"` // Uri of the finish endpoint
+
+	// Debug is a flag to enable debug mode
+	// This will add additional debug logs as well as the render to display the debug information which contains sensitive information
+	Debug bool `json:"debug"`
 }
 
 func (s *AuthenticationSession) GetLatestHistory() string {

@@ -10,6 +10,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/web/webutils"
 
 	"github.com/valyala/fasthttp"
 )
@@ -85,17 +86,17 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	// Save the updated state in the session
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, *newSession)
 
-	// If we are in an oauth2 flow we need to use the finish function to finish the oaith2 flow
-	if newSession.Result != nil && newSession.Oauth2SessionInformation != nil {
+	// If the result is set and finish uri is set we redirect to the finish uri
+	// without deleting the session so the endpoint can finish the flow
+	if newSession.Result != nil && newSession.FinishUri != "" {
 
 		// We forward to the finish authorization endpoint
-		url := fmt.Sprintf("%s/oauth2/finishauthorize", loadedRealm.Config.BaseUrl)
-		ctx.Redirect(url, fasthttp.StatusSeeOther)
+		webutils.RedirectTo(ctx, newSession.FinishUri)
 		return
 	}
 
+	// If the result is set we clear the session
 	if newSession.Result != nil {
-		// If the result is set we clear the session
 		service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, tenant, realm, session.SessionIdHash)
 	}
 
@@ -194,6 +195,11 @@ func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, 
 
 func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow, debug bool) (*model.AuthenticationSession, error) {
 	log := logger.GetLogger()
+
+	// If the base url is empty we use the fallback url
+	if baseUrl == "" {
+		baseUrl = webutils.GetFallbackUrl(ctx, tenant, realm)
+	}
 
 	// if not we create a new session
 	loginUri := baseUrl + "/auth/" + flow.Route

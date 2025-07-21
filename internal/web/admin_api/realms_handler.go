@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/internal/web/webutils"
+
 	"github.com/Identityplane/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
@@ -38,6 +40,11 @@ func HandleGetRealm(ctx *fasthttp.RequestCtx) {
 	}
 
 	realmConfig := loadedRealm.Config
+
+	// For each visible realm set the base url to the fallback url if not set
+	if realmConfig.BaseUrl == "" {
+		realmConfig.BaseUrl = webutils.GetFallbackUrl(ctx, tenant, realm)
+	}
 
 	// Marshal response to JSON with pretty printing
 	jsonData, err := json.MarshalIndent(realmConfig, "", "  ")

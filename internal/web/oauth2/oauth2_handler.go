@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/auth"
+	"github.com/Identityplane/GoAM/internal/web/webutils"
 
 	"github.com/valyala/fasthttp"
 )
@@ -49,6 +51,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		State:               string(ctx.QueryArgs().Peek("state")),
 		CodeChallenge:       string(ctx.QueryArgs().Peek("code_challenge")),
 		CodeChallengeMethod: string(ctx.QueryArgs().Peek("code_challenge_method")),
+		Nonce:               string(ctx.QueryArgs().Peek("nonce")),
 		Prompt:              string(ctx.QueryArgs().Peek("prompt")),
 	}
 
@@ -77,6 +80,12 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 
 	// After we validated the redirect URI we can use it as the trusted redirect URI
 	redirectUri = oauth2request.RedirectURI
+
+	// If there are no allowed flows we return an error
+	if len(application.AllowedAuthenticationFlows) == 0 {
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "No allowed authentication flows", oauth2request, redirectUri)
+		return
+	}
 
 	// If the flow id is not set as an additional paramater we default to the first flow of the allowed flows
 	if flowId == "" {
@@ -113,6 +122,13 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// We set the finish url of the auth session to the oauth2/finishauthorize endpoint
+	baseUrl := loadedRealm.Config.BaseUrl
+	if baseUrl == "" {
+		baseUrl = webutils.GetFallbackUrl(ctx, tenant, realm)
+	}
+	session.FinishUri = fmt.Sprintf("%s/oauth2/finishauthorize", baseUrl)
+
 	// Set the oauth2 context to the session
 	session.Oauth2SessionInformation = &model.Oauth2Session{}
 	session.Oauth2SessionInformation.AuthorizeRequest = oauth2request
@@ -132,20 +148,12 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Otherwise we redirect to the login page where the user will be prompted
-	loginUrl := fmt.Sprintf("%s/auth/%s", loadedRealm.Config.BaseUrl, flow.Route)
 
 	// Save the session
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, *session)
 
-	// If the debug paramter is set we add it to the login url
-	if ctx.QueryArgs().Has("debug") {
-		loginUrl += "?debug"
-	}
-	// Set the response headers
-	ctx.SetStatusCode(fasthttp.StatusSeeOther)
-	ctx.Response.Header.Set("Location", loginUrl)
-	ctx.Response.Header.Set("Cache-Control", "no-store")
-	ctx.Response.Header.Set("Pragma", "no-cache")
+	// Redirect to the login page
+	webutils.RedirectTo(ctx, session.LoginUri)
 }
 
 // This functions starts the graph execution and peeks if there is a prompt
@@ -156,6 +164,11 @@ func peekGraphExecutionForPromptParameter(session *model.AuthenticationSession, 
 	registry := loadedRealm.Repositories
 	if registry == nil {
 		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorServerError, ErrorDescription: "Internal server error. Service registry not initialized"}
+	}
+
+	// if the flow has no definition we return an error
+	if flow.Definition == nil {
+		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorServerError, ErrorDescription: "Internal server error. Flow has no definition"}
 	}
 
 	// Run the flow engine with the current state and input
@@ -272,12 +285,15 @@ func HandleTokenEndpoint(ctx *fasthttp.RequestCtx) {
 	tokenRequest.Scope = bodyParams.Get("scope")
 
 	// Parse the client authentication
-	clientAuthentication := &service.Oauth2ClientAuthentication{}
-	clientAuthentication.ClientID = bodyParams.Get("client_id")
-	clientAuthentication.ClientSecret = bodyParams.Get("client_secret")
+	clientAuthentication := getClientAuthenticationFromRequest(ctx)
+
+	// If the client_id it not set in the body we take it from the client authentication
+	if tokenRequest.ClientID == "" {
+		tokenRequest.ClientID = clientAuthentication.ClientID
+	}
 
 	// Process the token request
-	tokenResponse, oauthError := service.GetServices().OAuth2Service.ProcessTokenRequest(tenant, realm, tokenRequest, clientAuthentication)
+	tokenResponse, oauthError := service.GetServices().OAuth2Service.ProcessTokenRequest(tenant, realm, tokenRequest, &clientAuthentication)
 	if oauthError != nil {
 		RenderOauth2ErrorWithoutRedirect(ctx, oauthError.Error, oauthError.ErrorDescription)
 		return
@@ -295,6 +311,41 @@ func HandleTokenEndpoint(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.SetBody(jsonData)
+}
+
+func getClientAuthenticationFromRequest(ctx *fasthttp.RequestCtx) service.Oauth2ClientAuthentication {
+
+	clientAuthentication := service.Oauth2ClientAuthentication{}
+
+	// If we have an Authorization header with Basic we use it
+	authorization := string(ctx.Request.Header.Peek("Authorization"))
+	if strings.HasPrefix(authorization, "Basic ") {
+
+		// Base 64 decode the client id and secret
+		decoded, err := base64.StdEncoding.DecodeString(authorization[6:])
+
+		if err == nil {
+			basicAuth := strings.SplitN(string(decoded), ":", 2)
+
+			if len(basicAuth) == 2 {
+				clientAuthentication.ClientID = basicAuth[0]
+				clientAuthentication.ClientSecret = basicAuth[1]
+				return clientAuthentication
+			}
+		}
+	}
+
+	// parse request parameter from application/x-www-form-urlencoded
+	body := ctx.PostBody()
+	bodyParams, err := url.ParseQuery(string(body))
+	if err != nil {
+		return clientAuthentication
+	}
+
+	clientAuthentication.ClientID = bodyParams.Get("client_id")
+	clientAuthentication.ClientSecret = bodyParams.Get("client_secret")
+
+	return clientAuthentication
 }
 
 func RenderOauth2ErrorWithoutRedirect(ctx *fasthttp.RequestCtx, errorCode string, errorDescription string) {
