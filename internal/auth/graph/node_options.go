@@ -18,13 +18,14 @@ var PasswordOrSocialLoginNode = &NodeDefinition{
 	OutputContext:        []string{"username", "password"},
 	PossibleResultStates: []string{"password", "forgotPassword", "passkey", "social1", "social2", "social3"},
 	CustomConfigOptions: map[string]string{
-		"useEmail":           "if 'true' then show email input, otherwise will as for username as input",
-		"showForgotPassword": "if 'true' then show forgot password input, otherwise hide it",
-		"showPasskeys":       "if 'true' then show passkeys options, otherwise hide it",
-		"social1":            "if 'true' then show social1 input, otherwise hide it",
-		"social2":            "if 'true' then show social2 input, otherwise hide it",
-		"social1Provider":    "Currently build in are 'google' and 'github'. If not set the default button will be shown",
-		"social2Provider":    "Currently build in are 'google' and 'github'. If not set the default button will be shown",
+		"showRegistrationLink": "if 'true' then show registration link, otherwise hide it",
+		"useEmail":             "if 'true' then show email input, otherwise will as for username as input",
+		"showForgotPassword":   "if 'true' then show forgot password input, otherwise hide it",
+		"showPasskeys":         "if 'true' then show passkeys options, otherwise hide it",
+		"social1":              "if 'true' then show social1 input, otherwise hide it",
+		"social2":              "if 'true' then show social2 input, otherwise hide it",
+		"social1Provider":      "Currently build in are 'google' and 'github'. If not set the default button will be shown",
+		"social2Provider":      "Currently build in are 'google' and 'github'. If not set the default button will be shown",
 	},
 	Run: RunPasswordOrSocialLoginNode,
 }
@@ -40,7 +41,7 @@ func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *mode
 	if !latestIsOptionsNdoe || !ok {
 
 		// For passkey discovery we create a passkey challenge
-		passkeysLoginOptions, err := generatePasskeysChallenge(state, "", "")
+		passkeysLoginOptions, err := generatePasskeysChallenge(state, node, "", "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate passkey challenge: %w", err)
 		}

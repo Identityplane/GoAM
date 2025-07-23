@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/logger"
@@ -197,7 +199,7 @@ func RunPasskeyVerifyNode(state *model.AuthenticationSession, node *model.GraphN
 	// Otherwise we generate options and prompt for passkeysFinishLoginJson
 	//prompts, err := GeneratePasskeysLoginOptions(state, node, services)
 	// For passkey discovery we create a passkey challenge
-	passkeysLoginOptions, err := generatePasskeysChallenge(state, "", "")
+	passkeysLoginOptions, err := generatePasskeysChallenge(state, node, "", "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate passkey challenge: %w", err)
 	}
@@ -205,13 +207,63 @@ func RunPasskeyVerifyNode(state *model.AuthenticationSession, node *model.GraphN
 	return model.NewNodeResultWithPrompts(map[string]string{"passkeysLoginOptions": passkeysLoginOptions})
 }
 
-func getWebAuthnConfig() *webauthn.Config {
+func getWebAuthnConfig(state *model.AuthenticationSession, node *model.GraphNode) (*webauthn.Config, error) {
+
+	// Passkeys need subdomain in oder to be properly separated between different tenants
+	/* Relying Party Identifier https://www.w3.org/TR/webauthn-2/
+	RP ID
+	In the context of the WebAuthn API, a relying party identifier is a valid domain string identifying the WebAuthn Relying Party on whose behalf a given registration or authentication ceremony is being performed. A public key credential can only be used for authentication with the same entity (as identified by RP ID) it was registered with.
+
+	By default, the RP ID for a WebAuthn operation is set to the caller's origin's effective domain. This default MAY be overridden by the caller, as long as the caller-specified RP ID value is a registrable domain suffix of or is equal to the caller's origin's effective domain. See also § 5.1.3 Create a New Credential - PublicKeyCredential's [[Create]](origin, options, sameOriginWithAncestors) Method and § 5.1.4 Use an Existing Credential to Make an Assertion - PublicKeyCredential's [[Get]](options) Method.*/
+
+	// Get the RPOrigins for the login uri which is everything without the path
+	// Step 1 parse the login uri with net/url
+	loginUri, err := url.Parse(state.LoginUri)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse login uri: %w", err)
+	}
+
+	// Step 2 get the hostname
+
+	// The RpId is the hostname of the RPOrigins without the procotol https://manage.identityplane.cloud -> manage.identityplane.cloud
+	// If we have a custom rpId in the node config, we use it, otherwise we use the origin
+	rpId := loginUri.Hostname()
+	if node != nil && node.CustomConfig != nil && node.CustomConfig["rpId"] != "" {
+		rpId = node.CustomConfig["rpId"]
+	}
+
+	// the RPOrigin is the protocol + hostname + port (if present) unless it is also overwritten in the node config
+	protocol := loginUri.Scheme
+	host := loginUri.Host // This includes both hostname and port if present
+
+	// If we have a custom rpId, we need to construct the origin with the custom rpId but keep the port from the original host
+	var rpOrigin string
+	if node != nil && node.CustomConfig != nil && node.CustomConfig["rpOrigin"] != "" {
+		rpOrigin = node.CustomConfig["rpOrigin"]
+	} else if node != nil && node.CustomConfig != nil && node.CustomConfig["rpId"] != "" {
+		// Use custom rpId but keep the port from original host
+		if strings.Contains(host, ":") {
+			port := strings.Split(host, ":")[1]
+			rpOrigin = protocol + "://" + rpId + ":" + port
+		} else {
+			rpOrigin = protocol + "://" + rpId
+		}
+	} else {
+		rpOrigin = protocol + "://" + host
+	}
+
+	// If we have a custom rpDisplayName in the node config, we use it, otherwise we use "Go IAM"
+	rpDisplayName := "Go IAM"
+	if node != nil && node.CustomConfig != nil && node.CustomConfig["rpDisplayName"] != "" {
+		rpDisplayName = node.CustomConfig["rpDisplayName"]
+	}
 
 	return &webauthn.Config{
-		RPDisplayName: "Go IAM",
-		RPID:          "localhost",
-		RPOrigins:     []string{"http://localhost:8080"},
-	}
+		RPDisplayName: rpDisplayName,
+		RPID:          rpId,
+		RPOrigins:     []string{rpOrigin},
+	}, nil
 }
 
 func GeneratePasskeysOptions(state *model.AuthenticationSession, node *model.GraphNode) (map[string]string, error) {
@@ -221,7 +273,7 @@ func GeneratePasskeysOptions(state *model.AuthenticationSession, node *model.Gra
 		return nil, fmt.Errorf("user must be loaded before registering a passkey")
 	}
 
-	optionsJSON, err := generatePasskeysChallenge(state, user.Username, user.ID)
+	optionsJSON, err := generatePasskeysChallenge(state, node, user.Username, user.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate passkeys challenge: %w", err)
@@ -232,10 +284,13 @@ func GeneratePasskeysOptions(state *model.AuthenticationSession, node *model.Gra
 	return *prompts, nil
 }
 
-func generatePasskeysChallenge(state *model.AuthenticationSession, username string, userId string) (string, error) {
+func generatePasskeysChallenge(state *model.AuthenticationSession, node *model.GraphNode, username string, userId string) (string, error) {
 
 	// Init passkys
-	wconfig := getWebAuthnConfig()
+	wconfig, err := getWebAuthnConfig(state, node)
+	if err != nil {
+		return "", fmt.Errorf("failed to get webauthn config: %w", err)
+	}
 	webAuth, err := webauthn.New(wconfig)
 
 	if err != nil {
@@ -296,7 +351,10 @@ func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.
 	}
 
 	// Re-initialize the WebAuthn config
-	wconfig := getWebAuthnConfig()
+	wconfig, err := getWebAuthnConfig(state, node)
+	if err != nil {
+		return "failure", fmt.Errorf("failed to initialize WebAuthn: %w", err)
+	}
 	webAuth, err := webauthn.New(wconfig)
 	if err != nil {
 		return "failure", fmt.Errorf("failed to initialize WebAuthn: %w", err)
@@ -336,7 +394,10 @@ func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.
 func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *model.GraphNode, services *repository.Repositories) (map[string]string, error) {
 
 	// Setup config
-	wconfig := getWebAuthnConfig()
+	wconfig, err := getWebAuthnConfig(state, node)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize webauthn config: %w", err)
+	}
 	webAuth, err := webauthn.New(wconfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize webauthn config: %w", err)
@@ -417,7 +478,10 @@ func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNo
 	}
 
 	// WebAuthn verify
-	wconfig := getWebAuthnConfig()
+	wconfig, err := getWebAuthnConfig(state, node)
+	if err != nil {
+		return "failure", fmt.Errorf("failed to initialize WebAuthn: %w", err)
+	}
 
 	webAuth, err := webauthn.New(wconfig)
 	if err != nil {
