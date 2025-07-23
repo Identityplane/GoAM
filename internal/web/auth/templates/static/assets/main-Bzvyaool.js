@@ -809,12 +809,54 @@ async function startPasskeyRegistration() {
     console.error(err);
   }
 }
+async function initOnboardingWithPasskey() {
+  console.log("initializing OnboardingWithPasskey");
+  const passkeyButton = document.getElementById("passkey-button");
+  if (passkeyButton) {
+    passkeyButton.addEventListener("click", async () => {
+      await startPasskeyOnboarding();
+    });
+  }
+}
+async function startPasskeyOnboarding() {
+  var _a;
+  try {
+    const emailInput = document.getElementById("email");
+    const email = emailInput == null ? void 0 : emailInput.value;
+    if (!email) {
+      emailInput.reportValidity();
+      emailInput.focus();
+      return;
+    }
+    const actionBtn = document.getElementById("action");
+    actionBtn.value = "passkey";
+    const optionsInput = (_a = document.getElementById("passkeysOptions")) == null ? void 0 : _a.value;
+    const options = JSON.parse(optionsInput);
+    options.publicKey.user.name = email;
+    options.publicKey.user.displayName = email;
+    options.publicKey.challenge = base64urlToBuffer(options.publicKey.challenge);
+    options.publicKey.user.id = base64urlToBuffer(options.publicKey.user.id);
+    const useMock = false;
+    let cred;
+    if (useMock) ;
+    else {
+      cred = await navigator.credentials.create({ publicKey: options.publicKey });
+    }
+    serializedCred = serializeCredential(cred);
+    document.getElementById("passkeysFinishRegistrationJson").value = JSON.stringify(serializedCred);
+    document.getElementById("onboarding-with-passkey-form").submit();
+  } catch (err) {
+    alert("Passkey registration failed: " + err.message);
+    console.error(err);
+  }
+}
 const nodeHandlers = {
   "emailOTP": initEmailOTP,
   "passwordOrSocialLogin": initPasswordOrSocialLogin,
   "hcaptcha": initHcaptcha,
   "verifyPasskey": initVerifyPasskey,
-  "registerPasskey": initRegisterPasskey
+  "registerPasskey": initRegisterPasskey,
+  "onboardingWithPasskey": initOnboardingWithPasskey
   // Add more node handlers here as needed
 };
 document.addEventListener("DOMContentLoaded", function() {

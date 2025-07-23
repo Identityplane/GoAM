@@ -17,6 +17,7 @@ var NodeDefinitions = map[string]*NodeDefinition{
 	PasskeyRegisterNode.Name:         PasskeyRegisterNode,
 	PasskeysVerifyNode.Name:          PasskeysVerifyNode,
 	PasskeysCheckUserRegistered.Name: PasskeysCheckUserRegistered,
+	PasskeyOnboardingNode.Name:       PasskeyOnboardingNode,
 
 	// User Management
 	LoadUserByUsernameNode.Name: LoadUserByUsernameNode,
@@ -38,6 +39,9 @@ var NodeDefinitions = map[string]*NodeDefinition{
 	// Social Login
 	GithubLoginNode.Name:      GithubLoginNode,
 	GithubCreateUserNode.Name: GithubCreateUserNode,
+
+	// Debug
+	DebugNode.Name: DebugNode,
 }
 
 func GetNodeDefinitionByName(name string) *NodeDefinition {

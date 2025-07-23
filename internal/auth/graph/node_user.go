@@ -17,6 +17,7 @@ var LoadUserByUsernameNode = &NodeDefinition{
 	RequiredContext:      []string{"username"},
 	OutputContext:        []string{"user_id", "username"},
 	PossibleResultStates: []string{"loaded", "not_found"},
+	CustomConfigOptions:  map[string]string{"user_lookup_method": "if set to 'email' or 'loginIdentifier' the email or loginIdentifier will be used to lookup the user, defaults to username"},
 	Run:                  RunLoadUserNode,
 }
 

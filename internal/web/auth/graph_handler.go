@@ -102,7 +102,14 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	// Render the result
 	currentNode := flow.Definition.Nodes[newSession.Current]
-	Render(ctx, flow.Definition, newSession, currentNode, newSession.Prompts, loadedRealm.Config.BaseUrl)
+
+	// If the base url is empty we use the fallback url
+	baseUrl := loadedRealm.Config.BaseUrl
+	if baseUrl == "" {
+		baseUrl = webutils.GetFallbackUrl(ctx, tenant, realm)
+	}
+
+	Render(ctx, flow.Definition, newSession, currentNode, newSession.Prompts, baseUrl)
 }
 
 func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session model.AuthenticationSession) (*model.AuthenticationSession, error) {

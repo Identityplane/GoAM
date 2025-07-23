@@ -182,7 +182,26 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 		if nextNodeName, ok := node.Next[condition]; ok {
 			state.Current = nextNodeName
 		} else {
-			return nil, fmt.Errorf("no next node defined for condition '%s'", condition)
+
+			// If we have no next node defined we search for an failureResult node
+			// TODO we should log that
+			foundFailureResult := false
+
+			// Go through all nodes until we find one of type failureResult
+			for nodeName, node := range flow.Nodes {
+				if node.Use == "failureResult" {
+
+					// Overwrite the current node with the failureResult node
+					state.Error = &[]string{"Invalid node transition"}[0]
+					state.Current = nodeName
+					foundFailureResult = true
+					break
+				}
+			}
+
+			if !foundFailureResult {
+				return nil, fmt.Errorf("no next node and no failureResult node defined for condition '%s'", condition)
+			}
 		}
 
 		// Clear inputs as next node does not expect any inputs

@@ -50,6 +50,7 @@ func TestNodesAPI_E2E(t *testing.T) {
 		"social1",
 		"social2",
 		"social3",
+		"register",
 	)
 
 	node.Object().

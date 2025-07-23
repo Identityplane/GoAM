@@ -19,7 +19,7 @@ import (
 var PasskeyRegisterNode = &NodeDefinition{
 	Name:            "registerPasskey",
 	PrettyName:      "Register Passkey",
-	Description:     "Registers a new passkey (WebAuthn credential) for the user to enable passwordless authentication",
+	Description:     "Registers a new passkey (WebAuthn credential) for the user to enable passwordless authentication. User must already be logged in",
 	Category:        "Passkeys",
 	Type:            model.NodeTypeQueryWithLogic,
 	RequiredContext: []string{"username"},
