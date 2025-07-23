@@ -39,6 +39,7 @@ var NodeDefinitions = map[string]*NodeDefinition{
 	// Social Login
 	GithubLoginNode.Name:      GithubLoginNode,
 	GithubCreateUserNode.Name: GithubCreateUserNode,
+	TelegramLoginNode.Name:    TelegramLoginNode,
 
 	// Debug
 	DebugNode.Name: DebugNode,

@@ -5,6 +5,7 @@ import { initHcaptcha } from './lib/nodes/hcaptcha.js'
 import { initVerifyPasskey } from './lib/nodes/verifyPasskey.js'
 import { initRegisterPasskey } from './lib/nodes/registerPasskey.js'
 import { initOnboardingWithPasskey } from './lib/nodes/onboardingWithPasskey.js'
+import { initTelegramLogin } from './lib/nodes/telegramLogin.js'
 // Node-specific initialization
 
 const nodeHandlers = {
@@ -15,6 +16,7 @@ const nodeHandlers = {
     'verifyPasskey': initVerifyPasskey,
     'registerPasskey': initRegisterPasskey,
     'onboardingWithPasskey': initOnboardingWithPasskey,
+    'telegramLogin': initTelegramLogin,
     // Add more node handlers here as needed
 }
 

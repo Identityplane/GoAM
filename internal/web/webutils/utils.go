@@ -21,13 +21,24 @@ func GetFallbackUrl(ctx *fasthttp.RequestCtx, tenant, realm string) string {
 	hostParts := strings.Split(host, ":")
 	hasPort := (len(hostParts) > 1)
 
-	if !hasPort {
-		// if there is no port we assume we have https
-		return fmt.Sprintf("https://%s/%s/%s", host, tenant, realm)
+	protocol := "https"
+
+	// If the host as a port we assume http
+	if hasPort {
+		protocol = "http"
 	}
 
-	// if there is a port we assume we have http as we use this usually for 8080
-	return fmt.Sprintf("http://%s/%s/%s", host, tenant, realm)
+	// if the host is 127.0.0.1 we assume we are in development and use http
+	if host == "127.0.0.1" {
+		protocol = "http"
+	}
+
+	// If the host is localhost we assume we are in development and use http
+	if host == "localhost" {
+		protocol = "http"
+	}
+
+	return fmt.Sprintf("%s://%s/%s/%s", protocol, host, tenant, realm)
 }
 
 func RedirectTo(ctx *fasthttp.RequestCtx, location string) {
