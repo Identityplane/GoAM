@@ -1,0 +1,73 @@
+description: ''
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    next:
+      start: node_0538106c
+  node_75e21c1d:
+    name: failureResult
+    use: failureResult
+    next: {}
+  node_8840e55b:
+    name: successResult
+    use: successResult
+    next: {}
+  node_0538106c:
+    name: passwordOrSocialLogin
+    use: passwordOrSocialLogin
+    custom_config:
+      showSocial1: 'true'
+      useEmail: 'true'
+    next:
+      password: node_74bd6440
+      social1: node_9d568845
+  node_74bd6440:
+    name: validateUsernamePassword
+    use: validateUsernamePassword
+    custom_config:
+      user_lookup_method: email
+    next:
+      success: node_8840e55b
+      fail: node_0538106c
+      locked: node_75e21c1d
+  node_9d568845:
+    name: githubLogin
+    use: githubLogin
+    custom_config:
+      github-client-id: Ov23lixgW7LykCkdRfuA
+      github-client-secret: 75685c8076cd6f5646e7f227a8dda4010a75e7cb
+      github-scope: read:user,user:email
+    next:
+      existing-user: node_8840e55b
+      failure: node_75e21c1d
+      new-user: node_adb9147d
+  node_adb9147d:
+    name: githubCreateUser
+    use: githubCreateUser
+    next:
+      created: node_8840e55b
+editor:
+  nodes:
+    init:
+      x: -275.36507468037746
+      'y': 129.0773043936318
+    node_75e21c1d:
+      x: 1377.7747855122325
+      'y': 505.82658469471994
+    node_8840e55b:
+      x: 1488.830453939303
+      'y': -252.7394156705812
+    node_0538106c:
+      x: -122.0893497479091
+      'y': 22.01525150913315
+    node_74bd6440:
+      x: 331.03415433845123
+      'y': -288.4538802762494
+    node_9d568845:
+      x: 325.74136102606064
+      'y': 381.8536337994565
+    node_adb9147d:
+      x: 833.7259743992953
+      'y': 427.33017852694013

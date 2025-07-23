@@ -8,6 +8,11 @@ flows:
     route: /login
     active: yes
     definition_location: login_or_register.yaml
+  newlogin:
+    name: New Login
+    route: /newlogin
+    active: yes
+    definition_location: newlogin.yaml
 
 applications:
   management-ui:
