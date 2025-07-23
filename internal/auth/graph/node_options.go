@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
-var PasswordOrSocialLoginNode = &NodeDefinition{
+var PasswordOrSocialLoginNode = &model.NodeDefinition{
 	Name:                 "passwordOrSocialLogin",
 	PrettyName:           "Password or Social Login",
 	Description:          "This node is used to login with password or social login",
@@ -30,7 +29,7 @@ var PasswordOrSocialLoginNode = &NodeDefinition{
 	Run: RunPasswordOrSocialLoginNode,
 }
 
-func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// if option is not set we return the prompt
 	// check if starts with passwordOrSocialLogin:prompted

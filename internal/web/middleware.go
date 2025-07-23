@@ -11,8 +11,8 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"

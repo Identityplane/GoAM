@@ -13,8 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 )
 
@@ -24,7 +23,7 @@ const (
 	TelegramProviderString        = "telegram"
 )
 
-var TelegramLoginNode = &NodeDefinition{
+var TelegramLoginNode = &model.NodeDefinition{
 	Name:                 "telegramLogin",
 	PrettyName:           "Telegram Login",
 	Description:          "Handles Telegram authentication flow that redirects to Telegram and then back to the app",
@@ -42,7 +41,7 @@ var TelegramLoginNode = &NodeDefinition{
 	Run: RunTelegramLoginNode,
 }
 
-func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	botToken := node.CustomConfig["botToken"]
 

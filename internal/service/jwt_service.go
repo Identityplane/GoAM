@@ -8,7 +8,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/lib/jwt_ec256"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/google/uuid"
 )

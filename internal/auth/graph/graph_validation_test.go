@@ -3,7 +3,7 @@ package graph
 import (
 	"testing"
 
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/stretchr/testify/assert"
 )

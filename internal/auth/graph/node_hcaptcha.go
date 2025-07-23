@@ -6,8 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 // HCaptchaVerifier defines the interface for hCaptcha verification
@@ -18,7 +17,7 @@ type HCaptchaVerifier interface {
 // DefaultHCaptchaVerifier implements HCaptchaVerifier using the hCaptcha API
 type DefaultHCaptchaVerifier struct{}
 
-var HcaptchaNode = &NodeDefinition{
+var HcaptchaNode = &model.NodeDefinition{
 	Name:                 "hcaptcha",
 	PrettyName:           "hCaptcha Verification",
 	Description:          "Verifies hCaptcha responses to prevent automated attacks and ensure human interaction",
@@ -43,7 +42,7 @@ func SetHCaptchaVerifier(verifier HCaptchaVerifier) {
 	hcaptchaVerifier = verifier
 }
 
-func RunHcaptchaNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunHcaptchaNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 	response := input["hcaptcha"]
 
 	// Check if custom config hcaptcha_sitekey is set

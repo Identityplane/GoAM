@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/config"
-	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/valyala/fasthttp"
 )

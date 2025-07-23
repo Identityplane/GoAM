@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
-	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/webutils"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/valyala/fasthttp"
 )
@@ -21,7 +20,7 @@ type GraphHandler struct {
 	Flow     *model.FlowDefinition
 	Tenant   string
 	Realm    string
-	Services *repository.Repositories
+	Services *model.Repositories
 }
 
 // HandleAuthRequest processes authentication requests and manages the authentication flow

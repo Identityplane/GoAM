@@ -7,12 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/lib"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
-var UpdatePasswordNode = &NodeDefinition{
+var UpdatePasswordNode = &model.NodeDefinition{
 	Name:                 "updatePassword",
 	PrettyName:           "Update Password",
 	Description:          "Updates the user's password in the database with a new hashed password",
@@ -24,7 +23,7 @@ var UpdatePasswordNode = &NodeDefinition{
 	Run:                  RunUpdatePasswordNode,
 }
 
-var ValidateUsernamePasswordNode = &NodeDefinition{
+var ValidateUsernamePasswordNode = &model.NodeDefinition{
 	Name:                 "validateUsernamePassword",
 	PrettyName:           "Validate Username and Password",
 	Description:          "Validates the provided username and password against the database and handles account locking",
@@ -40,7 +39,7 @@ var ValidateUsernamePasswordNode = &NodeDefinition{
 	Run: RunValidateUsernamePasswordNode,
 }
 
-func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	username := state.Context["username"]
 	password := state.Context["password"]
@@ -121,7 +120,7 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 	return model.NewNodeResultWithCondition("success")
 }
 
-func RunUpdatePasswordNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunUpdatePasswordNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	if state.User == nil {
 		return model.NewNodeResultWithError(errors.New("user must be loaded before updating password"))

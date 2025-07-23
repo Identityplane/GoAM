@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 // SigningKeyDB interface for signing key database operations

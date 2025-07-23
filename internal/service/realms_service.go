@@ -8,7 +8,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/pkg/errors"
 )
@@ -36,12 +36,12 @@ type flowRealmYaml struct {
 
 // LoadedRealm wraps a RealmConfig with metadata for tracking its source.
 type LoadedRealm struct {
-	Config       *model.Realm             // parsed realm config
-	RealmID      string                   // composite ID like "acme/customers"
-	Repositories *repository.Repositories // services for this realm
+	Config       *model.Realm        // parsed realm config
+	RealmID      string              // composite ID like "acme/customers"
+	Repositories *model.Repositories // services for this realm
 }
 
-func NewLoadedRealm(realmConfig *model.Realm, repos repository.Repositories) *LoadedRealm {
+func NewLoadedRealm(realmConfig *model.Realm, repos model.Repositories) *LoadedRealm {
 
 	realmId := realmConfig.Tenant + "/" + realmConfig.Realm
 
@@ -85,7 +85,7 @@ func (s *realmServiceImpl) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
 	// Load the realm with repo
 	userRepo := repository.NewUserRepository(tenant, realm, s.userDb)
 	emailSender := repository.NewDefaultEmailSender()
-	repos := &repository.Repositories{
+	repos := &model.Repositories{
 		UserRepo:    &userRepo,
 		EmailSender: emailSender,
 	}
@@ -109,7 +109,7 @@ func (s *realmServiceImpl) GetAllRealms() (map[string]*LoadedRealm, error) {
 		// Load the realm with repo
 		userRepo := repository.NewUserRepository(realmConfig.Tenant, realmConfig.Realm, s.userDb)
 		emailSender := repository.NewDefaultEmailSender()
-		repos := &repository.Repositories{
+		repos := &model.Repositories{
 			UserRepo:    &userRepo,
 			EmailSender: emailSender,
 		}

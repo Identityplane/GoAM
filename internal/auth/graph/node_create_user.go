@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/lib"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/google/uuid"
 )
 
-var CreateUserNode = &NodeDefinition{
+var CreateUserNode = &model.NodeDefinition{
 	Name:            "createUser",
 	PrettyName:      "Create User",
 	Description:     "Creates a new user account in the database with the provided username and password",
@@ -28,7 +27,7 @@ var CreateUserNode = &NodeDefinition{
 	Run:                  RunCreateUserNode,
 }
 
-func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 	ctx := context.Background()
 
 	// Check if we have a user in the context

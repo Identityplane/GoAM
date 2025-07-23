@@ -8,15 +8,14 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
-var PasskeyRegisterNode = &NodeDefinition{
+var PasskeyRegisterNode = &model.NodeDefinition{
 	Name:            "registerPasskey",
 	PrettyName:      "Register Passkey",
 	Description:     "Registers a new passkey (WebAuthn credential) for the user to enable passwordless authentication. User must already be logged in",
@@ -31,7 +30,7 @@ var PasskeyRegisterNode = &NodeDefinition{
 	Run:                  RunPasskeyRegisterNode,
 }
 
-var PasskeysVerifyNode = &NodeDefinition{
+var PasskeysVerifyNode = &model.NodeDefinition{
 	Name:            "verifyPasskey",
 	PrettyName:      "Verify Passkey",
 	Description:     "Verifies a passkey (WebAuthn credential) for passwordless authentication",
@@ -47,7 +46,7 @@ var PasskeysVerifyNode = &NodeDefinition{
 	Run:                  RunPasskeyVerifyNode,
 }
 
-var PasskeysCheckUserRegistered = &NodeDefinition{
+var PasskeysCheckUserRegistered = &model.NodeDefinition{
 	Name:                 "checkPasskeyRegistered",
 	PrettyName:           "Check Passkey Registration",
 	Description:          "Checks if a user has already registered a passkey for passwordless authentication",
@@ -60,7 +59,7 @@ var PasskeysCheckUserRegistered = &NodeDefinition{
 	Run:                  RunCheckUserHasPasskeyNode,
 }
 
-var AskEnrollPasskeyNode = &NodeDefinition{
+var AskEnrollPasskeyNode = &model.NodeDefinition{
 	Name:                 "askEnrollPasskey",
 	PrettyName:           "Ask to Enroll Passkey",
 	Description:          "Prompts the user to choose whether they want to enroll a passkey for future passwordless authentication",
@@ -74,7 +73,7 @@ var AskEnrollPasskeyNode = &NodeDefinition{
 }
 
 // Very simple node that asks the user if they want to enroll a passkey
-func RunAskEnrollPasskeyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunAskEnrollPasskeyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	enrollPasskey := input["enrollPasskey"]
 
@@ -88,7 +87,7 @@ func RunAskEnrollPasskeyNode(state *model.AuthenticationSession, node *model.Gra
 
 }
 
-func tryLoadUserFromFlowContext(state *model.AuthenticationSession, services *repository.Repositories) (*model.User, error) {
+func tryLoadUserFromFlowContext(state *model.AuthenticationSession, services *model.Repositories) (*model.User, error) {
 
 	userId := state.Context["user_id"]
 	username := state.Context["username"]
@@ -127,7 +126,7 @@ func tryLoadUserFromFlowContext(state *model.AuthenticationSession, services *re
 	return nil, nil
 }
 
-func RunCheckUserHasPasskeyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunCheckUserHasPasskeyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// Check if user is already loaded, if not we load it by id/email/username
 	user := state.User
@@ -154,7 +153,7 @@ func RunCheckUserHasPasskeyNode(state *model.AuthenticationSession, node *model.
 	}
 }
 
-func RunPasskeyRegisterNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunPasskeyRegisterNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// Check if input is present, if not generate options, if present process registration
 	if _, ok := input["passkeysFinishRegistrationJson"]; !ok {
@@ -177,7 +176,7 @@ func RunPasskeyRegisterNode(state *model.AuthenticationSession, node *model.Grap
 	}
 }
 
-func RunPasskeyVerifyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunPasskeyVerifyNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// If we have a passkeysFinishLoginJson in the input we add it to the context
 	passkeysFinishLoginJson, ok := input["passkeysFinishLoginJson"]
@@ -324,7 +323,7 @@ func generatePasskeysChallenge(state *model.AuthenticationSession, node *model.G
 	return string(optionsJSON), nil
 }
 
-func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (string, error) {
+func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (string, error) {
 
 	ctx := context.Background()
 
@@ -391,7 +390,7 @@ func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.
 	return "success", nil
 }
 
-func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *model.GraphNode, services *repository.Repositories) (map[string]string, error) {
+func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *model.GraphNode, services *model.Repositories) (map[string]string, error) {
 
 	// Setup config
 	wconfig, err := getWebAuthnConfig(state, node)
@@ -424,7 +423,7 @@ func GeneratePasskeysLoginOptions(state *model.AuthenticationSession, node *mode
 	}, nil
 }
 
-func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (string, error) {
+func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (string, error) {
 	log := logger.GetLogger()
 
 	// Load session from context

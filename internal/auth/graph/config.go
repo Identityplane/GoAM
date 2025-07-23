@@ -1,6 +1,8 @@
 package graph
 
-var NodeDefinitions = map[string]*NodeDefinition{
+import "github.com/Identityplane/GoAM/pkg/model"
+
+var NodeDefinitions = map[string]*model.NodeDefinition{
 	InitNode.Name:                   InitNode,
 	AskUsernameNode.Name:            AskUsernameNode,
 	AskPasswordNode.Name:            AskPasswordNode,
@@ -45,7 +47,7 @@ var NodeDefinitions = map[string]*NodeDefinition{
 	DebugNode.Name: DebugNode,
 }
 
-func GetNodeDefinitionByName(name string) *NodeDefinition {
+func GetNodeDefinitionByName(name string) *model.NodeDefinition {
 	if def, ok := NodeDefinitions[name]; ok {
 		return def
 	}

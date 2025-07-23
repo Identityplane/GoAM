@@ -5,28 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
-
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 )
 
 const MAX_HISTORY_SIZE = 100
-
-type NodeDefinition struct {
-	Name                 string            // e.g. "askUsername", references as use
-	PrettyName           string            // "Ask Username"
-	Description          string            // Description of the node as text
-	Category             string            // Category for the editor
-	Type                 model.NodeType    // query, logic, etc.
-	RequiredContext      []string          `json:"inputs"`  // field that the node requires from the flow context
-	OutputContext        []string          `json:"outputs"` // fields that the node will set in the flow context
-	PossiblePrompts      map[string]string `json:"prompts"` // key: label/type shown to user, will be returned via the user input argument
-	PossibleResultStates []string
-	CustomConfigOptions  map[string]string                                                                                                                                      // e.g. ["success", "fail"]
-	Run                  func(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) // Run function for logic nodes, must either return a condition or a set of prompts
-}
 
 type Engine struct {
 	Flow *model.FlowDefinition
@@ -58,7 +42,7 @@ func InitFlow(flow *model.FlowDefinition) *model.AuthenticationSession {
 // returns the state also in case of an error to allow for debugging
 // - flow state when graph is requesting prompt or is finished
 // - error if any internal error occurred
-func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs map[string]string, services *repository.Repositories) (*model.AuthenticationSession, error) {
+func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs map[string]string, services *model.Repositories) (*model.AuthenticationSession, error) {
 
 	// Check if state is present and valid
 	if state == nil {
@@ -87,7 +71,7 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 	}
 
 	// Load node definition from node name
-	def := getNodeDefinitionByName(node.Use)
+	def := GetNodeDefinitionByName(node.Use)
 	if def == nil {
 		return state, fmt.Errorf("node definition for '%s' not found", node.Use)
 	}
@@ -217,7 +201,7 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 
 // ProcessQueryTypeNode processes a query node
 // and returns the next state and any prompts to be shown to the user
-func ProcessQueryTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func ProcessQueryTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *model.NodeDefinition, inputs map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// If no inputs are present send prompts to user
 	if inputs == nil {
@@ -232,7 +216,7 @@ func ProcessQueryTypeNode(state *model.AuthenticationSession, node *model.GraphN
 	return &model.NodeResult{Prompts: nil, Condition: "submitted"}, nil
 }
 
-func ProcessResultTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func ProcessResultTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *model.NodeDefinition, inputs map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// we expect no inputs for a result node
 	if inputs != nil {
@@ -271,7 +255,7 @@ func ProcessResultTypeNode(state *model.AuthenticationSession, node *model.Graph
 
 // ProcessInitTypeNode processes an init node
 // and returns the next state and any prompts to be shown to the user
-func ProcessInitTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func ProcessInitTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *model.NodeDefinition, inputs map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// Run init node logic
 	result, err := def.Run(state, node, inputs, services)
@@ -290,7 +274,7 @@ func ProcessInitTypeNode(state *model.AuthenticationSession, node *model.GraphNo
 
 // ProcessLogicTypeNode processes a logic node
 // and returns the next state
-func ProcessLogicTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func ProcessLogicTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *model.NodeDefinition, inputs map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// Run node logic
 	result, err := def.Run(state, node, inputs, services)
@@ -307,7 +291,7 @@ func ProcessLogicTypeNode(state *model.AuthenticationSession, node *model.GraphN
 
 // Process NodeTypeQueryWithLogic node
 // and returns the next state and any prompts to be shown to the user
-func ProcessQueryWithLogicTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *NodeDefinition, inputs map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func ProcessQueryWithLogicTypeNode(state *model.AuthenticationSession, node *model.GraphNode, def *model.NodeDefinition, inputs map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// Run node logic
 	result, err := def.Run(state, node, inputs, services)
@@ -327,11 +311,4 @@ func ProcessQueryWithLogicTypeNode(state *model.AuthenticationSession, node *mod
 
 	// if no result is returned, return an error
 	return nil, fmt.Errorf("query node '%s' must return a prompt or a condition", node.Name)
-}
-
-func getNodeDefinitionByName(name string) *NodeDefinition {
-	if def, ok := NodeDefinitions[name]; ok {
-		return def
-	}
-	return nil
 }

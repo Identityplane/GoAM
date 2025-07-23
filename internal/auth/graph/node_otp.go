@@ -8,12 +8,11 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
-var EmailOTPNode = &NodeDefinition{
+var EmailOTPNode = &model.NodeDefinition{
 	Name:                 "emailOTP",
 	PrettyName:           "Email OTP Verification",
 	Description:          "Sends a one-time password via email and verifies the user's response for multi-factor authentication",
@@ -33,7 +32,7 @@ var EmailOTPNode = &NodeDefinition{
 	Run: RunEmailOTPNode,
 }
 
-func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 	otp := input["otp"]
 	email := state.Context["email"]
 
@@ -98,7 +97,7 @@ func generateOTP() string {
 	return fmt.Sprintf("%06d", otp)
 }
 
-func sendEmailOTP(email string, otp string, node *model.GraphNode, services *repository.Repositories) error {
+func sendEmailOTP(email string, otp string, node *model.GraphNode, services *model.Repositories) error {
 	log := logger.GetLogger()
 
 	// As a mock we just log the OTP for now

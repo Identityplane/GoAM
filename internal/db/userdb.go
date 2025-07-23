@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 // Interface for the user db

@@ -5,12 +5,13 @@ import (
 	"net/smtp"
 
 	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 type DefaultEmailSender struct {
 }
 
-func NewDefaultEmailSender() EmailSender {
+func NewDefaultEmailSender() model.EmailSender {
 	return &DefaultEmailSender{}
 }
 
