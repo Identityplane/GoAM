@@ -148,9 +148,9 @@ nodes:
     name: githubLogin
     use: githubLogin
     custom_config:
-      github-client-id: Iv23liEpPyKAuqwXlnJQ
-      github-client-secret: e98ae05eea9a4de2e6889a6dafb7b703a30ab34b
-      github-scope: user:email
+      github-client-id: Ov23lixgW7LykCkdRfuA
+      github-client-secret: 75685c8076cd6f5646e7f227a8dda4010a75e7cb
+      github-scope: read:user,user:email
       create-user-if-not-exists: 'true'
     next:
       sucess: node_486f74aa
