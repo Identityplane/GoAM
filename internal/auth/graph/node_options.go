@@ -16,7 +16,7 @@ var PasswordOrSocialLoginNode = &NodeDefinition{
 	RequiredContext:      []string{""},
 	PossiblePrompts:      map[string]string{"option": "text", "username": "text", "password": "password", "email": "email", "passkeysLoginOptions": "json", "passkeysFinishLoginJson": "json"},
 	OutputContext:        []string{"username", "password"},
-	PossibleResultStates: []string{"password", "forgotPassword", "passkey", "social1", "social2", "social3"},
+	PossibleResultStates: []string{"password", "forgotPassword", "passkey", "social1", "social2", "social3", "register"},
 	CustomConfigOptions: map[string]string{
 		"showRegistrationLink": "if 'true' then show registration link, otherwise hide it",
 		"useEmail":             "if 'true' then show email input, otherwise will as for username as input",
@@ -70,6 +70,8 @@ func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *mode
 		}
 
 		return model.NewNodeResultWithCondition("passkey")
+	case "register":
+		return model.NewNodeResultWithCondition("register")
 	case "social1":
 		return model.NewNodeResultWithCondition("social1")
 	case "social2":

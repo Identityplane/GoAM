@@ -13,21 +13,57 @@ import (
 )
 
 var CreateUserNode = &NodeDefinition{
-	Name:                 "createUser",
-	PrettyName:           "Create User",
-	Description:          "Creates a new user account in the database with the provided username and password",
-	Category:             "User Management",
-	Type:                 model.NodeTypeLogic,
-	RequiredContext:      []string{"username", "password"},
+	Name:            "createUser",
+	PrettyName:      "Create User",
+	Description:     "Creates a new user account in the database with the provided username and password",
+	Category:        "User Management",
+	Type:            model.NodeTypeLogic,
+	RequiredContext: []string{"username", "password", "email"},
+	CustomConfigOptions: map[string]string{
+		"checkUsernameUnique": "If set to 'true' the username will be checked for uniqueness. In that case username must be present in the context or user object.",
+		"checkEmailUnique":    "If set to 'true' the email will be checked for uniqueness. In that case email must be present in the context or user object.",
+	},
 	OutputContext:        []string{"user_id"},
-	PossibleResultStates: []string{"success", "fail"},
+	PossibleResultStates: []string{"success", "existing"},
 	Run:                  RunCreateUserNode,
 }
 
 func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
 	ctx := context.Background()
-	username := state.Context["username"]
-	password := state.Context["password"]
+
+	// Check if we have a user in the context
+	if state.User == nil {
+		state.User = &model.User{
+			ID:        uuid.NewString(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+	}
+
+	// If we have a username in the context we set it
+	if state.Context["username"] != "" {
+		state.User.Username = state.Context["username"]
+	}
+
+	// If we have an email in the context we set it
+	if state.Context["email"] != "" {
+		state.User.Email = state.Context["email"]
+	}
+
+	// If we have a password in the context we set it
+	if state.Context["password"] != "" {
+		password := state.Context["password"]
+		hashed, err := lib.HashPassword(password)
+		if err != nil {
+			return model.NewNodeResultWithError(fmt.Errorf("failed to hash password: %w", err))
+		}
+		state.User.PasswordCredential = string(hashed)
+	}
+
+	// TODO Currently we have uniqueness for usernames. This needs to go away but for now we just hack a random id into the username if it is not set by tacking the first 8 characters of the id onto the username
+	if state.User.Username == "" {
+		state.User.Username = state.User.ID[:8]
+	}
 
 	userRepo := services.UserRepo
 	if userRepo == nil {
@@ -35,38 +71,27 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 	}
 
 	// Check for existing user
-	existing, _ := userRepo.GetByUsername(ctx, username)
+	existing, _ := userRepo.GetByID(ctx, state.User.ID)
 	if existing != nil {
-		return model.NewNodeResultWithTextError("username already exists")
+		return model.NewNodeResultWithCondition("existing")
 	}
 
-	hashed, err := lib.HashPassword(password)
-	if err != nil {
-		return model.NewNodeResultWithError(fmt.Errorf("failed to hash password: %w", err))
+	if node.CustomConfig["checkUsernameUnique"] == "true" {
+		existing, _ = userRepo.GetByUsername(ctx, state.User.Username)
+		if existing != nil {
+			return model.NewNodeResultWithCondition("existing")
+		}
 	}
 
-	user := &model.User{
-		ID:                 uuid.NewString(),
-		Username:           username,
-		PasswordCredential: string(hashed),
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Now(),
+	if node.CustomConfig["checkEmailUnique"] == "true" {
+		existing, _ = userRepo.GetByEmail(ctx, state.User.Email)
+		if existing != nil {
+			return model.NewNodeResultWithCondition("existing")
+		}
 	}
 
-	if err := userRepo.Create(ctx, user); err != nil {
+	if err := userRepo.Create(ctx, state.User); err != nil {
 		return model.NewNodeResultWithError(fmt.Errorf("failed to create user: %w", err))
-	}
-
-	state.User = user
-	state.Context["user_id"] = user.ID
-	state.Context["username"] = user.Username
-
-	state.Result = &model.FlowResult{
-		UserID:        user.ID,
-		Username:      user.Username,
-		Authenticated: true,
-		AuthLevel:     model.AuthLevel1FA,
-		FlowName:      "user_register",
 	}
 
 	return model.NewNodeResultWithCondition("success")
