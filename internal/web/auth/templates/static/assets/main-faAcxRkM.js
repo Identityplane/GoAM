@@ -850,13 +850,34 @@ async function startPasskeyOnboarding() {
     console.error(err);
   }
 }
+async function initTelegramLogin() {
+  console.log("initializing TelegramLogin");
+  const tgAuthResult = window.location.hash.split("tgAuthResult=")[1];
+  if (tgAuthResult) {
+    console.log("tgAuthResult", tgAuthResult);
+    const tgAuthResultInput = document.getElementById("tgAuthResult");
+    if (tgAuthResultInput) {
+      tgAuthResultInput.value = tgAuthResult;
+    } else {
+      console.error("Telegram auth result input not found");
+      return;
+    }
+    const form = document.getElementById("telegramLoginForm");
+    if (form) {
+      form.submit();
+    } else {
+      console.error("Telegram login form not found");
+    }
+  }
+}
 const nodeHandlers = {
   "emailOTP": initEmailOTP,
   "passwordOrSocialLogin": initPasswordOrSocialLogin,
   "hcaptcha": initHcaptcha,
   "verifyPasskey": initVerifyPasskey,
   "registerPasskey": initRegisterPasskey,
-  "onboardingWithPasskey": initOnboardingWithPasskey
+  "onboardingWithPasskey": initOnboardingWithPasskey,
+  "telegramLogin": initTelegramLogin
   // Add more node handlers here as needed
 };
 document.addEventListener("DOMContentLoaded", function() {
