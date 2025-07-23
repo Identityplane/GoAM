@@ -34,7 +34,7 @@ func TestUsernamePasswordFlow_E2E(t *testing.T) {
 		Expect().
 		Status(http.StatusOK)
 
-	resp.Body().Contains("Registration successful")
+	resp.Body().Contains("Registration successful!")
 
 	// ---------- LOGIN ----------
 	loginCookie := e.GET("/acme/customers/auth/login").Expect().
