@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal/config"
-	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/test/integration"
 
 	"github.com/stretchr/testify/assert"

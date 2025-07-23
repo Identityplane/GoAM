@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 // RenderDOTGraph generates a Graphviz DOT representation of a flow.

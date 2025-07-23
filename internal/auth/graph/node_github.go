@@ -10,14 +10,13 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/google/uuid"
 )
 
-var GithubLoginNode = &NodeDefinition{
+var GithubLoginNode = &model.NodeDefinition{
 	Name:                 "githubLogin",
 	PrettyName:           "GitHub OAuth Login",
 	Description:          "Handles GitHub OAuth authentication flow, including redirect to GitHub and processing the authorization code",
@@ -36,7 +35,7 @@ var GithubLoginNode = &NodeDefinition{
 	Run: RunGithubLoginNode,
 }
 
-var GithubCreateUserNode = &NodeDefinition{
+var GithubCreateUserNode = &model.NodeDefinition{
 	Name:                 "githubCreateUser",
 	PrettyName:           "Create GitHub User",
 	Description:          "Creates a new user account using information from GitHub OAuth authentication",
@@ -58,7 +57,7 @@ var (
 	githubUserURL  = "https://api.github.com/user"
 )
 
-func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	githubClientID := node.CustomConfig["github-client-id"]
 	githubClientSecret := node.CustomConfig["github-client-secret"]
@@ -140,7 +139,7 @@ func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNod
 	return model.NewNodeResultWithCondition("existing-user")
 }
 
-func RunGithubCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunGithubCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// if we have a email in the context we use that, otherwise we use the github email
 	email := state.Context["email"]

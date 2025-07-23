@@ -6,8 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -116,7 +115,7 @@ func TestRunLoadUserNode(t *testing.T) {
 			mockRepo.On("GetByUsername", mock.Anything, tt.username).Return(tt.mockUser, tt.mockError)
 
 			// Create services with mock repository
-			services := &repository.Repositories{
+			services := &model.Repositories{
 				UserRepo: mockRepo,
 			}
 

@@ -4,12 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 // Unlock account logic node
-var UnlockAccountNode = &NodeDefinition{
+var UnlockAccountNode = &model.NodeDefinition{
 	Name:                 "unlockAccount",
 	PrettyName:           "Unlock Account",
 	Description:          "Unlocks a user account that has been locked due to too many failed login attempts",
@@ -21,7 +20,7 @@ var UnlockAccountNode = &NodeDefinition{
 	Run:                  RunUnlockAccountNode,
 }
 
-func RunUnlockAccountNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunUnlockAccountNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 	username := state.Context["username"]
 
 	ctx := context.Background()

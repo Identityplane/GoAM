@@ -6,8 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -56,7 +55,7 @@ func TestRunEmailOTPNode(t *testing.T) {
 
 	// Create mock repository
 	mockUserRepo := new(MockUserRepository)
-	services := &repository.Repositories{
+	services := &model.Repositories{
 		UserRepo: mockUserRepo,
 	}
 

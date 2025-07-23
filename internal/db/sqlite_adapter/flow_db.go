@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 // SQLiteFlowDB implements the FlowDB interface using SQLite

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/valyala/fasthttp"

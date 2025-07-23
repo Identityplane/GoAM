@@ -3,11 +3,10 @@ package graph
 import (
 	"fmt"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
-var InitNode = &NodeDefinition{
+var InitNode = &model.NodeDefinition{
 	Name:                 "init",
 	PrettyName:           "Initialize Flow",
 	Description:          "Initializes the authentication flow and sets up the starting state",
@@ -19,7 +18,7 @@ var InitNode = &NodeDefinition{
 	Run:                  RunInitNode,
 }
 
-var SuccessResultNode = &NodeDefinition{
+var SuccessResultNode = &model.NodeDefinition{
 	Name:                 "successResult",
 	PrettyName:           "Authentication Success",
 	Description:          "Terminal node that indicates successful authentication and returns user information",
@@ -31,7 +30,7 @@ var SuccessResultNode = &NodeDefinition{
 	Run:                  RunAuthSuccessNode,
 }
 
-var FailureResultNode = &NodeDefinition{
+var FailureResultNode = &model.NodeDefinition{
 	Name:                 "failureResult",
 	PrettyName:           "Authentication Failure",
 	Description:          "Terminal node that indicates failed authentication",
@@ -43,7 +42,7 @@ var FailureResultNode = &NodeDefinition{
 	Run:                  RunAuthFailureNode,
 }
 
-func RunAuthFailureNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunAuthFailureNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 	state.Result = &model.FlowResult{
 		UserID:        "",
 		Username:      "",
@@ -55,7 +54,7 @@ func RunAuthFailureNode(state *model.AuthenticationSession, node *model.GraphNod
 	}, nil
 }
 
-var MessageConfirmationNode = &NodeDefinition{
+var MessageConfirmationNode = &model.NodeDefinition{
 	Name:            "messageConfirmation",
 	PrettyName:      "Conformation Dialog",
 	Description:     "Display a message to the user and ask for confirmation",
@@ -74,7 +73,7 @@ var MessageConfirmationNode = &NodeDefinition{
 	},
 }
 
-var AskUsernameNode = &NodeDefinition{
+var AskUsernameNode = &model.NodeDefinition{
 	Name:            "askUsername",
 	PrettyName:      "Ask for Username",
 	Description:     "Prompts the user to enter their username for authentication",
@@ -88,7 +87,7 @@ var AskUsernameNode = &NodeDefinition{
 	PossibleResultStates: []string{"submitted"},
 }
 
-var AskEmailNode = &NodeDefinition{
+var AskEmailNode = &model.NodeDefinition{
 	Name:            "askEmail",
 	PrettyName:      "Ask for Email",
 	Description:     "Prompts the user to enter their email address",
@@ -102,7 +101,7 @@ var AskEmailNode = &NodeDefinition{
 	PossibleResultStates: []string{"submitted"},
 }
 
-var AskPasswordNode = &NodeDefinition{
+var AskPasswordNode = &model.NodeDefinition{
 	Name:            "askPassword",
 	PrettyName:      "Ask for Password",
 	Description:     "Prompts the user to enter their password securely",
@@ -116,7 +115,7 @@ var AskPasswordNode = &NodeDefinition{
 	PossibleResultStates: []string{"submitted"},
 }
 
-var SetVariableNode = &NodeDefinition{
+var SetVariableNode = &model.NodeDefinition{
 	Name:                 "setVariable",
 	PrettyName:           "Set Variable",
 	Description:          "Sets a variable in the flow context with a specified key and value",
@@ -132,12 +131,12 @@ var SetVariableNode = &NodeDefinition{
 	Run: RunSetVariableNode,
 }
 
-func RunInitNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunInitNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	return model.NewNodeResultWithCondition("start")
 }
 
-func RunSetVariableNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunSetVariableNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// check if key is set
 	if node.CustomConfig["key"] == "" {
@@ -157,7 +156,7 @@ func RunSetVariableNode(state *model.AuthenticationSession, node *model.GraphNod
 	return model.NewNodeResultWithCondition("done")
 }
 
-func RunAuthSuccessNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunAuthSuccessNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// If there is a user in the context we use this one
 	if state.User != nil {

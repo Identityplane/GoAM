@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
-var LoadUserByUsernameNode = &NodeDefinition{
+var LoadUserByUsernameNode = &model.NodeDefinition{
 	Name:                 "loadUserByUsername",
 	PrettyName:           "Load User from Database",
 	Description:          "Loads a user from the database based on the username. The username must be provided in the context.",
@@ -21,7 +20,7 @@ var LoadUserByUsernameNode = &NodeDefinition{
 	Run:                  RunLoadUserNode,
 }
 
-func RunLoadUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunLoadUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	username := state.Context["username"]
 	email := state.Context["email"]

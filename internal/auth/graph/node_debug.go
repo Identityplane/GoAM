@@ -1,11 +1,10 @@
 package graph
 
 import (
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
-var DebugNode = &NodeDefinition{
+var DebugNode = &model.NodeDefinition{
 	Name:            "debug",
 	PrettyName:      "Debug Breakpoint",
 	Description:     "This node is used to break the flow and debug the flow. Shows the current flow information if debug mode is enabled.",
@@ -21,7 +20,7 @@ var DebugNode = &NodeDefinition{
 	CustomConfigOptions:  map[string]string{},
 }
 
-func RunDebugNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunDebugNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// If continue is true, we continue the flow
 	if input["continue"] == "true" {

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 // ValidateFlowDefinition checks for basic structural integrity of the flow
@@ -30,7 +30,7 @@ func ValidateFlowDefinition(def *model.FlowDefinition) error {
 	// Check non-terminal nodes have a Next map
 	for name, node := range def.Nodes {
 		nodeType := model.NodeTypeInit
-		if def := getNodeDefinitionByName(node.Use); def != nil {
+		if def := GetNodeDefinitionByName(node.Use); def != nil {
 			nodeType = def.Type
 		} else if node.Use == "successResult" || node.Use == "failureResult" {
 			nodeType = model.NodeTypeResult

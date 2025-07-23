@@ -11,10 +11,10 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph"
 	"github.com/Identityplane/GoAM/internal/lib/oauth2"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/auth"
 	"github.com/Identityplane/GoAM/internal/web/webutils"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/valyala/fasthttp"
 )

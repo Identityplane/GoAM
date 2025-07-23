@@ -8,7 +8,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph"
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/lib"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 // FlowService defines the business logic for flow operations

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/test/integration"
 )
 

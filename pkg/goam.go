@@ -13,15 +13,17 @@ func Run() {
 	internal.Initialize()
 
 	// Start web adapter
-	startWebAdapter()
+	startWebAdapter(":8080")
 }
 
 // startWebAdapter initializes and starts the web server
-func startWebAdapter() {
+func startWebAdapter(addr string) {
+
 	r := web.New()
 	log := logger.GetLogger()
-	log.Info().Msg("server running on http://localhost:8080")
-	if err := fasthttp.ListenAndServe(":8080", web.TopLevelMiddleware(r.Handler)); err != nil {
+	log.Info().Msgf("server running on %s", addr)
+
+	if err := fasthttp.ListenAndServe(addr, web.TopLevelMiddleware(r.Handler)); err != nil {
 		log.Panic().Err(err).Msg("server error")
 	}
 }

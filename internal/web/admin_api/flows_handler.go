@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
-	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/valyala/fasthttp"
 	"gopkg.in/yaml.v2"

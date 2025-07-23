@@ -16,8 +16,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -107,7 +106,7 @@ func getOutdatedTestTelegramCredentials() (string, string) {
 }
 
 // runTelegramLoginNodeWithTime is a test version that accepts a custom time
-func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories, currentTime time.Time) (*model.NodeResult, error) {
+func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories, currentTime time.Time) (*model.NodeResult, error) {
 	botToken := node.CustomConfig["botToken"]
 
 	// Get the bot id from the bot token
@@ -283,7 +282,7 @@ func TestRunTelegramLoginNodeExistingUser(t *testing.T) {
 	mockUserRepo := &MockUserRepository{}
 	mockEmailSender := &MockEmailSender{}
 
-	services := &repository.Repositories{
+	services := &model.Repositories{
 		UserRepo:    mockUserRepo,
 		EmailSender: mockEmailSender,
 	}
@@ -340,7 +339,7 @@ func TestRunTelegramLoginNodeNewUser(t *testing.T) {
 	mockUserRepo := &MockUserRepository{}
 	mockEmailSender := &MockEmailSender{}
 
-	services := &repository.Repositories{
+	services := &model.Repositories{
 		UserRepo:    mockUserRepo,
 		EmailSender: mockEmailSender,
 	}
@@ -399,7 +398,7 @@ func TestRunTelegramLoginNodeNoCreateUser(t *testing.T) {
 	mockUserRepo := &MockUserRepository{}
 	mockEmailSender := &MockEmailSender{}
 
-	services := &repository.Repositories{
+	services := &model.Repositories{
 		UserRepo:    mockUserRepo,
 		EmailSender: mockEmailSender,
 	}
@@ -450,7 +449,7 @@ func TestRunTelegramLoginNodeRedirect(t *testing.T) {
 	mockUserRepo := &MockUserRepository{}
 	mockEmailSender := &MockEmailSender{}
 
-	services := &repository.Repositories{
+	services := &model.Repositories{
 		UserRepo:    mockUserRepo,
 		EmailSender: mockEmailSender,
 	}

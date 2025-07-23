@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 )
 
-var PasskeyOnboardingNode = &NodeDefinition{
+var PasskeyOnboardingNode = &model.NodeDefinition{
 	Name:            "onboardingWithPasskey",
 	PrettyName:      "Passkey Onboarding",
 	Description:     "Onboards a new user by asking for their email and then registering a passkey. No user will be created if the user asks for a password instead.",
@@ -36,7 +35,7 @@ var PasskeyOnboardingNode = &NodeDefinition{
 	Run:                  RunPasskeyOnboardingNode,
 }
 
-func RunPasskeyOnboardingNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (*model.NodeResult, error) {
+func RunPasskeyOnboardingNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
 	// Check if input is present, if not generate options, if present process registration
 	if _, ok := input["option"]; !ok {
@@ -95,7 +94,7 @@ func generateAnonymousPasskeysOptions(state *model.AuthenticationSession, node *
 	return *prompts, nil
 }
 
-func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *repository.Repositories) (string, error) {
+func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (string, error) {
 
 	ctx := context.Background()
 

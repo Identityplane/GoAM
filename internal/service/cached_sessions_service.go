@@ -7,7 +7,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 const (

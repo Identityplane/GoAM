@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Identityplane/GoAM/internal/model"
 	"github.com/Identityplane/GoAM/internal/web/webutils"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/Identityplane/GoAM/internal/service"
 

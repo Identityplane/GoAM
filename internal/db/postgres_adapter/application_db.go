@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/logger"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

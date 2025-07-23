@@ -3,8 +3,7 @@ package graph
 import (
 	"testing"
 
-	"github.com/Identityplane/GoAM/internal/auth/repository"
-	"github.com/Identityplane/GoAM/internal/model"
+	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 // MockHCaptchaVerifier implements HCaptchaVerifier for testing
@@ -18,7 +17,7 @@ func (m *MockHCaptchaVerifier) Verify(response, sitekey, secret string) bool {
 
 func TestRunHcaptchaNode(t *testing.T) {
 	// Create mock services
-	services := &repository.Repositories{}
+	services := &model.Repositories{}
 
 	// Create test cases
 	tests := []struct {
