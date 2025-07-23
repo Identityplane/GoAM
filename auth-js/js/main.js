@@ -4,6 +4,7 @@ import { initPasswordOrSocialLogin } from './lib/nodes/passwordOrSocialLogin.js'
 import { initHcaptcha } from './lib/nodes/hcaptcha.js'
 import { initVerifyPasskey } from './lib/nodes/verifyPasskey.js'
 import { initRegisterPasskey } from './lib/nodes/registerPasskey.js'
+import { initOnboardingWithPasskey } from './lib/nodes/onboardingWithPasskey.js'
 // Node-specific initialization
 
 const nodeHandlers = {
@@ -12,7 +13,8 @@ const nodeHandlers = {
     'hcaptcha': initHcaptcha,
 
     'verifyPasskey': initVerifyPasskey,
-    'registerPasskey': initRegisterPasskey
+    'registerPasskey': initRegisterPasskey,
+    'onboardingWithPasskey': initOnboardingWithPasskey,
     // Add more node handlers here as needed
 }
 
