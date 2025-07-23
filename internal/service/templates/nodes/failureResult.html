@@ -1,9 +1,9 @@
 {{ define "content" }}
 <div class="login-form">
-  <h2>Flow Completed</h2>
+  <h2>Authentication Failed</h2>
 
-  {{ if .Message }}
-    <p>{{ .Message }}</p>
+  {{ if index .CustomConfig "message" }}
+    <p>{{ index .CustomConfig "message" }}</p>
   {{ else }}
     <p>The flow has completed.</p>
   {{ end }}

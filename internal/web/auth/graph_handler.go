@@ -133,15 +133,8 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 		return nil, fmt.Errorf("flow definiton not found")
 	}
 
-	// load templates for rendering
-	// TODO currently we reload this with every request, this should be improved
-	if err := InitTemplates(); err != nil {
-		return nil, fmt.Errorf("failed to load templates")
-	}
-
 	// Load the inputs from the request
-	var input map[string]string
-	input = extractPromptsFromRequest(ctx, flow.Definition, session.Current)
+	input := extractPromptsFromRequest(ctx, flow.Definition, session.Current)
 
 	// Run the flow engine with the current state and input
 	newSession, err := graph.Run(flow.Definition, &session, input, registry)

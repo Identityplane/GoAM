@@ -2,38 +2,14 @@ package auth
 
 import (
 	"bytes"
-	"embed"
 	"encoding/json"
 	"fmt"
-	"html/template"
-	"path/filepath"
-	"strings"
 
 	"github.com/Identityplane/GoAM/internal/lib"
+	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/pkg/model"
 
-	"crypto/md5"
-
 	"github.com/valyala/fasthttp"
-)
-
-// Configuration
-var (
-	baseTemplates      *template.Template
-	LayoutTemplatePath = "templates/layout.html"
-	ErrorTemplatePath  = "templates/error.html"
-	NodeTemplatesPath  = "templates/nodes"
-	ComponentsPath     = "templates/components"
-	AssetsManifestPath = "templates/static/manifest.json"
-)
-
-// Loaded asset
-var (
-	AssetsJSName  string
-	AssetsCSSName string
-
-	AssetsJSContent  []byte
-	AssetsCSSContent []byte
 )
 
 // ViewData is passed to all templates for dynamic rendering
@@ -60,82 +36,8 @@ type ViewData struct {
 	CspNonce      string
 }
 
-//go:embed templates/*
-var templatesFS embed.FS
-
-// loadComponents loads all component templates from the components directory
-func loadComponents(tmpl *template.Template) error {
-	entries, err := templatesFS.ReadDir(ComponentsPath)
-	if err != nil {
-		return fmt.Errorf("failed to read components directory: %w", err)
-	}
-
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".html") {
-			componentPath := filepath.Join(ComponentsPath, entry.Name())
-			_, err := tmpl.ParseFS(templatesFS, componentPath)
-			if err != nil {
-				return fmt.Errorf("failed to parse component %s: %w", entry.Name(), err)
-			}
-		}
-	}
-	return nil
-}
-
-// InitTemplates loads and parses the base layout template and all components
-func InitTemplates() error {
-	// Parse the base layout template
-	tmpl, err := template.New("layout").Funcs(template.FuncMap{
-		"title": title,
-	}).ParseFS(templatesFS, LayoutTemplatePath)
-
-	if err != nil {
-		return fmt.Errorf("failed to parse base template: %w", err)
-	}
-
-	// Load all component templates
-	if err := loadComponents(tmpl); err != nil {
-		return fmt.Errorf("failed to load components: %w", err)
-	}
-
-	baseTemplates = tmpl
-
-	// Initialize the assets
-	// Read the manifest file from the templates FS
-	manifest, err := templatesFS.ReadFile(AssetsManifestPath)
-	if err != nil {
-		return fmt.Errorf("failed to read manifest: %w", err)
-	}
-
-	// Parse the manifest
-	var manifestData struct {
-		JS  string `json:"js"`
-		CSS string `json:"css"`
-	}
-
-	if err := json.Unmarshal(manifest, &manifestData); err != nil {
-		return fmt.Errorf("failed to parse manifest: %w", err)
-	}
-
-	AssetsJSName = manifestData.JS
-	AssetsCSSName = manifestData.CSS
-
-	AssetsJSContent, err = templatesFS.ReadFile("templates/static/" + AssetsJSName)
-	if err != nil {
-		return fmt.Errorf("failed to read JS asset: %w", err)
-	}
-
-	AssetsCSSContent, err = templatesFS.ReadFile("templates/static/" + AssetsCSSName)
-	if err != nil {
-		return fmt.Errorf("failed to read CSS asset: %w", err)
-	}
-
-	return nil
-}
-
 // Render is the single public entry point
 func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.AuthenticationSession, resultNode *model.GraphNode, prompts map[string]string, baseUrl string) {
-	var templateFile string
 	var customMessage string
 
 	// Debug information
@@ -153,13 +55,18 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		return
 	}
 
-	// Choosing the right template file
-	if state.Result != nil {
-		templateFile = "result.html"
-		customMessage = resultNode.CustomConfig["message"]
-	} else {
-		currentNode := flow.Nodes[state.Current]
-		templateFile = fmt.Sprintf("%s.html", currentNode.Use)
+	// get the right tempalte
+	currentNode := flow.Nodes[state.Current]
+
+	// Get the template service and load the template
+	templatesService := service.GetServices().TemplatesService
+	tenant := ctx.UserValue("tenant").(string)
+	realm := ctx.UserValue("realm").(string)
+	tmpl, err := templatesService.GetTemplates(tenant, realm, state.FlowId, currentNode.Use)
+
+	if err != nil {
+		RenderError(ctx, "Error loading template: "+err.Error(), state, baseUrl)
+		return
 	}
 
 	// Lookup current node
@@ -214,21 +121,6 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		AssetsJSPath:  baseUrl + "/" + AssetsJSName,
 		AssetsCSSPath: baseUrl + "/" + AssetsCSSName,
 		CspNonce:      cspNonce,
-	}
-
-	// Clone the base template
-	tmpl, err := baseTemplates.Clone()
-	if err != nil {
-		RenderError(ctx, "Template clone error: "+err.Error(), state, baseUrl)
-		return
-	}
-
-	// Parse the node template
-	filepath := filepath.Join(NodeTemplatesPath, templateFile)
-	_, err = tmpl.ParseFS(templatesFS, filepath)
-	if err != nil {
-		RenderError(ctx, "Parse error: "+err.Error(), state, baseUrl)
-		return
 	}
 
 	// Execute the template
@@ -286,7 +178,8 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.Authenticati
 		CspNonce:   cspNonce,
 	}
 
-	tmpl, err := getErrorTemplate()
+	templatesService := service.GetServices().TemplatesService
+	tmpl, err := templatesService.GetErrorTemplate(ctx.UserValue("tenant").(string), ctx.UserValue("realm").(string), state.FlowId)
 
 	if err != nil {
 
@@ -315,75 +208,9 @@ func SimpleErrorHtml(ctx *fasthttp.RequestCtx, msg string) {
 	ctx.SetBodyString(fmt.Sprintf("<html><body><h2>Error</h2><p>%s</p></body></html>", msg))
 }
 
-func getErrorTemplate() (*template.Template, error) {
-	// Parse the base layout template
-	tmpl, err := template.New("error").Funcs(template.FuncMap{
-		"title": title,
-	}).ParseFS(templatesFS, ErrorTemplatePath)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse base template: %w", err)
-	}
-
-	// Load all component templates
-	if err := loadComponents(tmpl); err != nil {
-		return nil, fmt.Errorf("failed to load components: %w", err)
-	}
-
-	return tmpl, nil
-}
-
-// HandleStaticAssets serves the static assets from memory
-// This is used to serve the assets for the global static files
-// like the main.js and style.css that are idependend from the realm
-// served at /{tenant}/{realm}/assets/{filename}
-func HandleStaticAssets(ctx *fasthttp.RequestCtx) {
-	filename := ctx.UserValue("filename").(string)
-
-	// Get the appropriate content and content type
-	var content []byte
-	var contentType string
-	if strings.HasSuffix(filename, ".js") {
-		content = AssetsJSContent
-		contentType = "text/javascript"
-	} else if strings.HasSuffix(filename, ".css") {
-		content = AssetsCSSContent
-		contentType = "text/css"
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		return
-	}
-
-	// Generate ETag from content hash
-	etag := fmt.Sprintf(`"%x"`, md5.Sum(content))
-
-	// Check if client has a matching ETag
-	if match := ctx.Request.Header.Peek("If-None-Match"); match != nil {
-		if string(match) == etag {
-			ctx.SetStatusCode(fasthttp.StatusNotModified)
-			return
-		}
-	}
-
-	// Set caching headers
-	ctx.Response.Header.Set("ETag", etag)
-	ctx.Response.Header.Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
-	ctx.Response.Header.Set("Vary", "Accept-Encoding")
-	ctx.SetContentType(contentType)
-	ctx.SetBody(content)
-	ctx.SetStatusCode(fasthttp.StatusOK)
-}
-
 func resolveErrorMessage(state *model.AuthenticationSession) string {
 	if state.Error != nil {
 		return *state.Error
 	}
 	return ""
-}
-
-func title(s string) string {
-	if len(s) == 0 {
-		return ""
-	}
-	return string(s[0]-32) + s[1:] // capitalize first letter
 }
