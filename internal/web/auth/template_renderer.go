@@ -12,30 +12,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// ViewData is passed to all templates for dynamic rendering
-type ViewData struct {
-	Title         string
-	NodeName      string
-	Prompts       map[string]string
-	Debug         bool
-	Error         string
-	State         *model.AuthenticationSession
-	StateJSON     string
-	FlowName      string
-	Node          *model.GraphNode
-	StylePath     string
-	ScriptPath    string
-	Message       string
-	CustomConfig  map[string]string
-	Tenant        string
-	Realm         string
-	FlowPath      string
-	LoginUri      string
-	AssetsJSPath  string
-	AssetsCSSPath string
-	CspNonce      string
-}
-
 // Render is the single public entry point
 func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.AuthenticationSession, resultNode *model.GraphNode, prompts map[string]string, baseUrl string) {
 	var customMessage string
@@ -100,7 +76,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	ctx.SetUserValue("cspNonce", cspNonce)
 
 	// Create the view data
-	view := &ViewData{
+	view := &service.ViewData{
 		Title:         state.Current,
 		NodeName:      state.Current,
 		Prompts:       prompts,
@@ -164,7 +140,7 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.Authenticati
 	}
 
 	// Create the view data
-	view := &ViewData{
+	view := &service.ViewData{
 		Title:      state.Current,
 		NodeName:   state.Current,
 		Debug:      debug,
