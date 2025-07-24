@@ -2,219 +2,69 @@
 
 ## Overview
 
-The GoAM template system provides a flexible way to render authentication flows with support for custom overrides. Templates are organized in a hierarchical structure that allows for both standard templates and custom overrides per tenant, realm, and flow.
+The template system in GoAM provides a flexible way to render HTML pages for authentication flows. It supports both static templates and dynamic overrides that can be customized per tenant, realm, and flow.
 
 ## Template Structure
 
-### Directory Layout
+### Base Templates
+- **Layout Template** (`templates/layout.html`): The main layout template that wraps all content
+- **Error Template** (`templates/error.html`): Template for error pages
+- **Node Templates** (`templates/nodes/`): Individual page templates for different authentication steps
 
-```
-internal/service/templates/
-├── layout.html          # Base layout template
-├── error.html           # Error page template
-├── nodes/               # Node-specific templates
-│   ├── askEmail.html
-│   ├── askPassword.html
-│   ├── askUsername.html
-│   ├── emailOTP.html
-│   ├── hcaptcha.html
-│   ├── messageConfirmation.html
-│   ├── onboardingWithPasskey.html
-│   ├── passwordOrSocialLogin.html
-│   ├── registerPasskey.html
-│   ├── successResult.html
-│   ├── failureResult.html
-│   ├── telegramLogin.html
-│   └── verifyPasskey.html
-└── components/          # Reusable components
-    ├── debug.html
-    ├── loginWithGoogle.html
-    └── loginWithGitHub.html
-```
+### Components
+- **Components** (`templates/components/`): Reusable template components like debug panels, forms, etc.
 
-### Template Hierarchy
+## Template Overrides
 
-1. **Layout Template** (`layout.html`): The main wrapper that provides the HTML structure
-2. **Node Templates** (`nodes/*.html`): Content templates for specific authentication nodes
-3. **Components** (`components/*.html`): Reusable template components
-4. **Error Template** (`error.html`): Error page template
+### Dynamic Overrides
 
-### Template Structure
-
-#### Layout Template
-The layout template provides the basic HTML structure and includes:
-- HTML head with title, CSS, and JavaScript
-- Main content area where node templates are rendered
-- Debug section (when debug mode is enabled)
-
-```html
-{{ define "layout" }}
-<!DOCTYPE html>
-<html>
-<head>
-  <title>{{ .Title }}</title>
-  <link rel="stylesheet" href="{{ .AssetsCSSPath }}">
-  <script defer src="{{ .AssetsJSPath }}" nonce="{{ .CspNonce }}"></script>
-  <link rel="stylesheet" href="{{ .StylePath }}">
-</head>
-<body>
-  <div class="main-content" data-node="{{ .Node.Use }}">
-    <div class="login-container">
-      {{ if .Error }}
-      <div class="error" style="color: red; font-weight: bold;">
-        {{ .Error }}
-      </div>
-      {{ end }}
-      {{ template "content" . }}
-    </div>
-  </div>
-  {{ template "debug" . }}
-</body>
-</html>
-{{ end }}
-```
-
-#### Node Templates
-Node templates define the content for specific authentication steps:
-
-```html
-{{ define "content" }}
-<form method="POST" class="login-form" action="{{ .LoginUri}}">
-  <h2>Welcome to GoAM</h2>
-  <p>{{index .CustomConfig "message"}}</p>
-
-  <div class="input-group">
-    <input type="hidden" name="step" value="{{ .NodeName }}">
-    <label for="email">Email</label>
-    <input type="email" name="email" id="email" placeholder="email" required />
-  </div>
-  <button type="submit">Login</button>
-</form>
-{{ end }}
-```
-
-#### Components
-Components are reusable template parts that can be included in other templates:
-
-```html
-{{ define "debug" }}
-{{ if .Debug }}
-<div class="debug">
-  <hr><h3>Debug State</h3>
-  <div class="json-viewer">
-    <pre id="debug-json">{{ .StateJSON }}</pre>
-  </div>
-</div>
-{{ end }}
-{{ end }}
-```
-
-## Template Override System
-
-The template system supports dynamic overrides that can be applied per tenant, realm, and flow. This allows for customization without modifying the base templates.
-
-### Override Key Structure
-
-Overrides are identified by a key in the format: `{tenant}/{realm}/{flowId}/{nodeName}`
-
-Examples:
-- `acme/customers/flow1/askEmail` - Override for email input in ACME tenant, customers realm, flow1
-- `acme/customers/flow1/layout` - Override for the entire layout
-- `acme/customers/flow1/error` - Override for error pages
-
-### Creating Template Overrides
-
-#### Content Override
-To override a specific node's content:
+You can create template overrides programmatically using the `TemplatesService`:
 
 ```go
-override := `{{ define "content" }}
-<div class="custom-login">
-  <h1>Custom Login Form</h1>
-  <form method="POST" action="{{ .LoginUri }}">
-    <input type="hidden" name="step" value="{{ .NodeName }}">
-    <label for="email">Email Address</label>
-    <input type="email" name="email" required />
-    <button type="submit">Sign In</button>
-  </form>
-</div>
-{{ end }}`
+service := NewTemplatesService()
 
-err := service.CreateTemplateOverride("acme", "customers", "flow1", "askEmail", override)
-```
+// Override a specific node template
+err := service.CreateTemplateOverride("tenant", "realm", "flowId", "nodeName", templateString)
 
-#### Layout Override
-To override the entire layout:
+// Remove an override
+err := service.RemoveTemplateOverride("tenant", "realm", "flowId", "nodeName")
 
-```go
-layoutOverride := `{{ define "layout" }}
-<!DOCTYPE html>
-<html>
-<head>
-  <title>{{ .Title }}</title>
-  <link rel="stylesheet" href="/custom/styles.css">
-</head>
-<body>
-  <div class="custom-layout">
-    {{ template "content" . }}
-  </div>
-</body>
-</html>
-{{ end }}
-
-{{ define "content" }}
-CUSTOM LAYOUT CONTENT
-{{ end }}`
-
-err := service.CreateTemplateOverride("acme", "customers", "flow1", "layout", layoutOverride)
-```
-
-#### Error Template Override
-To override error pages:
-
-```go
-errorOverride := `{{ define "error" }}
-<!DOCTYPE html>
-<html>
-<head>
-  <title>{{ .Title }}</title>
-</head>
-<body>
-  <div class="custom-error">
-    <h1>Custom Error Page</h1>
-    <p>{{ .Error }}</p>
-  </div>
-</body>
-</html>
-{{ end }}`
-
-err := service.CreateTemplateOverride("acme", "customers", "flow1", "error", errorOverride)
-```
-
-### Managing Template Overrides
-
-#### List All Overrides
-```go
+// List all overrides
 overrides := service.ListTemplateOverrides()
-for key := range overrides {
-    fmt.Printf("Override: %s\n", key)
-}
 ```
 
-#### Remove an Override
+### Static File Overrides
+
+You can also load template overrides from static files:
+
+#### Local Filesystem
 ```go
-err := service.RemoveTemplateOverride("acme", "customers", "flow1", "askEmail")
-if err != nil {
-    // Handle error
-}
+// Load overrides from a local directory
+err := service.LoadTemplateOverridesFromPath("tenant", "realm", "/path/to/templates")
+```
+
+#### Embedded Filesystem
+```go
+// Load overrides from an embedded filesystem (e.g., embed.FS)
+err := service.LoadTemplateOverridesFromFS("tenant", "realm", embeddedFS, "templates")
 ```
 
 ### Override Precedence
 
-1. **Custom Override**: If a custom override exists for the specific tenant/realm/flow/node combination, it will be used
-2. **Standard Template**: If no override exists, the standard template from the filesystem will be used
+Template overrides follow this precedence order:
+1. Dynamic overrides (created via `CreateTemplateOverride`)
+2. Static file overrides (loaded via `LoadTemplateOverridesFromPath` or `LoadTemplateOverridesFromFS`)
+3. Default embedded templates
 
-### Template Data
+### Override Key Format
+
+Overrides are stored using the key format: `tenant/realm/flowId/templateName`
+
+- **Content templates**: `tenant/realm/flowId/nodeName` (e.g., `acme/customers/flow1/askEmail`)
+- **Layout templates**: `tenant/realm/flowId/layout` (e.g., `acme/customers/flow1/layout`)
+- **Error templates**: `tenant/realm/flowId/error` (e.g., `acme/customers/flow1/error`)
+
+## ViewData
 
 All templates receive a `ViewData` struct with the following fields:
 
@@ -243,58 +93,105 @@ type ViewData struct {
 }
 ```
 
-### Template Functions
+## Template Functions
 
-Templates have access to the following functions:
+### Available Functions
+- `title(string)`: Capitalizes the first letter of a string
 
-- `title(s string)`: Capitalizes the first letter of a string
+## Best Practices
 
-### Best Practices
+### Creating Overrides
 
-1. **Use Semantic HTML**: Ensure your templates use proper HTML structure
-2. **Include Required Fields**: Always include hidden fields like `step` with the node name
-3. **Handle Errors**: Use the `.Error` field to display error messages
-4. **Support Debug Mode**: Include debug information when `.Debug` is true
-5. **Use Components**: Leverage the component system for reusable parts
-6. **Test Overrides**: Always test your overrides to ensure they work correctly
+1. **Content Templates**: Define a `content` template block
+   ```html
+   {{ define "content" }}
+   <div class="custom-content">
+     <h1>{{ .Title }}</h1>
+     <!-- Your custom content here -->
+   </div>
+   {{ end }}
+   ```
 
-### Example: Complete Custom Login Form
+2. **Layout Templates**: Define a complete `layout` template
+   ```html
+   {{ define "layout" }}
+   <!DOCTYPE html>
+   <html>
+   <head>
+     <title>{{ .Title }}</title>
+   </head>
+   <body>
+     <div class="custom-layout">
+       {{ template "content" . }}
+     </div>
+   </body>
+   </html>
+   {{ end }}
+   ```
 
-```go
-customLogin := `{{ define "content" }}
-<div class="custom-login-container">
-  <div class="login-header">
-    <h1>Welcome Back</h1>
-    <p>Please sign in to continue</p>
-  </div>
-  
-  {{ if .Error }}
-  <div class="error-message">
-    {{ .Error }}
-  </div>
-  {{ end }}
-  
-  <form method="POST" class="login-form" action="{{ .LoginUri }}">
-    <input type="hidden" name="step" value="{{ .NodeName }}">
-    
-    <div class="form-group">
-      <label for="email">Email Address</label>
-      <input type="email" name="email" id="email" 
-             placeholder="Enter your email" required />
-    </div>
-    
-    <button type="submit" class="btn-primary">
-      Sign In
-    </button>
-  </form>
-  
-  <div class="login-footer">
-    <p>Don't have an account? <a href="/register">Sign up</a></p>
-  </div>
-</div>
-{{ end }}`
+3. **Error Templates**: Define a complete error page
+   ```html
+   {{ define "error" }}
+   <!DOCTYPE html>
+   <html>
+   <head>
+     <title>Error - {{ .Title }}</title>
+   </head>
+   <body>
+     <div class="error-page">
+       <h1>Error</h1>
+       <p>{{ .Error }}</p>
+     </div>
+   </body>
+   </html>
+   {{ end }}
+   ```
 
-err := service.CreateTemplateOverride("acme", "customers", "flow1", "askEmail", customLogin)
+### File Organization
+
+When using static file overrides, organize your templates like this:
+```
+config/tenants/acme/customers/templates/
+├── layout.html          # Custom layout for acme/customers
+├── askEmail.html        # Custom email form for acme/customers
+├── askPassword.html     # Custom password form for acme/customers
+└── error.html          # Custom error page for acme/customers
 ```
 
-This template system provides a powerful and flexible way to customize authentication flows while maintaining the core functionality and security of the GoAM system.
+### Testing Overrides
+
+Always test your template overrides to ensure they render correctly:
+
+```go
+// Test that an override is applied
+tmpl, err := service.GetTemplates("tenant", "realm", "flowId", "nodeName")
+if err != nil {
+    // Handle error
+}
+
+var buf bytes.Buffer
+err = tmpl.ExecuteTemplate(&buf, "layout", viewData)
+if err != nil {
+    // Handle error
+}
+
+output := buf.String()
+// Assert that your custom content is present
+```
+
+## Integration with Embed.FS
+
+The template system supports both local filesystem and embedded filesystem overrides. This is particularly useful for:
+
+1. **Testing**: Use embedded filesystems in tests for consistent behavior
+2. **Deployment**: Embed custom templates into the binary for deployment
+3. **Flexibility**: Choose between file-based and embedded overrides based on your needs
+
+Example with embed.FS:
+```go
+//go:embed custom_templates/*
+var customTemplates embed.FS
+
+// Load overrides from embedded filesystem
+err := service.LoadTemplateOverridesFromFS("tenant", "realm", customTemplates, "custom_templates")
+```
