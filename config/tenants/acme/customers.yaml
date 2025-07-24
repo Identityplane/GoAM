@@ -1,5 +1,5 @@
 realm: customers
-realm_name: Our beautiful Customers
+realm_name: Our beautiful Customers xoxo
 base_url: http://localhost:8080/acme/customers
 
 flows:

@@ -20,6 +20,7 @@ var (
 	UseXForwardedFor             = false
 	NotFoundRedirectUrl          = ""
 	EnableRequestTiming          = false
+	InfrastrcutureAsCodeMode     = false
 )
 
 // Other global configurations
@@ -103,11 +104,34 @@ func InitConfiguration() {
 
 	disableAdminAuthzCheck := os.Getenv("GOIAM_UNSAFE_DISABLE_ADMIN_AUTHZ_CHECK")
 	if disableAdminAuthzCheck == "true" {
-		log.Debug().Msg("disabling admin authz check")
 		UnsafeDisableAdminAuthzCheck = true
 	}
 
-	NotFoundRedirectUrl = os.Getenv("GOIAM_NOT_FOUND_REDIRECT_URL")
-	UseXForwardedFor = os.Getenv("GOIAM_USE_X_FORWARDED_FOR") == "true"
-	EnableRequestTiming = os.Getenv("GOIAM_ENABLE_REQUEST_TIMING") == "true"
+	if UnsafeDisableAdminAuthzCheck {
+		log.Info().Msg("disabling admin authz check")
+	}
+
+	if NotFoundRedirectUrl == "" {
+		NotFoundRedirectUrl = os.Getenv("GOIAM_NOT_FOUND_REDIRECT_URL")
+	}
+
+	if !UseXForwardedFor {
+		UseXForwardedFor = os.Getenv("GOIAM_USE_X_FORWARDED_FOR") == "true"
+	}
+
+	if !EnableRequestTiming {
+		EnableRequestTiming = os.Getenv("GOIAM_ENABLE_REQUEST_TIMING") == "true"
+	}
+
+	if !InfrastrcutureAsCodeMode {
+		InfrastrcutureAsCodeMode = os.Getenv("GOIAM_INFRASTRUCTURE_AS_CODE_MODE") == "true"
+	}
+
+	log.Debug().
+		Bool("infrastructure_as_code_mode", InfrastrcutureAsCodeMode).
+		Bool("unsafe_disable_admin_authz_check", UnsafeDisableAdminAuthzCheck).
+		Bool("use_x_forwarded_for", UseXForwardedFor).
+		Bool("enable_request_timing", EnableRequestTiming).
+		Str("not_found_redirect_url", NotFoundRedirectUrl).
+		Msg("loaded server configuration")
 }
