@@ -65,7 +65,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 			}
 		}
 
-		// Create flows of not existing
+		// Create flows if not existing
 		for _, flow := range realm.Flows {
 			_, exists := flowService.GetFlowById(realm.Tenant, realm.Realm, flow.Id)
 			if !exists {
@@ -77,7 +77,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 			}
 		}
 
-		// Create applications of not existing
+		// Create applications if not existing
 		for _, application := range realm.Applications {
 			_, exists := applicationService.GetApplication(realm.Tenant, realm.Realm, application.ClientId)
 			if !exists {
@@ -86,6 +86,17 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				if err != nil {
 					log.Panic().Err(err).Str("client_id", application.ClientId).Msg("failed to create application")
 				}
+			}
+		}
+
+		// Load custom templates if they exist
+		templatesService := GetServices().TemplatesService
+		templatesPath := filepath.Join(configRoot, "tenants", realm.Tenant, realm.Realm, "templates")
+		if _, err := os.Stat(templatesPath); err == nil {
+			log.Debug().Str("templates_path", templatesPath).Msg("loading custom templates")
+			err := templatesService.LoadTemplateOverridesFromPath(realm.Tenant, realm.Realm, templatesPath)
+			if err != nil {
+				log.Panic().Err(err).Str("templates_path", templatesPath).Msg("failed to load custom templates")
 			}
 		}
 	}

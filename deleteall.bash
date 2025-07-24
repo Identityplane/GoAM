@@ -11,6 +11,32 @@ check_db() {
     fi
 }
 
+# Function to set admin entitlements for a user
+set_admin() {
+    local username="$1"
+    
+    if [ -z "$username" ]; then
+        echo "Error: Username is required!"
+        echo "Usage: $0 set_admin <username>"
+        exit 1
+    fi
+    
+    check_db
+    
+    # Check if user exists in users table with realm="internal" and tenant="internal"
+    local user_exists=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM users WHERE username = '$username' AND realm = 'internal' AND tenant = 'internal';")
+    
+    if [ "$user_exists" -eq 0 ]; then
+        echo "Error: User '$username' not found in users table with realm='internal' and tenant='internal'!"
+        exit 1
+    fi
+    
+    # Update user entitlements to admin level with realm="internal" and tenant="internal"
+    sqlite3 "$DB_FILE" "UPDATE users SET entitlements = '[\"*/*/*\"]' WHERE username = '$username' AND realm = 'internal' AND tenant = 'internal';"
+    
+    echo "Successfully set admin entitlements for user '$username'"
+}
+
 # Function to list all tables
 list_tables() {
     echo "Available tables:"
@@ -68,6 +94,14 @@ main() {
     if [ $# -eq 0 ]; then
         # No parameters provided, list all tables
         list_tables
+    elif [ "$1" = "set_admin" ]; then
+        # Handle set_admin command
+        if [ $# -lt 2 ]; then
+            echo "Error: Username required for set_admin command!"
+            echo "Usage: $0 set_admin <username>"
+            exit 1
+        fi
+        set_admin "$2"
     else
         # Parameter provided, delete from specified table
         delete_table "$1"
