@@ -9,6 +9,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/db/sqlite_adapter"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/web/auth"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -159,6 +160,12 @@ func initDatabase() *service.DatabaseConnections {
 
 	if err != nil {
 		log.Panic().Err(err).Msg("failed to initialize database")
+	}
+
+	// init assets
+	err = auth.InitAssets()
+	if err != nil {
+		log.Panic().Err(err).Msg("failed to initialize assets")
 	}
 
 	return connections
