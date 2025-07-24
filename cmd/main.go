@@ -17,5 +17,7 @@ func main() {
 	log := logger.GetLogger()
 	log.Debug().Str("pwd", wd).Msg("starting goiam 0.0.1")
 
-	pkg.Run()
+	pkg.SetInfrastructureAsCodeMode(true)
+
+	pkg.Run(":8080")
 }

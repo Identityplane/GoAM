@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
 
@@ -64,10 +65,25 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				log.Panic().Err(err).Str("realm", realm.Realm).Msg("failed to create realm")
 			}
 		}
+		// If realm exists, update it if in infrastructure as code mode
+		if exists && config.InfrastrcutureAsCodeMode {
+			log.Debug().Str("realm", realm.Realm).Msg("updating realm")
+			err := realmService.UpdateRealm(&model.Realm{
+				Realm:     realm.Realm,
+				RealmName: realm.RealmName,
+				Tenant:    realm.Tenant,
+				BaseUrl:   realm.BaseUrl,
+			})
+			if err != nil {
+				log.Panic().Err(err).Str("realm", realm.Realm).Msg("failed to update realm")
+			}
+		}
 
 		// Create flows if not existing
 		for _, flow := range realm.Flows {
 			_, exists := flowService.GetFlowById(realm.Tenant, realm.Realm, flow.Id)
+
+			// Create flow if not existing
 			if !exists {
 				log.Debug().Str("flow_id", flow.Id).Msg("creating flow")
 				err := flowService.CreateFlow(realm.Tenant, realm.Realm, *flow)
@@ -75,16 +91,36 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 					log.Panic().Err(err).Str("flow_id", flow.Id).Msg("failed to create flow")
 				}
 			}
+
+			// Update flow if in infrastructure as code mode
+			if exists && config.InfrastrcutureAsCodeMode {
+				log.Debug().Str("flow_id", flow.Id).Msg("updating flow")
+				err := flowService.UpdateFlow(realm.Tenant, realm.Realm, *flow)
+				if err != nil {
+					log.Panic().Err(err).Str("flow_id", flow.Id).Msg("failed to update flow")
+				}
+			}
 		}
 
 		// Create applications if not existing
 		for _, application := range realm.Applications {
 			_, exists := applicationService.GetApplication(realm.Tenant, realm.Realm, application.ClientId)
+
+			// Create application if not existing
 			if !exists {
 				log.Debug().Str("client_id", application.ClientId).Msg("creating application")
 				err := applicationService.CreateApplication(realm.Tenant, realm.Realm, *application)
 				if err != nil {
 					log.Panic().Err(err).Str("client_id", application.ClientId).Msg("failed to create application")
+				}
+			}
+
+			// Update application if in infrastructure as code mode
+			if exists && config.InfrastrcutureAsCodeMode {
+				log.Debug().Str("client_id", application.ClientId).Msg("updating application")
+				err := applicationService.UpdateApplication(realm.Tenant, realm.Realm, *application)
+				if err != nil {
+					log.Panic().Err(err).Str("client_id", application.ClientId).Msg("failed to update application")
 				}
 			}
 		}
