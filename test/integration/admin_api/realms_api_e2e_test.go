@@ -23,8 +23,10 @@ func TestRealmAPI_E2E(t *testing.T) {
 	// Test realm data
 	tenant := "acme"
 	testRealm := map[string]interface{}{
-		"realm":      "test_realm",
-		"realm_name": "Test Realm",
+		"realm":          "test_realm",
+		"realm_name":     "Test Realm",
+		"base_url":       "https://test.example.com",
+		"realm_settings": map[string]string{"theme": "dark", "language": "en"},
 	}
 
 	// Test creating a realm
@@ -37,7 +39,9 @@ func TestRealmAPI_E2E(t *testing.T) {
 			Object().
 			HasValue("tenant", tenant).
 			HasValue("realm", testRealm["realm"]).
-			HasValue("realm_name", testRealm["realm_name"])
+			HasValue("realm_name", testRealm["realm_name"]).
+			HasValue("base_url", testRealm["base_url"]).
+			HasValue("realm_settings", testRealm["realm_settings"])
 	})
 
 	// Test listing realms
@@ -61,13 +65,16 @@ func TestRealmAPI_E2E(t *testing.T) {
 			Object().
 			HasValue("tenant", tenant).
 			HasValue("realm", testRealm["realm"]).
-			HasValue("realm_name", testRealm["realm_name"])
+			HasValue("realm_name", testRealm["realm_name"]).
+			HasValue("base_url", testRealm["base_url"]).
+			HasValue("realm_settings", testRealm["realm_settings"])
 	})
 
 	// Test updating a realm
 	t.Run("Update Realm", func(t *testing.T) {
 		updatePayload := map[string]interface{}{
 			"realm_name": "Updated Test Realm",
+			"base_url":   "https://updated.example.com",
 		}
 
 		e.PATCH("/admin/acme/test_realm/").
@@ -76,7 +83,8 @@ func TestRealmAPI_E2E(t *testing.T) {
 			Status(http.StatusOK).
 			JSON().
 			Object().
-			HasValue("realm_name", updatePayload["realm_name"])
+			HasValue("realm_name", updatePayload["realm_name"]).
+			HasValue("base_url", updatePayload["base_url"])
 
 		// Verify the update
 		e.GET("/admin/acme/test_realm/").
@@ -86,7 +94,74 @@ func TestRealmAPI_E2E(t *testing.T) {
 			Object().
 			HasValue("tenant", tenant).
 			HasValue("realm", testRealm["realm"]).
-			HasValue("realm_name", updatePayload["realm_name"])
+			HasValue("realm_name", updatePayload["realm_name"]).
+			HasValue("base_url", updatePayload["base_url"]).
+			HasValue("realm_settings", testRealm["realm_settings"]) // Settings should remain unchanged
+	})
+
+	// Test updating only the realm settings
+	t.Run("Update Realm Settings Only", func(t *testing.T) {
+		updateSettingsPayload := map[string]interface{}{
+			"realm_settings": map[string]string{
+				"theme":     "light",
+				"language":  "fr",
+				"timezone":  "UTC",
+				"new_field": "new_value",
+			},
+		}
+
+		e.PATCH("/admin/acme/test_realm/").
+			WithJSON(updateSettingsPayload).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			HasValue("realm_settings", updateSettingsPayload["realm_settings"])
+
+		// Verify the settings update
+		e.GET("/admin/acme/test_realm/").
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			HasValue("realm_name", "Updated Test Realm").        // Should remain unchanged
+			HasValue("base_url", "https://updated.example.com"). // Should remain unchanged
+			HasValue("realm_settings", updateSettingsPayload["realm_settings"])
+	})
+
+	// Test creating a realm with empty settings
+	t.Run("Create Realm With Empty Settings", func(t *testing.T) {
+		emptySettingsRealm := map[string]interface{}{
+			"realm":          "test_realm_empty_settings",
+			"realm_name":     "Test Realm Empty Settings",
+			"base_url":       "https://empty.example.com",
+			"realm_settings": map[string]string{},
+		}
+
+		e.POST("/admin/acme/test_realm_empty_settings/").
+			WithJSON(emptySettingsRealm).
+			Expect().
+			Status(http.StatusCreated).
+			JSON().
+			Object().
+			HasValue("tenant", tenant).
+			HasValue("realm", emptySettingsRealm["realm"]).
+			HasValue("realm_name", emptySettingsRealm["realm_name"]).
+			HasValue("base_url", emptySettingsRealm["base_url"]).
+			HasValue("realm_settings", emptySettingsRealm["realm_settings"])
+
+		// Verify the realm was created with empty settings
+		e.GET("/admin/acme/test_realm_empty_settings/").
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			HasValue("realm_settings", map[string]string{})
+
+		// Clean up the test realm
+		e.DELETE("/admin/acme/test_realm_empty_settings/").
+			Expect().
+			Status(http.StatusNoContent)
 	})
 
 	// Test deleting a realm
