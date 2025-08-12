@@ -35,15 +35,16 @@ func (p *PostgresFlowDB) CreateFlow(ctx context.Context, flow model.Flow) error 
 
 	_, err := p.db.Exec(ctx, `
 		INSERT INTO flows (
-			tenant, realm, id, route, active, definition_yaml,
+			tenant, realm, id, route, active, debug_allowed, definition_yaml,
 			created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`,
 		flow.Tenant,
 		flow.Realm,
 		flow.Id,
 		flow.Route,
 		flow.Active,
+		flow.DebugAllowed,
 		flow.DefinitionYaml,
 		now,
 		now,
@@ -56,24 +57,16 @@ func (p *PostgresFlowDB) CreateFlow(ctx context.Context, flow model.Flow) error 
 }
 
 func (p *PostgresFlowDB) GetFlow(ctx context.Context, tenant, realm, id string) (*model.Flow, error) {
-	row := p.db.QueryRow(ctx, `
-		SELECT tenant, realm, id, route, active, definition_yaml,
-		       created_at, updated_at
-		FROM flows 
+	rows, err := p.db.Query(ctx, `
+		SELECT * FROM flows 
 		WHERE tenant = $1 AND realm = $2 AND id = $3
 	`, tenant, realm, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-	var flow model.Flow
-	err := row.Scan(
-		&flow.Tenant,
-		&flow.Realm,
-		&flow.Id,
-		&flow.Route,
-		&flow.Active,
-		&flow.DefinitionYaml,
-		&flow.CreatedAt,
-		&flow.UpdatedAt,
-	)
+	flow, err := pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByNameLax[model.Flow])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil // not found
@@ -81,28 +74,20 @@ func (p *PostgresFlowDB) GetFlow(ctx context.Context, tenant, realm, id string) 
 		return nil, err
 	}
 
-	return &flow, nil
+	return flow, nil
 }
 
 func (p *PostgresFlowDB) GetFlowByRoute(ctx context.Context, tenant, realm, route string) (*model.Flow, error) {
-	row := p.db.QueryRow(ctx, `
-		SELECT tenant, realm, id, route, active, definition_yaml,
-		       created_at, updated_at
-		FROM flows 
+	rows, err := p.db.Query(ctx, `
+		SELECT * FROM flows 
 		WHERE tenant = $1 AND realm = $2 AND route = $3
 	`, tenant, realm, route)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-	var flow model.Flow
-	err := row.Scan(
-		&flow.Tenant,
-		&flow.Realm,
-		&flow.Id,
-		&flow.Route,
-		&flow.Active,
-		&flow.DefinitionYaml,
-		&flow.CreatedAt,
-		&flow.UpdatedAt,
-	)
+	flow, err := pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByNameLax[model.Flow])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil // not found
@@ -110,7 +95,7 @@ func (p *PostgresFlowDB) GetFlowByRoute(ctx context.Context, tenant, realm, rout
 		return nil, err
 	}
 
-	return &flow, nil
+	return flow, nil
 }
 
 func (p *PostgresFlowDB) UpdateFlow(ctx context.Context, flow *model.Flow) error {
@@ -120,12 +105,14 @@ func (p *PostgresFlowDB) UpdateFlow(ctx context.Context, flow *model.Flow) error
 		UPDATE flows SET
 			route = $1,
 			active = $2,
-			definition_yaml = $3,
-			updated_at = $4
-		WHERE tenant = $5 AND realm = $6 AND id = $7
+			debug_allowed = $3,
+			definition_yaml = $4,
+			updated_at = $5
+		WHERE tenant = $6 AND realm = $7 AND id = $8
 	`,
 		flow.Route,
 		flow.Active,
+		flow.DebugAllowed,
 		flow.DefinitionYaml,
 		now,
 		flow.Tenant,
@@ -137,9 +124,7 @@ func (p *PostgresFlowDB) UpdateFlow(ctx context.Context, flow *model.Flow) error
 
 func (p *PostgresFlowDB) ListFlows(ctx context.Context, tenant, realm string) ([]model.Flow, error) {
 	rows, err := p.db.Query(ctx, `
-		SELECT tenant, realm, id, route, active, definition_yaml,
-		       created_at, updated_at
-		FROM flows 
+		SELECT * FROM flows 
 		WHERE tenant = $1 AND realm = $2
 	`, tenant, realm)
 	if err != nil {
@@ -147,27 +132,8 @@ func (p *PostgresFlowDB) ListFlows(ctx context.Context, tenant, realm string) ([
 	}
 	defer rows.Close()
 
-	var flows []model.Flow
-	for rows.Next() {
-		var flow model.Flow
-		err := rows.Scan(
-			&flow.Tenant,
-			&flow.Realm,
-			&flow.Id,
-			&flow.Route,
-			&flow.Active,
-			&flow.DefinitionYaml,
-			&flow.CreatedAt,
-			&flow.UpdatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		flows = append(flows, flow)
-	}
-
-	if err = rows.Err(); err != nil {
+	flows, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[model.Flow])
+	if err != nil {
 		return nil, err
 	}
 
@@ -183,37 +149,14 @@ func (p *PostgresFlowDB) DeleteFlow(ctx context.Context, tenant, realm, id strin
 }
 
 func (p *PostgresFlowDB) ListAllFlows(ctx context.Context) ([]model.Flow, error) {
-	rows, err := p.db.Query(ctx, `
-		SELECT tenant, realm, id, route, active, definition_yaml,
-		       created_at, updated_at
-		FROM flows
-	`)
+	rows, err := p.db.Query(ctx, `SELECT * FROM flows`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var flows []model.Flow
-	for rows.Next() {
-		var flow model.Flow
-		err := rows.Scan(
-			&flow.Tenant,
-			&flow.Realm,
-			&flow.Id,
-			&flow.Route,
-			&flow.Active,
-			&flow.DefinitionYaml,
-			&flow.CreatedAt,
-			&flow.UpdatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		flows = append(flows, flow)
-	}
-
-	if err = rows.Err(); err != nil {
+	flows, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[model.Flow])
+	if err != nil {
 		return nil, err
 	}
 

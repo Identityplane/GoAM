@@ -28,10 +28,11 @@ func TestFlowAPI_E2E(t *testing.T) {
 	flowRoute := "test_route"
 	flowId := "test_flow"
 	minimalFlow := map[string]interface{}{
-		"id":     flowId,
-		"route":  flowRoute,
-		"realm":  realm,
-		"tenant": tenant,
+		"id":            flowId,
+		"route":         flowRoute,
+		"realm":         realm,
+		"tenant":        tenant,
+		"debug_allowed": true,
 	}
 
 	// Test creating a flow
@@ -45,7 +46,8 @@ func TestFlowAPI_E2E(t *testing.T) {
 			HasValue("tenant", tenant).
 			HasValue("realm", realm).
 			HasValue("route", flowRoute).
-			HasValue("id", flowId)
+			HasValue("id", flowId).
+			HasValue("debug_allowed", true)
 	})
 
 	// Test getting a specific flow
@@ -58,15 +60,17 @@ func TestFlowAPI_E2E(t *testing.T) {
 			HasValue("tenant", tenant).
 			HasValue("realm", realm).
 			HasValue("route", flowRoute).
-			HasValue("id", flowId)
+			HasValue("id", flowId).
+			HasValue("debug_allowed", true)
 	})
 
 	// Test updating a flow
 	updatedFlowRoute := "test_flow_updated"
 	t.Run("Update Flow", func(t *testing.T) {
 		updatePayload := map[string]interface{}{
-			"active": true,
-			"route":  updatedFlowRoute,
+			"active":        true,
+			"route":         updatedFlowRoute,
+			"debug_allowed": false,
 		}
 
 		e.PATCH("/admin/acme/test_realm/flows/test_flow").
@@ -76,7 +80,8 @@ func TestFlowAPI_E2E(t *testing.T) {
 			JSON().
 			Object().
 			HasValue("route", updatedFlowRoute).
-			HasValue("active", true)
+			HasValue("active", true).
+			HasValue("debug_allowed", false)
 
 		// Verify the update
 		e.GET("/admin/acme/test_realm/flows/test_flow").
@@ -87,7 +92,38 @@ func TestFlowAPI_E2E(t *testing.T) {
 			HasValue("tenant", tenant).
 			HasValue("realm", realm).
 			HasValue("route", updatedFlowRoute).
-			HasValue("id", flowId)
+			HasValue("id", flowId).
+			HasValue("debug_allowed", false)
+	})
+
+	// Test updating only the debug_allowed field
+	t.Run("Update Debug Allowed Only", func(t *testing.T) {
+		updatePayload := map[string]interface{}{
+			"debug_allowed": true,
+		}
+
+		e.PATCH("/admin/acme/test_realm/flows/test_flow").
+			WithJSON(updatePayload).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			HasValue("debug_allowed", true).
+			HasValue("route", updatedFlowRoute). // Should remain unchanged
+			HasValue("active", true)             // Should remain unchanged
+
+		// Verify the update
+		e.GET("/admin/acme/test_realm/flows/test_flow").
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			HasValue("tenant", tenant).
+			HasValue("realm", realm).
+			HasValue("route", updatedFlowRoute).
+			HasValue("id", flowId).
+			HasValue("debug_allowed", true).
+			HasValue("active", true)
 	})
 
 	// Test deleting a flow
@@ -100,6 +136,34 @@ func TestFlowAPI_E2E(t *testing.T) {
 		e.GET("/admin/acme/test_realm/flows/test_flow").
 			Expect().
 			Status(http.StatusNotFound)
+	})
+
+	// Test creating a flow with debug_allowed set to false
+	t.Run("Create Flow With Debug Disabled", func(t *testing.T) {
+		flowWithDebugDisabled := map[string]interface{}{
+			"id":            "test_flow_no_debug",
+			"route":         "test_route_no_debug",
+			"realm":         realm,
+			"tenant":        tenant,
+			"debug_allowed": false,
+		}
+
+		e.POST("/admin/acme/test_realm/flows/test_flow_no_debug").
+			WithJSON(flowWithDebugDisabled).
+			Expect().
+			Status(http.StatusCreated).
+			JSON().
+			Object().
+			HasValue("tenant", tenant).
+			HasValue("realm", realm).
+			HasValue("route", "test_route_no_debug").
+			HasValue("id", "test_flow_no_debug").
+			HasValue("debug_allowed", false)
+
+		// Clean up
+		e.DELETE("/admin/acme/test_realm/flows/test_flow_no_debug").
+			Expect().
+			Status(http.StatusOK)
 	})
 }
 

@@ -23,6 +23,7 @@ func TemplateTestFlowCRUD(t *testing.T, db FlowDB) {
 		Id:             "test-flow",
 		Route:          "/test",
 		Active:         true,
+		DebugAllowed:   true,
 		DefinitionYaml: "test: yaml",
 	}
 
@@ -38,6 +39,7 @@ func TemplateTestFlowCRUD(t *testing.T, db FlowDB) {
 		assert.Equal(t, testFlow.Id, flow.Id)
 		assert.Equal(t, testFlow.Route, flow.Route)
 		assert.Equal(t, testFlow.DefinitionYaml, flow.DefinitionYaml)
+		assert.Equal(t, testFlow.DebugAllowed, flow.DebugAllowed)
 	})
 
 	t.Run("GetFlowByRoute", func(t *testing.T) {
@@ -46,6 +48,7 @@ func TemplateTestFlowCRUD(t *testing.T, db FlowDB) {
 		assert.NotNil(t, flow)
 		assert.Equal(t, testFlow.Id, flow.Id)
 		assert.Equal(t, testFlow.Route, flow.Route)
+		assert.Equal(t, testFlow.DebugAllowed, flow.DebugAllowed)
 	})
 
 	t.Run("UpdateFlow", func(t *testing.T) {
@@ -55,6 +58,7 @@ func TemplateTestFlowCRUD(t *testing.T, db FlowDB) {
 
 		flow.Route = "/updated"
 		flow.DefinitionYaml = "updated: yaml"
+		flow.DebugAllowed = false
 		err = db.UpdateFlow(ctx, flow)
 		assert.NoError(t, err)
 
@@ -62,6 +66,7 @@ func TemplateTestFlowCRUD(t *testing.T, db FlowDB) {
 		assert.NoError(t, err)
 		assert.Equal(t, "/updated", updatedFlow.Route)
 		assert.Equal(t, "updated: yaml", updatedFlow.DefinitionYaml)
+		assert.Equal(t, false, updatedFlow.DebugAllowed)
 	})
 
 	t.Run("ListFlows", func(t *testing.T) {
@@ -69,6 +74,7 @@ func TemplateTestFlowCRUD(t *testing.T, db FlowDB) {
 		assert.NoError(t, err)
 		assert.Len(t, flows, 1)
 		assert.Equal(t, testFlow.Id, flows[0].Id)
+		assert.Equal(t, false, flows[0].DebugAllowed)
 	})
 
 	t.Run("DeleteFlow", func(t *testing.T) {
