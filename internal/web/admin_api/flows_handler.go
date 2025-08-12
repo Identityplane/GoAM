@@ -213,6 +213,10 @@ func HandleUpdateFlow(ctx *fasthttp.RequestCtx) {
 		existingFlow.Active = *patch.Active
 	}
 
+	if patch.DebugAllowed != nil {
+		existingFlow.DebugAllowed = *patch.DebugAllowed
+	}
+
 	// Update flow by creating a new one with the same route
 	if err := service.GetServices().FlowService.UpdateFlow(tenant, realm, *existingFlow); err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)

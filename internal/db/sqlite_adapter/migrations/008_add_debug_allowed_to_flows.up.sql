@@ -1,0 +1,1 @@
+ALTER TABLE flows ADD COLUMN debug_allowed BOOLEAN NOT NULL DEFAULT false; 

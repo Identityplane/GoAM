@@ -183,9 +183,11 @@ func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, 
 		return CreateNewAuthenticationSession(ctx, tenant, realm, baseUrl, flow, debug)
 	}
 
-	// if the session was not debug, but now we have debug, we need to set the debug flag
-	if session != nil && !session.Debug && debug {
+	// if the session was not debug, but now we have debug, we need to set the debug flag if debug is allowed
+	if session != nil && !session.Debug && debug && flow.DebugAllowed {
 		session.Debug = true
+	} else {
+		session.Debug = false
 	}
 
 	// If no session exists, create new one

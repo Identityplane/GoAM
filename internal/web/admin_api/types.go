@@ -3,8 +3,9 @@ package admin_api
 // FlowPatch represents a partial update to a flow
 // Note: FlowId cannot be changed after creation
 type FlowPatch struct {
-	Route  *string `json:"route,omitempty"`
-	Active *bool   `json:"active,omitempty"`
+	Route        *string `json:"route,omitempty"`
+	Active       *bool   `json:"active,omitempty"`
+	DebugAllowed *bool   `json:"debug_allowed,omitempty"`
 }
 
 // NodeInfo represents a node definition in the API response
