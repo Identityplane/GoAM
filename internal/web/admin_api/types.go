@@ -8,6 +8,13 @@ type FlowPatch struct {
 	DebugAllowed *bool   `json:"debug_allowed,omitempty"`
 }
 
+// RealmPatch represents a partial update to a realm
+type RealmPatch struct {
+	RealmName     *string            `json:"realm_name,omitempty"`
+	BaseUrl       *string            `json:"base_url,omitempty"`
+	RealmSettings *map[string]string `json:"realm_settings,omitempty"`
+}
+
 // NodeInfo represents a node definition in the API response
 type NodeInfo struct {
 	Use                  string            `json:"use"`

@@ -31,12 +31,12 @@ func NewPostgresRealmDB(db *pgxpool.Pool) (*PostgresRealmDB, error) {
 func (p *PostgresRealmDB) CreateRealm(ctx context.Context, realm model.Realm) error {
 	query := `
 		INSERT INTO realms (
-			tenant, realm, realm_name, base_url
-		) VALUES ($1, $2, $3, $4)
+			tenant, realm, realm_name, base_url, realm_settings
+		) VALUES ($1, $2, $3, $4, $5)
 	`
 
 	_, err := p.db.Exec(ctx, query,
-		realm.Tenant, realm.Realm, realm.RealmName, realm.BaseUrl,
+		realm.Tenant, realm.Realm, realm.RealmName, realm.BaseUrl, realm.RealmSettings,
 	)
 	if err != nil {
 		return fmt.Errorf("insert realm: %w", err)
@@ -47,35 +47,36 @@ func (p *PostgresRealmDB) CreateRealm(ctx context.Context, realm model.Realm) er
 
 func (p *PostgresRealmDB) GetRealm(ctx context.Context, tenant, realm string) (*model.Realm, error) {
 	query := `
-		SELECT tenant, realm, realm_name, base_url
-		FROM realms
+		SELECT * FROM realms
 		WHERE tenant = $1 AND realm = $2
 	`
 
-	var realmConfig model.Realm
-	err := p.db.QueryRow(ctx, query, tenant, realm).Scan(
-		&realmConfig.Tenant, &realmConfig.Realm,
-		&realmConfig.RealmName, &realmConfig.BaseUrl,
-	)
+	rows, err := p.db.Query(ctx, query, tenant, realm)
+	if err != nil {
+		return nil, fmt.Errorf("select realm: %w", err)
+	}
+	defer rows.Close()
+
+	realmConfig, err := pgx.CollectOneRow(rows, pgx.RowToAddrOfStructByNameLax[model.Realm])
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("select realm: %w", err)
+		return nil, fmt.Errorf("scan realm: %w", err)
 	}
 
-	return &realmConfig, nil
+	return realmConfig, nil
 }
 
 func (p *PostgresRealmDB) UpdateRealm(ctx context.Context, realm *model.Realm) error {
 	query := `
 		UPDATE realms
-		SET realm_name = $1, base_url = $2
-		WHERE tenant = $3 AND realm = $4
+		SET realm_name = $1, base_url = $2, realm_settings = $3
+		WHERE tenant = $4 AND realm = $5
 	`
 
 	result, err := p.db.Exec(ctx, query,
-		realm.RealmName, realm.BaseUrl, realm.Tenant, realm.Realm,
+		realm.RealmName, realm.BaseUrl, realm.RealmSettings, realm.Tenant, realm.Realm,
 	)
 	if err != nil {
 		return fmt.Errorf("update realm: %w", err)
@@ -90,8 +91,7 @@ func (p *PostgresRealmDB) UpdateRealm(ctx context.Context, realm *model.Realm) e
 
 func (p *PostgresRealmDB) ListRealms(ctx context.Context, tenant string) ([]model.Realm, error) {
 	query := `
-		SELECT tenant, realm, realm_name, base_url
-		FROM realms
+		SELECT * FROM realms
 		WHERE tenant = $1
 	`
 
@@ -101,22 +101,9 @@ func (p *PostgresRealmDB) ListRealms(ctx context.Context, tenant string) ([]mode
 	}
 	defer rows.Close()
 
-	var realms []model.Realm
-	for rows.Next() {
-		var realm model.Realm
-		err := rows.Scan(
-			&realm.Tenant, &realm.Realm,
-			&realm.RealmName, &realm.BaseUrl,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan realm: %w", err)
-		}
-
-		realms = append(realms, realm)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate realms: %w", err)
+	realms, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[model.Realm])
+	if err != nil {
+		return nil, fmt.Errorf("collect realms: %w", err)
 	}
 
 	return realms, nil
@@ -124,8 +111,7 @@ func (p *PostgresRealmDB) ListRealms(ctx context.Context, tenant string) ([]mode
 
 func (p *PostgresRealmDB) ListAllRealms(ctx context.Context) ([]model.Realm, error) {
 	query := `
-		SELECT tenant, realm, realm_name, base_url
-		FROM realms
+		SELECT * FROM realms
 	`
 
 	rows, err := p.db.Query(ctx, query)
@@ -134,22 +120,9 @@ func (p *PostgresRealmDB) ListAllRealms(ctx context.Context) ([]model.Realm, err
 	}
 	defer rows.Close()
 
-	var realms []model.Realm
-	for rows.Next() {
-		var realm model.Realm
-		err := rows.Scan(
-			&realm.Tenant, &realm.Realm,
-			&realm.RealmName, &realm.BaseUrl,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan realm: %w", err)
-		}
-
-		realms = append(realms, realm)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate realms: %w", err)
+	realms, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[model.Realm])
+	if err != nil {
+		return nil, fmt.Errorf("collect realms: %w", err)
 	}
 
 	return realms, nil

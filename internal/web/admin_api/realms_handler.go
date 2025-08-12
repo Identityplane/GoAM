@@ -122,13 +122,13 @@ func HandleCreateRealm(ctx *fasthttp.RequestCtx) {
 
 // HandleUpdateRealm updates an existing realm
 // @Summary Update a realm
-// @Description Updates an existing realm's name
+// @Description Updates an existing realm's configuration
 // @Tags Realms
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
-// @Param request body object{realm_name=string} true "Realm update payload"
+// @Param request body RealmPatch true "Realm update payload"
 // @Success 200 {object} model.Realm
 // @Failure 400 {string} string "Invalid request"
 // @Failure 404 {string} string "Realm not found"
@@ -138,24 +138,34 @@ func HandleUpdateRealm(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 
-	var updatePayload struct {
-		RealmName string `json:"realm_name"`
-	}
-	if err := json.Unmarshal(ctx.PostBody(), &updatePayload); err != nil {
+	var patch RealmPatch
+	if err := json.Unmarshal(ctx.PostBody(), &patch); err != nil {
 		ctx.SetStatusCode(http.StatusBadRequest)
 		ctx.SetBodyString("Invalid request body: " + err.Error())
 		return
 	}
 
-	// Create realm config with only the updated field
-	realmConfig := &model.Realm{
-		Tenant:    tenant,
-		Realm:     realm,
-		RealmName: updatePayload.RealmName,
+	// Get the existing realm to apply partial updates
+	existingRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
+	if !ok {
+		ctx.SetStatusCode(http.StatusNotFound)
+		ctx.SetBodyString("Realm not found")
+		return
+	}
+
+	// Apply patch values to existing realm
+	if patch.RealmName != nil {
+		existingRealm.Config.RealmName = *patch.RealmName
+	}
+	if patch.BaseUrl != nil {
+		existingRealm.Config.BaseUrl = *patch.BaseUrl
+	}
+	if patch.RealmSettings != nil {
+		existingRealm.Config.RealmSettings = *patch.RealmSettings
 	}
 
 	// Update realm
-	if err := service.GetServices().RealmService.UpdateRealm(realmConfig); err != nil {
+	if err := service.GetServices().RealmService.UpdateRealm(existingRealm.Config); err != nil {
 		if err.Error() == "realm not found" {
 			ctx.SetStatusCode(http.StatusNotFound)
 			ctx.SetBodyString("Realm not found")
@@ -167,7 +177,7 @@ func HandleUpdateRealm(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Return updated realm
-	jsonData, err := json.MarshalIndent(realmConfig, "", "  ")
+	jsonData, err := json.MarshalIndent(existingRealm.Config, "", "  ")
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to marshal response: " + err.Error())

@@ -149,8 +149,16 @@ func (s *realmServiceImpl) UpdateRealm(realm *model.Realm) error {
 		return fmt.Errorf("realm not found")
 	}
 
-	// Only update realm_name
-	existing.RealmName = realm.RealmName
+	// Update all fields that are provided
+	if realm.RealmName != "" {
+		existing.RealmName = realm.RealmName
+	}
+	if realm.BaseUrl != "" {
+		existing.BaseUrl = realm.BaseUrl
+	}
+	if realm.RealmSettings != nil {
+		existing.RealmSettings = realm.RealmSettings
+	}
 
 	if err := s.realmDb.UpdateRealm(context.Background(), existing); err != nil {
 		return fmt.Errorf("update realm: %w", err)
