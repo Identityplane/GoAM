@@ -289,8 +289,9 @@ func ipAddressMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		if config.GetNumberOfProxies() > 0 {
 			log := logger.GetLogger()
 
-			xff := ctx.Request.Header.Peek("X-Forwarded-For")
-			if xff == nil {
+			xff := bytes.Join(ctx.Request.Header.PeekAll("X-Forwarded-For"), []byte(","))
+
+			if len(xff) == 0 {
 
 				log.Warn().Msgf("X-Forwarded-For header not found in request: %d %s", config.GetNumberOfProxies(), os.Getenv("GOIAM_PROXIES"))
 
@@ -325,11 +326,11 @@ func parseXForwardedFor(addresses []string) (string, error) {
 	// As the x-Forwarded-For is defined as
 	// X-Forwarded-For: <client>, <proxy>, <proxy>
 	// then you have the number of trusted proxies between you and the client then one more to be the actual client
-	if len(addresses)-config.GetNumberOfProxies()-1 < 0 {
+	if len(addresses)-config.GetNumberOfProxies() < 0 {
 
 		return "", fmt.Errorf("unable to determine remote_ip, number of proxies in chain %d, expected number of proxies %d", len(addresses), config.GetNumberOfProxies())
 	}
 
-	return strings.TrimSpace(string(addresses[len(addresses)-config.GetNumberOfProxies()-1])), nil
+	return strings.TrimSpace(string(addresses[len(addresses)-config.GetNumberOfProxies()])), nil
 
 }
