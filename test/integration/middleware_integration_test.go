@@ -48,7 +48,7 @@ func TestXForwardedForDisabled(t *testing.T) {
 
 func TestXForwardedForEnabled(t *testing.T) {
 
-	os.Setenv("GOIAM_PROXIES", "2")
+	os.Setenv("GOIAM_PROXIES", "3")
 	defer func() {
 		os.Unsetenv("GOIAM_PROXIES")
 		config.ForwardingProxies = 0
@@ -58,7 +58,7 @@ func TestXForwardedForEnabled(t *testing.T) {
 	// Recreate router with new config
 	Router = web.New()
 
-	// chain taken from the MDM example
+	// 3 proxy chain taken from the MDM example
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For
 	e.GET("/info").
 		WithHeader("X-Forwarded-For", "203.0.113.195,2001:db8:85a3:8d3:1319:8a2e:370:7348,198.51.100.178").
@@ -69,7 +69,7 @@ func TestXForwardedForEnabled(t *testing.T) {
 		HasValue("user_ip", "203.0.113.195") // Should use X-Forwarded-For when enabled
 }
 
-func TestMaliciousXForwardedForEnabled(t *testing.T) {
+func TestSingleProxyXForwardedFor(t *testing.T) {
 
 	os.Setenv("GOIAM_PROXIES", "1")
 	defer func() {
@@ -82,7 +82,52 @@ func TestMaliciousXForwardedForEnabled(t *testing.T) {
 	Router = web.New()
 
 	// In this example the client "192.168.3.3" has sent us an X-Forwarded-For with addresses already populated
-	// 172.16.100.2 is our internal proxy that adds "192.168.3.3" as the clients real world ip address
+	e.GET("/info").
+		WithHeader("X-Forwarded-For", "127.0.0.1,192.168.3.3").
+		Expect().
+		Status(200).
+		JSON().
+		Object().
+		HasValue("user_ip", "192.168.3.3") // Should use X-Forwarded-For when enabled
+}
+
+func TestMultipleXForwardedHeaders(t *testing.T) {
+
+	os.Setenv("GOIAM_PROXIES", "3")
+	defer func() {
+		os.Unsetenv("GOIAM_PROXIES")
+		config.ForwardingProxies = 0
+	}()
+	e := SetupIntegrationTest(t, "")
+
+	// Recreate router with new config
+	Router = web.New()
+
+	// In this example the client "192.168.3.3" has sent us an X-Forwarded-For with addresses already populated and we have 3 proxies
+	e.GET("/info").
+		WithHeader("X-Forwarded-For", "127.0.0.1,192.168.3.3"). // WithHeader is an append underneath
+		WithHeader("X-Forwarded-For", "172.16.100.1,13.12.13.1").
+		Expect().
+		Status(200).
+		JSON().
+		Object().
+		HasValue("user_ip", "192.168.3.3") // Should use X-Forwarded-For when enabled
+}
+
+func TestMaliciousXForwardedFor(t *testing.T) {
+
+	os.Setenv("GOIAM_PROXIES", "2")
+	defer func() {
+		os.Unsetenv("GOIAM_PROXIES")
+		config.ForwardingProxies = 0
+	}()
+	e := SetupIntegrationTest(t, "")
+
+	// Recreate router with new config
+	Router = web.New()
+
+	// In this example the client "192.168.3.3" has sent us an X-Forwarded-For with addresses already populated
+	// 172.16.100.2 is the second internal proxy
 	e.GET("/info").
 		WithHeader("X-Forwarded-For", "127.0.0.1,192.168.3.3,172.16.100.2").
 		Expect().
