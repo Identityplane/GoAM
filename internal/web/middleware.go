@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -54,16 +55,11 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		path := string(ctx.Path())
 
 		// Get ip address from request
-		var userIP string
-		if config.IsXForwardedForEnabled() {
-			ip := string(ctx.Request.Header.Peek("X-Forwarded-For"))
-			if ip != "" {
-				userIP = ip
-			}
-		} else {
-			userIP = ctx.RemoteIP().String()
+		userIP, ok := ctx.UserValue("remote_ip").(string)
+		if !ok {
+			log := logger.GetLogger()
+			log.Warn().Msg("user ip address not set in request")
 		}
-		ctx.SetUserValue("user_ip", userIP)
 
 		// Excecute the request
 		next(ctx)
@@ -177,10 +173,12 @@ func securityHeaders(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 // WrapMiddleware wraps a handler with all the necessary middleware
 func WrapMiddleware(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return TopLevelMiddleware(
-		traceIDMiddleware(
-			loggingMiddleware(
-				recoveryMiddleware(
-					securityHeaders(h),
+		ipAddressMiddleware(
+			traceIDMiddleware(
+				loggingMiddleware(
+					recoveryMiddleware(
+						securityHeaders(h),
+					),
 				),
 			),
 		),
@@ -283,4 +281,55 @@ func adminMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			),
 		),
 	)
+}
+
+func ipAddressMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+
+		if config.GetNumberOfProxies() > 0 {
+			log := logger.GetLogger()
+
+			xff := ctx.Request.Header.Peek("X-Forwarded-For")
+			if xff == nil {
+
+				log.Warn().Msgf("X-Forwarded-For header not found in request: %d %s", config.GetNumberOfProxies(), os.Getenv("GOIAM_PROXIES"))
+
+				ctx.Error("Server Error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			addresses := strings.Split(string(xff), ",")
+
+			// Use X-Forwarded-For header if enabled
+			remoteIp, err := parseXForwardedFor(addresses)
+			if err != nil {
+
+				log.Warn().Err(err)
+
+				ctx.Error("Server Error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			ctx.SetUserValue("remote_ip", remoteIp)
+		} else {
+			ctx.SetUserValue("remote_ip", ctx.RemoteIP().String())
+		}
+
+		next(ctx)
+	}
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For
+func parseXForwardedFor(addresses []string) (string, error) {
+
+	// As the x-Forwarded-For is defined as
+	// X-Forwarded-For: <client>, <proxy>, <proxy>
+	// then you have the number of trusted proxies between you and the client then one more to be the actual client
+	if len(addresses)-config.GetNumberOfProxies()-1 < 0 {
+
+		return "", fmt.Errorf("unable to determine remote_ip, number of proxies in chain %d, expected number of proxies %d", len(addresses), config.GetNumberOfProxies())
+	}
+
+	return strings.TrimSpace(string(addresses[len(addresses)-config.GetNumberOfProxies()-1])), nil
+
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/web"
 )
 
@@ -47,20 +48,48 @@ func TestXForwardedForDisabled(t *testing.T) {
 
 func TestXForwardedForEnabled(t *testing.T) {
 
-	os.Setenv("GOIAM_USE_X_FORWARDED_FOR", "true")
-	defer os.Unsetenv("GOIAM_USE_X_FORWARDED_FOR")
+	os.Setenv("GOIAM_PROXIES", "2")
+	defer func() {
+		os.Unsetenv("GOIAM_PROXIES")
+		config.ForwardingProxies = 0
+	}()
 	e := SetupIntegrationTest(t, "")
 
 	// Recreate router with new config
 	Router = web.New()
 
+	// chain taken from the MDM example
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For
 	e.GET("/info").
-		WithHeader("X-Forwarded-For", "1.2.3.4").
+		WithHeader("X-Forwarded-For", "203.0.113.195,2001:db8:85a3:8d3:1319:8a2e:370:7348,198.51.100.178").
 		Expect().
 		Status(200).
 		JSON().
 		Object().
-		HasValue("user_ip", "1.2.3.4") // Should use X-Forwarded-For when enabled
+		HasValue("user_ip", "203.0.113.195") // Should use X-Forwarded-For when enabled
+}
+
+func TestMaliciousXForwardedForEnabled(t *testing.T) {
+
+	os.Setenv("GOIAM_PROXIES", "1")
+	defer func() {
+		os.Unsetenv("GOIAM_PROXIES")
+		config.ForwardingProxies = 0
+	}()
+	e := SetupIntegrationTest(t, "")
+
+	// Recreate router with new config
+	Router = web.New()
+
+	// In this example the client "192.168.3.3" has sent us an X-Forwarded-For with addresses already populated
+	// 172.16.100.2 is our internal proxy that adds "192.168.3.3" as the clients real world ip address
+	e.GET("/info").
+		WithHeader("X-Forwarded-For", "127.0.0.1,192.168.3.3,172.16.100.2").
+		Expect().
+		Status(200).
+		JSON().
+		Object().
+		HasValue("user_ip", "192.168.3.3") // Should use X-Forwarded-For when enabled
 }
 
 func TestServerTiming(t *testing.T) {
