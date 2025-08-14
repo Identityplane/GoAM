@@ -106,12 +106,6 @@ func New() *router.Router {
 	// handleNotFound is the fallback handler for unmatched routes
 	redirectUrl = config.GetNotFoundRedirectUrl()
 	r.NotFound = WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
-		if config.IsXForwardedForEnabled() {
-			// Use X-Forwarded-For header if enabled
-			if xff := ctx.Request.Header.Peek("X-Forwarded-For"); xff != nil {
-				ctx.SetUserValue("remote_ip", string(xff))
-			}
-		}
 
 		if redirectUrl != "" {
 			ctx.Redirect(redirectUrl, fasthttp.StatusSeeOther)
