@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/Identityplane/GoAM/internal/db/postgres_adapter"
@@ -17,10 +18,10 @@ var SqliteUserDB *sqlite_adapter.SQLiteUserDB
 
 var (
 	UnsafeDisableAdminAuthzCheck = false // Can be overwritten for development purposes
-	UseXForwardedFor             = false
 	NotFoundRedirectUrl          = ""
 	EnableRequestTiming          = false
 	InfrastrcutureAsCodeMode     = false
+	ForwardingProxies            = 0
 )
 
 // Other global configurations
@@ -95,8 +96,8 @@ func GetNotFoundRedirectUrl() string {
 	return NotFoundRedirectUrl
 }
 
-func IsXForwardedForEnabled() bool {
-	return UseXForwardedFor
+func GetNumberOfProxies() int {
+	return ForwardingProxies
 }
 
 func InitConfiguration() {
@@ -115,8 +116,17 @@ func InitConfiguration() {
 		NotFoundRedirectUrl = os.Getenv("GOIAM_NOT_FOUND_REDIRECT_URL")
 	}
 
-	if !UseXForwardedFor {
-		UseXForwardedFor = os.Getenv("GOIAM_USE_X_FORWARDED_FOR") == "true"
+	if os.Getenv("GOIAM_USE_X_FORWARDED_FOR") == "true" {
+		log.Fatal().Msg("GOIAM_USE_X_FORWARDED_FOR is deprecated but still set to true")
+	}
+
+	if proxies := os.Getenv("GOIAM_PROXIES"); proxies != "" && ForwardingProxies == 0 {
+
+		var err error
+		ForwardingProxies, err = strconv.Atoi(proxies)
+		if err != nil {
+			log.Fatal().Msgf("The number of proxies specified by GOIAM_PROXIES (%v) could not be parsed: %v", proxies, err)
+		}
 	}
 
 	if !EnableRequestTiming {
@@ -130,7 +140,7 @@ func InitConfiguration() {
 	log.Debug().
 		Bool("infrastructure_as_code_mode", InfrastrcutureAsCodeMode).
 		Bool("unsafe_disable_admin_authz_check", UnsafeDisableAdminAuthzCheck).
-		Bool("use_x_forwarded_for", UseXForwardedFor).
+		Int("number_of_proxies", ForwardingProxies).
 		Bool("enable_request_timing", EnableRequestTiming).
 		Str("not_found_redirect_url", NotFoundRedirectUrl).
 		Msg("loaded server configuration")

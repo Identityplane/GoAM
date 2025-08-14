@@ -80,7 +80,7 @@ func handleInfo(ctx *fasthttp.RequestCtx) {
 	info := map[string]interface{}{
 		"name":       "GoIAM",
 		"go_version": runtime.Version(),
-		"user_ip":    ctx.UserValue("user_ip"),
+		"user_ip":    ctx.UserValue("remote_ip"),
 	}
 
 	// list available services and their implementaitons with service.GetServices()
