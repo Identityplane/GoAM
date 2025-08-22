@@ -7,6 +7,7 @@ import (
 // Services holds all service instances
 type Services struct {
 	UserService                UserAdminService
+	UserAttributeService       UserAttributeService
 	RealmService               RealmService
 	FlowService                FlowService
 	ApplicationService         ApplicationService
@@ -22,6 +23,7 @@ type Services struct {
 // DatabaseConnections holds all database connections
 type DatabaseConnections struct {
 	UserDB          db.UserDB
+	UserAttributeDB db.UserAttributeDB
 	RealmDB         db.RealmDB
 	FlowDB          db.FlowDB
 	ApplicationsDB  db.ApplicationDB
@@ -48,6 +50,7 @@ func InitServices(connections DatabaseConnections) *Services {
 
 	services = &Services{
 		UserService:                NewUserService(Databases.UserDB),
+		UserAttributeService:       NewUserAttributeService(Databases.UserAttributeDB, Databases.UserDB),
 		RealmService:               NewCachedRealmService(NewRealmService(Databases.RealmDB, Databases.UserDB), cacheService),
 		FlowService:                NewCachedFlowService(NewFlowService(Databases.FlowDB), cacheService),
 		ApplicationService:         NewApplicationService(Databases.ApplicationsDB),

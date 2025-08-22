@@ -1,0 +1,46 @@
+graph TB
+    %% Core Architecture Layers
+    subgraph "HTTP Layer"
+        HTTP[HTTP API<br/>Handlers & Router]
+    end
+    
+    subgraph "Service Layer"
+        SERVICE[Business Logic<br/>Validation & Orchestration]
+    end
+    
+    subgraph "Database Interface"
+        DB_INTERFACE[Database Interfaces<br/>Contracts & Abstractions]
+    end
+    
+    subgraph "Database Implementations"
+        POSTGRES[PostgreSQL<br/>Native Types & JSONB]
+        SQLITE[SQLite<br/>String Conversions]
+    end
+    
+    subgraph "Models"
+        MODEL[Data Structures<br/>Shared Across All Layers]
+    end
+    
+    %% Dependencies
+    HTTP --> SERVICE
+    SERVICE --> DB_INTERFACE
+    DB_INTERFACE --> POSTGRES
+    DB_INTERFACE --> SQLITE
+    
+    %% All layers use models
+    HTTP --> MODEL
+    SERVICE --> MODEL
+    DB_INTERFACE --> MODEL
+    POSTGRES --> MODEL
+    SQLITE --> MODEL
+    
+    %% Styling
+    classDef http fill:#ffb,stroke:#333,stroke-width:2px
+    classDef service fill:#fbb,stroke:#333,stroke-width:2px
+    classDef db fill:#bfb,stroke:#333,stroke-width:2px
+    classDef model fill:#bbf,stroke:#333,stroke-width:2px
+    
+    class HTTP http
+    class SERVICE service
+    class DB_INTERFACE,POSTGRES,SQLITE db
+    class MODEL model
