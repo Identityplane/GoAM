@@ -62,7 +62,18 @@ func RunMigrations(db *sql.DB) error {
 			// run migration
 			_, err = db.Exec(string(migrationFile))
 			if err != nil {
-				return fmt.Errorf("failed to run migration: %w", err)
+				// Check if this is a "duplicate column" error (SQLite error code 1)
+				// If so, log it as a warning and continue
+				if strings.Contains(err.Error(), "duplicate column name") ||
+					strings.Contains(err.Error(), "duplicate column") ||
+					strings.Contains(err.Error(), "already exists") {
+					log.Warn().
+						Str("migration", migration.Name()).
+						Err(err).
+						Msg("migration skipped - column/table already exists")
+					continue
+				}
+				return fmt.Errorf("failed to run migration %s: %w", migration.Name(), err)
 			}
 		}
 	}
