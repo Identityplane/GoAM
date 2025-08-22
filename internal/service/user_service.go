@@ -5,6 +5,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/pkg/model"
+	"github.com/google/uuid"
 )
 
 // PaginationParams represents pagination parameters
@@ -145,6 +146,9 @@ func (s *userServiceImpl) CreateUser(ctx context.Context, tenant, realm string, 
 	}
 
 	// Set required fields
+	if createUser.ID == "" {
+		createUser.ID = uuid.NewString()
+	}
 	createUser.Tenant = tenant
 	createUser.Realm = realm
 	createUser.Status = "active" // Default status
@@ -155,6 +159,6 @@ func (s *userServiceImpl) CreateUser(ctx context.Context, tenant, realm string, 
 		return nil, err
 	}
 
-	// Return the created user
+	// Return the created user (now with ID)
 	return &createUser, nil
 }

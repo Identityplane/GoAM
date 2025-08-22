@@ -65,6 +65,12 @@ func initDatabase() *service.DatabaseConnections {
 			log.Panic().Err(err).Msg("failed to initialize postgres user db")
 		}
 
+		// Init user attribute db
+		connections.UserAttributeDB, err = postgres_adapter.NewPostgresUserAttributeDB(postgresdb)
+		if err != nil {
+			log.Panic().Err(err).Msg("failed to initialize postgres user attribute db")
+		}
+
 		// Init signing key db
 		connections.SigningKeyDB, err = postgres_adapter.NewPostgresSigningKeysDB(postgresdb)
 		if err != nil {
@@ -119,6 +125,12 @@ func initDatabase() *service.DatabaseConnections {
 		connections.UserDB, err = sqlite_adapter.NewUserDB(sqliteDB)
 		if err != nil {
 			log.Panic().Err(err).Msg("failed to initialize sqlite user db")
+		}
+
+		// init user attribute db
+		connections.UserAttributeDB, err = sqlite_adapter.NewUserAttributeDB(sqliteDB)
+		if err != nil {
+			log.Panic().Err(err).Msg("failed to initialize sqlite user attribute db")
 		}
 
 		// init realms db

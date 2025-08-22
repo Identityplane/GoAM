@@ -75,6 +75,9 @@ type User struct {
 
 	// Devices
 	TrustedDevices []string `json:"trusted_devices,omitempty" example:"['device1', 'device2']"`
+
+	// Attributes
+	UserAttributes []UserAttribute `json:"user_attributes,omitempty"`
 }
 
 // UserStats represents user statistics
