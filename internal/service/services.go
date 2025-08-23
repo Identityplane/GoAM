@@ -49,9 +49,9 @@ func InitServices(connections DatabaseConnections) *Services {
 	}
 
 	services = &Services{
-		UserService:                NewUserService(Databases.UserDB),
+		UserService:                NewUserService(Databases.UserDB, Databases.UserAttributeDB),
 		UserAttributeService:       NewUserAttributeService(Databases.UserAttributeDB, Databases.UserDB),
-		RealmService:               NewCachedRealmService(NewRealmService(Databases.RealmDB, Databases.UserDB), cacheService),
+		RealmService:               NewCachedRealmService(NewRealmService(Databases.RealmDB, Databases.UserDB, Databases.UserAttributeDB), cacheService),
 		FlowService:                NewCachedFlowService(NewFlowService(Databases.FlowDB), cacheService),
 		ApplicationService:         NewApplicationService(Databases.ApplicationsDB),
 		SessionsService:            NewCachedSessionsService(NewSessionsService(Databases.ClientSessionDB, Databases.AuthSessionDB), cacheService),

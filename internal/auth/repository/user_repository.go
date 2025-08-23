@@ -6,21 +6,23 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/pkg/model"
+	"github.com/google/uuid"
 )
 
 // The user repository is a simplified interface for the user database, to be used by the auth service
 // It porivides additional abstractions over the database, such as tenant and realm aware operations
 type UserRepositoryImpl struct {
-	tenant string
-	realm  string
-	db     db.UserDB
+	tenant       string
+	realm        string
+	db           db.UserDB
+	attributesDB db.UserAttributeDB
 }
 
-func NewUserRepository(tenant, realm string, db db.UserDB) UserRepositoryImpl {
+func NewUserRepository(tenant, realm string, db db.UserDB, attributesDB db.UserAttributeDB) model.UserRepository {
 
-	repo := &UserRepositoryImpl{tenant: tenant, realm: realm, db: db}
+	repo := &UserRepositoryImpl{tenant: tenant, realm: realm, db: db, attributesDB: attributesDB}
 
-	return *repo
+	return repo
 }
 
 func (r *UserRepositoryImpl) GetByUsername(ctx context.Context, username string) (*model.User, error) {
@@ -30,36 +32,38 @@ func (r *UserRepositoryImpl) GetByUsername(ctx context.Context, username string)
 
 func (r *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {
 
-	// panic if the tenant or realm is set to a different value except ""
-	if user.Tenant != "" && user.Tenant != r.tenant {
-		return fmt.Errorf("tenant is set to a different value")
-	}
-	if user.Realm != "" && user.Realm != r.realm {
-		return fmt.Errorf("realm is set to a different value")
-	}
-
 	// Ensure the tenant and realm are set to the repository values
-	user.Tenant = r.tenant
-	user.Realm = r.realm
+	r.ensureTenantAndRealm(user, r.tenant, r.realm)
 
-	return r.db.CreateUser(ctx, *user)
+	// Create the user with all attributes in one transaction
+	return r.attributesDB.CreateUserWithAttributes(ctx, user)
 }
 
 func (r *UserRepositoryImpl) Update(ctx context.Context, user *model.User) error {
 
-	// panic if the tenant or realm is set to a different value except ""
-	if user.Tenant != "" && user.Tenant != r.tenant {
-		return fmt.Errorf("tenant is set to a different value")
+	// If the user has no id we return an error
+	if user.ID == "" {
+		return fmt.Errorf("user has no id - create user first")
 	}
-	if user.Realm != "" && user.Realm != r.realm {
-		return fmt.Errorf("realm is set to a different value")
-	}
+
+	// Ensure the tenant and realm are set to the repository values
+	r.ensureTenantAndRealm(user, r.tenant, r.realm)
 
 	// Ensure the tenant and realm are set to the repository values
 	user.Tenant = r.tenant
 	user.Realm = r.realm
 
 	return r.db.UpdateUser(ctx, user)
+}
+
+func (r *UserRepositoryImpl) CreateOrUpdate(ctx context.Context, user *model.User) error {
+
+	// If the user has no id we create a new one
+	if user.ID == "" {
+		return r.Create(ctx, user)
+	}
+
+	return r.Update(ctx, user)
 }
 
 func (r *UserRepositoryImpl) GetByID(ctx context.Context, id string) (*model.User, error) {
@@ -76,4 +80,43 @@ func (r *UserRepositoryImpl) GetByLoginIdentifier(ctx context.Context, loginIden
 
 func (r *UserRepositoryImpl) GetByFederatedIdentifier(ctx context.Context, provider, identifier string) (*model.User, error) {
 	return r.db.GetUserByFederatedIdentifier(ctx, r.tenant, r.realm, provider, identifier)
+}
+
+func (r *UserRepositoryImpl) CreateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error {
+	return r.attributesDB.CreateUserAttribute(ctx, *attribute)
+}
+
+func (r *UserRepositoryImpl) UpdateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error {
+	return r.attributesDB.UpdateUserAttribute(ctx, attribute)
+}
+
+func (r *UserRepositoryImpl) DeleteUserAttribute(ctx context.Context, attributeID string) error {
+	return r.attributesDB.DeleteUserAttribute(ctx, r.tenant, r.realm, attributeID)
+}
+
+// ensureTenantAndRealm ensures that the tenant and realm are set to the repository values
+// If there is no user id it creates a new user id
+// Also for each attributes it ensures that the tenant and realm are set and the user id is set as well as a attribute id
+func (r *UserRepositoryImpl) ensureTenantAndRealm(user *model.User, tenant, realm string) {
+
+	// If the tenant or realm is set to a different value except "" we return an error
+	// If there is no user id we create a new one
+	if user.ID == "" {
+		user.ID = uuid.NewString()
+	}
+
+	// Override the tenant and realm
+	user.Tenant = tenant
+	user.Realm = realm
+
+	// For each attribute we ensure that the tenant and realm are set and the user id is set as well as a attribute id
+	for _, attribute := range user.UserAttributes {
+		attribute.Tenant = tenant
+		attribute.Realm = realm
+		attribute.UserID = user.ID
+
+		if attribute.ID == "" {
+			attribute.ID = uuid.NewString()
+		}
+	}
 }

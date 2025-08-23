@@ -80,6 +80,112 @@ type User struct {
 	UserAttributes []UserAttribute `json:"user_attributes,omitempty"`
 }
 
+// GetAttributesByType returns all attributes of a specific type for the user
+func (u *User) GetAttributesByType(attrType string) []UserAttribute {
+	var filtered []UserAttribute
+	for _, attr := range u.UserAttributes {
+		if attr.Type == attrType {
+			filtered = append(filtered, attr)
+		}
+	}
+	return filtered
+}
+
+// GetAttribute returns the first attribute of the specified type and converts its value to the target type
+// Returns an error if multiple attributes of the same type exist, nil if no attribute exists, or an error if conversion fails
+func GetAttribute[T any](u *User, attrType string) (*T, *UserAttribute, error) {
+	attrs := u.GetAttributesByType(attrType)
+	if len(attrs) == 0 {
+		return nil, nil, nil
+	}
+
+	if len(attrs) > 1 {
+		return nil, nil, fmt.Errorf("multiple attributes of type '%s' found, use GetAttributesByType instead", attrType)
+	}
+
+	// Get the single attribute of this type
+	attr := attrs[0]
+
+	// Try to convert the value to the target type
+	if converted, ok := attr.Value.(T); ok {
+		return &converted, &attr, nil
+	}
+
+	// If direct conversion fails, try to convert from map[string]interface{} (for database stored values)
+	if mapValue, ok := attr.Value.(map[string]interface{}); ok {
+		// Convert map to JSON and then to the target type
+		jsonData, err := json.Marshal(mapValue)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to marshal attribute value to JSON: %w", err)
+		}
+
+		var result T
+		if err := json.Unmarshal(jsonData, &result); err != nil {
+			return nil, nil, fmt.Errorf("failed to unmarshal attribute value to %T: %w", result, err)
+		}
+
+		return &result, &attr, nil
+	}
+
+	return nil, nil, fmt.Errorf("failed to convert attribute value from %T to %T", attr.Value, *new(T))
+}
+
+// GetAttributes returns all attributes of the specified type and converts their values to the target type.
+// It always returns a slice of attributes, even if there are no attributes of the specified type.
+// Only if there is an attribute that cannot be converted to the target type, an error is returned.
+func GetAttributes[T any](u *User, attrType string) ([]T, []*UserAttribute, error) {
+	attrs := u.GetAttributesByType(attrType)
+	if len(attrs) == 0 {
+		return []T{}, []*UserAttribute{}, nil
+	}
+
+	var result []T
+	var attributes []*UserAttribute
+
+	for _, attr := range attrs {
+		// Try to convert the value to the target type
+		if converted, ok := attr.Value.(T); ok {
+			result = append(result, converted)
+			attributes = append(attributes, &attr)
+			continue
+		}
+
+		// If direct conversion fails, try to convert from map[string]interface{} (for database stored values)
+		if mapValue, ok := attr.Value.(map[string]interface{}); ok {
+			// Convert map to JSON and then to the target type
+			jsonData, err := json.Marshal(mapValue)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to marshal attribute value to JSON: %w", err)
+			}
+
+			var converted T
+			if err := json.Unmarshal(jsonData, &converted); err != nil {
+				return nil, nil, fmt.Errorf("failed to unmarshal attribute value to %T: %w", converted, err)
+			}
+
+			result = append(result, converted)
+			attributes = append(attributes, &attr)
+			continue
+		}
+
+		// If conversion fails, return error
+		return nil, nil, fmt.Errorf("failed to convert attribute value from %T to %T", attr.Value, *new(T))
+	}
+
+	return result, attributes, nil
+}
+
+func (u *User) AddAttribute(attr *UserAttribute) {
+
+	// Ensure the tenant, realm, and userid are set correctly
+	attr.Tenant = u.Tenant
+	attr.Realm = u.Realm
+	attr.UserID = u.ID
+
+	// Add the attribute to the user
+	u.UserAttributes = append(u.UserAttributes, *attr)
+}
+
 // UserStats represents user statistics
 // @description User statistics for a realm
 type UserStats struct {
