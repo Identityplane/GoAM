@@ -33,6 +33,11 @@ type UserRepository interface {
 
 	Create(ctx context.Context, user *User) error
 	Update(ctx context.Context, user *User) error
+	CreateOrUpdate(ctx context.Context, user *User) error
+
+	CreateUserAttribute(ctx context.Context, attribute *UserAttribute) error
+	UpdateUserAttribute(ctx context.Context, attribute *UserAttribute) error
+	DeleteUserAttribute(ctx context.Context, attributeID string) error
 }
 
 type EmailSender interface {

@@ -68,6 +68,26 @@ func (m *MockUserRepository) Update(ctx context.Context, user *model.User) error
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) CreateOrUpdate(ctx context.Context, user *model.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) CreateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error {
+	args := m.Called(ctx, attribute)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) UpdateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error {
+	args := m.Called(ctx, attribute)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) DeleteUserAttribute(ctx context.Context, attributeID string) error {
+	args := m.Called(ctx, attributeID)
+	return args.Error(0)
+}
+
 func TestRunLoadUserNode(t *testing.T) {
 	tests := []struct {
 		name           string

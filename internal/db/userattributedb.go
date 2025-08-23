@@ -23,6 +23,12 @@ type UserAttributeDB interface {
 	// Delete a specific user attribute
 	DeleteUserAttribute(ctx context.Context, tenant, realm, attributeID string) error
 
+	// Get user with attributes
+	GetUserWithAttributes(ctx context.Context, tenant, realm, userID string) (*model.User, error)
+
 	// Get user by attribute index (for reverse lookup)
-	GetUserByAttributeIndex(ctx context.Context, tenant, realm, attributeType, index string) (*model.User, error)
+	GetUserByAttributeIndexWithAttributes(ctx context.Context, tenant, realm, attributeType, index string) (*model.User, error)
+
+	// Create user with attributes
+	CreateUserWithAttributes(ctx context.Context, user *model.User) error
 }

@@ -1,6 +1,9 @@
 package graph
 
-import "github.com/Identityplane/GoAM/pkg/model"
+import (
+	nodetotp "github.com/Identityplane/GoAM/internal/auth/graph/node_totp"
+	"github.com/Identityplane/GoAM/pkg/model"
+)
 
 var NodeDefinitions = map[string]*model.NodeDefinition{
 	InitNode.Name:                   InitNode,
@@ -27,9 +30,11 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	// Password or Social Login
 	PasswordOrSocialLoginNode.Name: PasswordOrSocialLoginNode,
 
-	// Email OTP
-	AskEmailNode.Name: AskEmailNode,
-	EmailOTPNode.Name: EmailOTPNode,
+	// MFA
+	AskEmailNode.Name:            AskEmailNode,
+	EmailOTPNode.Name:            EmailOTPNode,
+	nodetotp.TOTPCreateNode.Name: nodetotp.TOTPCreateNode,
+	nodetotp.TOTPVerifyNode.Name: nodetotp.TOTPVerifyNode,
 
 	// Password
 	UpdatePasswordNode.Name:           UpdatePasswordNode,

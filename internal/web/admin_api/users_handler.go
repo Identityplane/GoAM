@@ -119,6 +119,7 @@ func HandleListUsers(ctx *fasthttp.RequestCtx) {
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
 // @Param username path string true "Username"
+// @Param include_attributes query bool false "Include user attributes" default(false)
 // @Success 200 {object} model.User
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
@@ -138,8 +139,25 @@ func HandleGetUser(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Get user from service
-	user, err := service.GetServices().UserService.GetUser(ctx, tenant, realm, username)
+	// Check if we should include attributes
+	includeAttributes := false
+	if includeAttrsStr := string(ctx.QueryArgs().Peek("include_attributes")); includeAttrsStr != "" {
+		if includeAttrs, err := strconv.ParseBool(includeAttrsStr); err == nil {
+			includeAttributes = includeAttrs
+		}
+	}
+
+	var user *model.User
+	var err error
+
+	if includeAttributes {
+		// Get user with attributes
+		user, err = service.GetServices().UserService.GetUserWithAttributes(ctx, tenant, realm, username)
+	} else {
+		// Get user without attributes (default behavior)
+		user, err = service.GetServices().UserService.GetUser(ctx, tenant, realm, username)
+	}
+
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to get user: " + err.Error())

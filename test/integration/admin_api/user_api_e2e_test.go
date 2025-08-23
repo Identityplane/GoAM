@@ -108,6 +108,25 @@ func TestUserAPI_E2E(t *testing.T) {
 			HasValue("trusted_devices", testUser["trusted_devices"])
 	})
 
+	// Test getting a user with attributes
+	t.Run("Get User With Attributes", func(t *testing.T) {
+		e.GET("/admin/acme/customers/users/"+testUser["username"].(string)).
+			WithQuery("include_attributes", "true").
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			HasValue("username", testUser["username"]).
+			HasValue("display_name", testUser["display_name"]).
+			HasValue("profile_picture_uri", testUser["profile_picture_uri"]).
+			HasValue("login_identifier", testUser["login_identifier"]).
+			HasValue("entitlements", testUser["entitlements"]).
+			HasValue("consent", testUser["consent"]).
+			HasValue("trusted_devices", testUser["trusted_devices"]).
+			ContainsKey("user_attributes").
+			Value("user_attributes").Array().Empty()
+	})
+
 	// Test updating a user
 	t.Run("Update User", func(t *testing.T) {
 		updatedUser := testUser

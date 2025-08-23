@@ -20,8 +20,6 @@ type UserAttributeService interface {
 	UpdateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error
 	// Delete a specific attribute
 	DeleteUserAttribute(ctx context.Context, tenant, realm, attributeID string) error
-	// Get a user by attribute index (reverse lookup)
-	GetUserByAttributeIndex(ctx context.Context, tenant, realm, attributeType, index string) (*model.User, error)
 }
 
 // userAttributeServiceImpl implements UserAttributeService
@@ -95,8 +93,4 @@ func (s *userAttributeServiceImpl) UpdateUserAttribute(ctx context.Context, attr
 
 func (s *userAttributeServiceImpl) DeleteUserAttribute(ctx context.Context, tenant, realm, attributeID string) error {
 	return s.userAttributeDB.DeleteUserAttribute(ctx, tenant, realm, attributeID)
-}
-
-func (s *userAttributeServiceImpl) GetUserByAttributeIndex(ctx context.Context, tenant, realm, attributeType, index string) (*model.User, error) {
-	return s.userAttributeDB.GetUserByAttributeIndex(ctx, tenant, realm, attributeType, index)
 }

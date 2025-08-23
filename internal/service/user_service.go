@@ -19,6 +19,7 @@ type UserAdminService interface {
 	// List users with pagination, returns usersn, total count and users
 	ListUsers(ctx context.Context, tenant, realm string, pagination PaginationParams) ([]model.User, int64, error)
 	GetUser(ctx context.Context, tenant, realm, username string) (*model.User, error)
+	GetUserWithAttributes(ctx context.Context, tenant, realm, username string) (*model.User, error)
 	GetUserByID(ctx context.Context, tenant, realm, userID string) (*model.User, error)
 	UpdateUser(ctx context.Context, tenant, realm, username string, updateUser model.User) (*model.User, error)
 	DeleteUser(ctx context.Context, tenant, realm, username string) error
@@ -30,13 +31,15 @@ type UserAdminService interface {
 
 // userServiceImpl implements UserService
 type userServiceImpl struct {
-	userDB db.UserDB
+	userDB       db.UserDB
+	attributesDB db.UserAttributeDB
 }
 
 // NewUserService creates a new UserService instance
-func NewUserService(userDB db.UserDB) UserAdminService {
+func NewUserService(userDB db.UserDB, attributesDB db.UserAttributeDB) UserAdminService {
 	return &userServiceImpl{
-		userDB: userDB,
+		userDB:       userDB,
+		attributesDB: attributesDB,
 	}
 }
 
@@ -61,6 +64,29 @@ func (s *userServiceImpl) ListUsers(ctx context.Context, tenant, realm string, p
 
 func (s *userServiceImpl) GetUser(ctx context.Context, tenant, realm, username string) (*model.User, error) {
 	return s.userDB.GetUserByUsername(ctx, tenant, realm, username)
+}
+
+func (s *userServiceImpl) GetUserWithAttributes(ctx context.Context, tenant, realm, username string) (*model.User, error) {
+	// First get the user
+	user, err := s.userDB.GetUserByUsername(ctx, tenant, realm, username)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, nil
+	}
+
+	// Get user attributes from the attributes database
+	attributes, err := s.attributesDB.ListUserAttributes(ctx, tenant, realm, user.ID)
+	if err != nil {
+		// If there's an error getting attributes, set to empty slice and continue
+		// This ensures the user_attributes field is always present in the response
+		user.UserAttributes = []model.UserAttribute{}
+	} else {
+		user.UserAttributes = attributes
+	}
+
+	return user, nil
 }
 
 func (s *userServiceImpl) GetUserByID(ctx context.Context, tenant, realm, userID string) (*model.User, error) {
