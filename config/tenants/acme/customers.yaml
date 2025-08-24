@@ -6,15 +6,23 @@ flows:
   login:
     route: /login
     active: yes
+    debug_allowed: yes
     definition_location: login.yaml
   register:
     route: /register
     active: yes
+    debug_allowed: yes
     definition_location: register.yaml
   unlock_account:
     route: /unlock-account
     active: no
+    debug_allowed: yes
     definition_location: unlock_account.yaml
+  totp-test:
+    route: /totp-test
+    active: yes
+    debug_allowed: yes
+    definition_location: totp-test.yaml
 
 applications:
   customers-app:

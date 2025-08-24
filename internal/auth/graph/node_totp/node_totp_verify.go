@@ -20,7 +20,7 @@ var TOTPVerifyNode = &model.NodeDefinition{
 		"totpVerification": "string",
 	},
 	OutputContext:        []string{""},
-	PossibleResultStates: []string{"success", "failure", "no_totp"},
+	PossibleResultStates: []string{"success", "failure", "no_totp", "locked"},
 	CustomConfigOptions: map[string]string{
 		"max_failed_attempts": "Maximum number of failed attempts before locking the user (default: 10)",
 	},

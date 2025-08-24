@@ -322,7 +322,7 @@ func (s *SQLiteUserDB) UpdateUser(ctx context.Context, user *model.User) error {
 		lastLoginAt = user.LastLoginAt.Format(time.RFC3339)
 	}
 
-	_, err := s.db.ExecContext(ctx, `
+	result, err := s.db.ExecContext(ctx, `
 		UPDATE users SET
 			status = ?,
 			display_name = ?,
@@ -391,7 +391,21 @@ func (s *SQLiteUserDB) UpdateUser(ctx context.Context, user *model.User) error {
 		user.ID,
 	)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Check if any rows were affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found: tenant=%s, realm=%s, id=%s", user.Tenant, user.Realm, user.ID)
+	}
+
+	return nil
 }
 
 func (s *SQLiteUserDB) GetUserStats(ctx context.Context, tenant, realm string) (*model.UserStats, error) {

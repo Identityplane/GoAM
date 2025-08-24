@@ -1,10 +1,7 @@
 package node_user
 
 import (
-	"time"
-
 	"github.com/Identityplane/GoAM/pkg/model"
-	"github.com/google/uuid"
 )
 
 var InitUserNode = &model.NodeDefinition{
@@ -14,16 +11,15 @@ var InitUserNode = &model.NodeDefinition{
 	Category:        "User Management",
 	Type:            model.NodeTypeLogic,
 	RequiredContext: []string{},
-	Run:             RunInitUserNode,
+	PossibleResultStates: []string{
+		"success",
+	},
+	Run: RunInitUserNode,
 }
 
 func RunInitUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
-	state.User = &model.User{
-		ID:        uuid.NewString(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
+	state.User = &model.User{}
 
 	return model.NewNodeResultWithCondition("success")
 }
