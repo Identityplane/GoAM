@@ -38,6 +38,10 @@ func UserDBTests(t *testing.T, db UserDB) {
 		clearUserDB(t, db)
 		TemplateTestGetUserByFederatedIdentifier(t, db)
 	})
+	t.Run("TestUpdateNonExistentUser", func(t *testing.T) {
+		clearUserDB(t, db)
+		TemplateTestUpdateNonExistentUser(t, db)
+	})
 }
 
 func clearUserDB(t *testing.T, db UserDB) {
@@ -465,6 +469,42 @@ func TemplateTestGetUserByFederatedIdentifier(t *testing.T, db UserDB) {
 		user, err := db.GetUserByFederatedIdentifier(ctx, testTenant, testRealm, "github", "google-123")
 		assert.NoError(t, err)
 		assert.Nil(t, user)
+	})
+}
+
+// TemplateTestUpdateNonExistentUser tests that an error is returned when trying to update a non-existent user
+func TemplateTestUpdateNonExistentUser(t *testing.T, db UserDB) {
+	ctx := context.Background()
+	testTenant := "test-tenant"
+	testRealm := "test-realm"
+
+	// Create a non-existent user object (not saved to database)
+	nonExistentUser := model.User{
+		Tenant:          testTenant,
+		Realm:           testRealm,
+		Username:        "non-existent-user",
+		Status:          "active",
+		Email:           "nonexistent@example.com",
+		LoginIdentifier: "nonexistent@example.com",
+		TrustedDevices:  []string{"device1", "device2"},
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+	}
+
+	t.Run("UpdateNonExistentUser", func(t *testing.T) {
+		// Try to update a user that doesn't exist in the database
+		err := db.UpdateUser(ctx, &nonExistentUser)
+		assert.Error(t, err, "UpdateUser should return an error when updating a non-existent user")
+	})
+
+	t.Run("UpdateUserWithNonExistentID", func(t *testing.T) {
+		// Create a user with a non-existent ID
+		userWithNonExistentID := nonExistentUser
+		userWithNonExistentID.ID = "non-existent-id-12345"
+
+		// Try to update a user with a non-existent ID
+		err := db.UpdateUser(ctx, &userWithNonExistentID)
+		assert.Error(t, err, "UpdateUser should return an error when updating a user with non-existent ID")
 	})
 }
 

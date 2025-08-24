@@ -1,0 +1,43 @@
+description: ''
+start: init
+nodes:
+  askUsername:
+    name: askUsername
+    use: askUsername
+    next:
+      submitted: initUser
+  initUser:
+    name: initUser
+    use: initUser
+    next:
+      success: createTOTP
+  authFailure:
+    name: createTOTP
+    use: createTOTP
+    next:
+      success: verifyTOTP
+  createTOTP:
+    name: createTOTP
+    use: createTOTP
+    next:
+      success: verifyTOTP
+    custom_config:
+      totpIssuer: "Identityplane Local"
+      saveUser: "true"
+  verifyTOTP:
+    name: verifyTOTP
+    use: verifyTOTP
+    next:
+      success: authSuccess
+      failure: verifyTOTP
+      no_totp: authFailure
+      locked: authFailure
+  authSuccess:
+    name: successResult
+    use: successResult
+    next: {}
+  init:
+    name: init
+    use: init
+    next:
+      start: askUsername
