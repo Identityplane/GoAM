@@ -475,11 +475,10 @@ func TemplateTestCreateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 
 	// Create a test user with multiple attributes
 	testUser := &model.User{
-		ID:       testUserID,
-		Tenant:   testTenant,
-		Realm:    testRealm,
-		Username: "testuser-" + time.Now().Format("150405"),
-		Status:   "active",
+		ID:     testUserID,
+		Tenant: testTenant,
+		Realm:  testRealm,
+		Status: "active",
 		UserAttributes: []model.UserAttribute{
 			{
 				UserID: testUserID,

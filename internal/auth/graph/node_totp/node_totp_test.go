@@ -17,14 +17,11 @@ func TestTOTPCreateAndVerifyFlow(t *testing.T) {
 	// Arrange
 	// Create a new user state with an example user
 	testUser := &model.User{
-		ID:          uuid.NewString(),
-		Username:    "testuser",
-		DisplayName: "Test User",
-		Email:       "test@example.com",
-		Tenant:      "acme",
-		Realm:       "customers",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:        uuid.NewString(),
+		Tenant:    "acme",
+		Realm:     "customers",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	// Create actual repository implementation using SQLite in-memory database
@@ -217,7 +214,6 @@ func TestTOTPVerifyNodeWithNoTOTPAttribute(t *testing.T) {
 	// Test TOTP verify node when user has no TOTP attribute
 	testUser := &model.User{
 		ID:        uuid.NewString(),
-		Username:  "testuser",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -242,11 +238,9 @@ func TestTOTPVerifyNodeWithNoTOTPAttribute(t *testing.T) {
 func TestTOTPCreateNodeWithInvalidVerification(t *testing.T) {
 	// Test TOTP create node with invalid verification code
 	testUser := &model.User{
-		ID:          uuid.NewString(),
-		Username:    "testuser",
-		DisplayName: "Test User",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:        uuid.NewString(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	session := &model.AuthenticationSession{
@@ -283,7 +277,6 @@ func TestTOTPVerifyNodeMaxFailedAttempts(t *testing.T) {
 	// Test that TOTP gets locked after max failed attempts
 	testUser := &model.User{
 		ID:        uuid.NewString(),
-		Username:  "testuser",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

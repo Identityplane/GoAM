@@ -18,9 +18,6 @@ func TestUserUnmarshalJSON(t *testing.T) {
 	}
 
 	// Verify the parsed values
-	if user.Username != "test" {
-		t.Errorf("Expected username 'test', got '%s'", user.Username)
-	}
 	if user.Tenant != "acme" {
 		t.Errorf("Expected tenant 'acme', got '%s'", user.Tenant)
 	}
@@ -39,18 +36,14 @@ func TestUserUnmarshalJSON(t *testing.T) {
 	if user.LastLoginAt != nil {
 		t.Errorf("Expected nil LastLoginAt, got %v", user.LastLoginAt)
 	}
-	if len(user.TrustedDevices) != 0 {
-		t.Errorf("Expected empty TrustedDevices, got %v", user.TrustedDevices)
-	}
 }
 
 func TestUserAttributeHelperMethods(t *testing.T) {
 	t.Run("UserWithNoAttributes", func(t *testing.T) {
 		user := &User{
-			ID:       "user1",
-			Tenant:   "acme",
-			Realm:    "customers",
-			Username: "testuser",
+			ID:     "user1",
+			Tenant: "acme",
+			Realm:  "customers",
 		}
 
 		// Test GetAttributesByType with no attributes
@@ -65,10 +58,9 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 
 	t.Run("UserWithValidAttributes", func(t *testing.T) {
 		user := &User{
-			ID:       "user2",
-			Tenant:   "acme",
-			Realm:    "customers",
-			Username: "testuser2",
+			ID:     "user2",
+			Tenant: "acme",
+			Realm:  "customers",
 			UserAttributes: []UserAttribute{
 				{
 					ID:        "attr1",
@@ -125,10 +117,9 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 
 	t.Run("UserWithMultipleAttributesOfSameType", func(t *testing.T) {
 		user := &User{
-			ID:       "user3",
-			Tenant:   "acme",
-			Realm:    "customers",
-			Username: "testuser3",
+			ID:     "user3",
+			Tenant: "acme",
+			Realm:  "customers",
 			UserAttributes: []UserAttribute{
 				{
 					ID:        "attr3",
@@ -171,10 +162,9 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 
 	t.Run("UserWithTypeMismatchAttributes", func(t *testing.T) {
 		user := &User{
-			ID:       "user4",
-			Tenant:   "acme",
-			Realm:    "customers",
-			Username: "testuser4",
+			ID:     "user4",
+			Tenant: "acme",
+			Realm:  "customers",
 			UserAttributes: []UserAttribute{
 				{
 					ID:        "attr5",
@@ -222,10 +212,9 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 
 	t.Run("UserWithMixedAttributeTypes", func(t *testing.T) {
 		user := &User{
-			ID:       "user5",
-			Tenant:   "acme",
-			Realm:    "customers",
-			Username: "testuser5",
+			ID:     "user5",
+			Tenant: "acme",
+			Realm:  "customers",
 			UserAttributes: []UserAttribute{
 				{
 					ID:        "attr7",
@@ -278,10 +267,9 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 
 	t.Run("UserWithMultipleAttributesOfSameType", func(t *testing.T) {
 		user := &User{
-			ID:       "user6",
-			Tenant:   "acme",
-			Realm:    "customers",
-			Username: "testuser6",
+			ID:     "user6",
+			Tenant: "acme",
+			Realm:  "customers",
 			UserAttributes: []UserAttribute{
 				{
 					ID:        "attr9",

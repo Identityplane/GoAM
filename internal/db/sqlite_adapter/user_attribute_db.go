@@ -170,52 +170,25 @@ func (s *SQLiteUserAttributeDB) GetUserByAttributeIndex(ctx context.Context, ten
 		return nil, err
 	}
 
-	// Now get the user from the users table
-	// We need to use the existing user DB implementation
-	// For now, we'll do a direct query here
+	// Now get the user from the users table using the correct columns
 	row := s.db.QueryRowContext(ctx, `
-		SELECT id, tenant, realm, username,
-		       status,
-		       display_name, given_name, family_name,
-		       profile_picture_uri,
-		       email, phone, email_verified, phone_verified,
-		       login_identifier,
-		       locale,
-		       password_credential, webauthn_credential, mfa_credential,
-		       password_locked, webauthn_locked, mfa_locked,
-		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-		       roles, groups, entitlements, consent, attributes,
-		       created_at, updated_at, last_login_at,
-		       federated_idp, federated_id,
-		       trusted_devices
+		SELECT id, tenant, realm, status,
+		       created_at, updated_at, last_login_at
 		FROM users 
 		WHERE tenant = ? AND realm = ? AND id = ?
 	`, tenant, realm, userID)
 
 	// Reuse the existing scan function from user_db.go
-	// We'll need to create a temporary SQLiteUserDB instance to use its scanUserFromRow method
 	tempUserDB := &SQLiteUserDB{db: s.db}
 	return tempUserDB.scanUserFromRow(row)
 }
 
 // GetUserWithAttributes loads a user with all their attributes in one database query
 func (s *SQLiteUserAttributeDB) GetUserWithAttributes(ctx context.Context, tenant, realm, userID string) (*model.User, error) {
-	// First get the user
+	// First get the user using the correct columns
 	row := s.db.QueryRowContext(ctx, `
-		SELECT id, tenant, realm, username,
-		       status,
-		       display_name, given_name, family_name,
-		       profile_picture_uri,
-		       email, phone, email_verified, phone_verified,
-		       login_identifier,
-		       locale,
-		       password_credential, webauthn_credential, mfa_credential,
-		       password_locked, webauthn_locked, mfa_locked,
-		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-		       roles, groups, entitlements, consent, attributes,
-		       created_at, updated_at, last_login_at,
-		       federated_idp, federated_id,
-		       trusted_devices
+		SELECT id, tenant, realm, status,
+		       created_at, updated_at, last_login_at
 		FROM users 
 		WHERE tenant = ? AND realm = ? AND id = ?
 	`, tenant, realm, userID)
@@ -282,77 +255,25 @@ func (s *SQLiteUserAttributeDB) CreateUserWithAttributes(ctx context.Context, us
 	user.CreatedAt = now
 	user.UpdatedAt = now
 
-	// Convert JSON fields to strings for SQLite
-	rolesJSON, _ := json.Marshal(user.Roles)
-	groupsJSON, _ := json.Marshal(user.Groups)
-	attributesJSON, _ := json.Marshal(user.Attributes)
-	trustedDevicesJSON, _ := json.Marshal(user.TrustedDevices)
-	entitlementsJSON, _ := json.Marshal(user.Entitlements)
-	consentJSON, _ := json.Marshal(user.Consent)
-
-	// Handle time fields
-	var updatedAt, lastLoginAt interface{}
-	if !user.UpdatedAt.IsZero() {
-		updatedAt = user.UpdatedAt.Format(time.RFC3339)
-	}
+	// Create the user first using the correct columns
+	var lastLoginAt interface{}
 	if user.LastLoginAt != nil {
 		lastLoginAt = user.LastLoginAt.Format(time.RFC3339)
 	}
 
-	// Create the user first
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO users (
-			id, tenant, realm, username,
-			status,
-			display_name, given_name, family_name,
-			profile_picture_uri,
-			email, phone, email_verified, phone_verified,
-			login_identifier,
-			locale,
-			password_credential, webauthn_credential, mfa_credential,
-			password_locked, webauthn_locked, mfa_locked,
-			failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-			roles, groups, entitlements, consent, attributes,
-			created_at, updated_at, last_login_at,
-			federated_idp, federated_id,
-			trusted_devices
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			id, tenant, realm, status,
+			created_at, updated_at, last_login_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`,
 		user.ID,
 		user.Tenant,
 		user.Realm,
-		user.Username,
 		user.Status,
-		user.DisplayName,
-		user.GivenName,
-		user.FamilyName,
-		user.ProfilePictureURI,
-		user.Email,
-		user.Phone,
-		user.EmailVerified,
-		user.PhoneVerified,
-		user.LoginIdentifier,
-		user.Locale,
-		user.PasswordCredential,
-		user.WebAuthnCredential,
-		user.MFACredential,
-		user.PasswordLocked,
-		user.WebAuthnLocked,
-		user.MFALocked,
-		user.FailedLoginAttemptsPassword,
-		user.FailedLoginAttemptsWebAuthn,
-		user.FailedLoginAttemptsMFA,
-		string(rolesJSON),
-		string(groupsJSON),
-		string(entitlementsJSON),
-		string(consentJSON),
-		string(attributesJSON),
 		user.CreatedAt.Format(time.RFC3339),
-		updatedAt,
+		user.UpdatedAt.Format(time.RFC3339),
 		lastLoginAt,
-		user.FederatedIDP,
-		user.FederatedID,
-		string(trustedDevicesJSON),
 	)
 
 	if err != nil {

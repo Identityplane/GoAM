@@ -30,10 +30,10 @@ func New() *router.Router {
 
 	admin.GET("/{tenant}/{realm}/users", adminMiddleware(admin_api.HandleListUsers))
 	admin.GET("/{tenant}/{realm}/users/stats", adminMiddleware(admin_api.HandleGetUserStats))
-	admin.GET("/{tenant}/{realm}/users/{username}", adminMiddleware(admin_api.HandleGetUser))
-	admin.POST("/{tenant}/{realm}/users/{username}", adminMiddleware(admin_api.HandleCreateUser))
-	admin.PUT("/{tenant}/{realm}/users/{username}", adminMiddleware(admin_api.HandleUpdateUser))
-	admin.DELETE("/{tenant}/{realm}/users/{username}", adminMiddleware(admin_api.HandleDeleteUser))
+	admin.GET("/{tenant}/{realm}/users/{id}", adminMiddleware(admin_api.HandleGetUser))
+	admin.POST("/{tenant}/{realm}/users/{id}", adminMiddleware(admin_api.HandleCreateUser))
+	admin.PUT("/{tenant}/{realm}/users/{id}", adminMiddleware(admin_api.HandleUpdateUser))
+	admin.DELETE("/{tenant}/{realm}/users/{id}", adminMiddleware(admin_api.HandleDeleteUser))
 
 	// User attribute management routes
 	admin.GET("/{tenant}/{realm}/users/{id}/attributes", adminMiddleware(admin_api.HandleListUserAttributes))

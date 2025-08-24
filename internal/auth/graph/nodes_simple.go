@@ -24,7 +24,7 @@ var SuccessResultNode = &model.NodeDefinition{
 	Description:          "Terminal node that indicates successful authentication and returns user information",
 	Category:             "Results",
 	Type:                 model.NodeTypeResult,
-	RequiredContext:      []string{"user_id", "username"}, // expected to be set by now
+	RequiredContext:      []string{"user_id"}, // expected to be set by now
 	OutputContext:        []string{},
 	PossibleResultStates: []string{}, // terminal node
 	Run:                  RunAuthSuccessNode,
@@ -45,7 +45,6 @@ var FailureResultNode = &model.NodeDefinition{
 func RunAuthFailureNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 	state.Result = &model.FlowResult{
 		UserID:        "",
-		Username:      "",
 		Authenticated: false}
 
 	return &model.NodeResult{
@@ -163,7 +162,6 @@ func RunAuthSuccessNode(state *model.AuthenticationSession, node *model.GraphNod
 
 		state.Result = &model.FlowResult{
 			UserID:        state.User.ID,
-			Username:      state.User.Username,
 			Authenticated: true}
 
 		return &model.NodeResult{
@@ -176,7 +174,6 @@ func RunAuthSuccessNode(state *model.AuthenticationSession, node *model.GraphNod
 	if state.Context["user_id"] != "" {
 		state.Result = &model.FlowResult{
 			UserID:        state.Context["user_id"],
-			Username:      state.Context["username"],
 			Authenticated: true}
 
 		return &model.NodeResult{
@@ -189,7 +186,6 @@ func RunAuthSuccessNode(state *model.AuthenticationSession, node *model.GraphNod
 	// But currently we need it for testing
 	state.Result = &model.FlowResult{
 		UserID:        "",
-		Username:      "",
 		Authenticated: false}
 
 	return &model.NodeResult{

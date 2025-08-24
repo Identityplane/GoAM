@@ -61,7 +61,6 @@ const (
 
 type FlowResult struct {
 	UserID        string    `json:"user_id"`
-	Username      string    `json:"username"`
 	Authenticated bool      `json:"authenticated"`
 	AuthLevel     AuthLevel `json:"auth_level"`
 	FlowName      string    `json:"flow_name,omitempty"`

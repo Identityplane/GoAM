@@ -25,11 +25,8 @@ type Repositories struct {
 }
 
 type UserRepository interface {
-	GetByUsername(ctx context.Context, username string) (*User, error)
-	GetByEmail(ctx context.Context, email string) (*User, error)
-	GetByLoginIdentifier(ctx context.Context, loginIdentifier string) (*User, error)
 	GetByID(ctx context.Context, id string) (*User, error)
-	GetByFederatedIdentifier(ctx context.Context, provider, identifier string) (*User, error)
+	GetByAttributeIndex(ctx context.Context, attributeType, index string) (*User, error)
 
 	Create(ctx context.Context, user *User) error
 	Update(ctx context.Context, user *User) error

@@ -587,30 +587,33 @@ func (s *OAuth2Service) GetUserClaims(session *model.ClientSession) (map[string]
 		claims["sub"] = user.ID
 	}
 
-	if slices.Contains(scopes, "email") {
-		claims["email"] = user.Email
-		claims["email_verified"] = user.EmailVerified
-	}
+	//TODO we need to add the claims for the user attributes
+	/*
 
-	if slices.Contains(scopes, "profile") {
-		claims["username"] = user.Username
-		claims["name"] = user.DisplayName
-		claims["given_name"] = user.GivenName
-		claims["family_name"] = user.FamilyName
-	}
+		if slices.Contains(scopes, "email") {
+			claims["email"] = user.Email
+			claims["email_verified"] = user.EmailVerified
+		}
 
-	if slices.Contains(scopes, "phone") {
-		claims["phone"] = user.Phone
-		claims["phone_verified"] = user.PhoneVerified
-	}
+		if slices.Contains(scopes, "profile") {
+			claims["username"] = user.Username
+			claims["name"] = user.DisplayName
+			claims["given_name"] = user.GivenName
+			claims["family_name"] = user.FamilyName
+		}
 
-	if slices.Contains(scopes, "groups") {
-		claims["groups"] = user.Groups
-	}
+		if slices.Contains(scopes, "phone") {
+			claims["phone"] = user.Phone
+			claims["phone_verified"] = user.PhoneVerified
+		}
 
-	if slices.Contains(scopes, "roles") {
-		claims["roles"] = user.Roles
-	}
+		if slices.Contains(scopes, "groups") {
+			claims["groups"] = user.Groups
+		}
+
+		if slices.Contains(scopes, "roles") {
+			claims["roles"] = user.Roles
+		}*/
 
 	return claims, nil
 }

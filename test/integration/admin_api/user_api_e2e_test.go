@@ -22,38 +22,24 @@ func TestUserAPI_E2E(t *testing.T) {
 
 	// Test user data
 	testUser := map[string]interface{}{
-		"username":            "admin_test_user",
-		"display_name":        "Admin Test User",
-		"given_name":          "Admin",
-		"family_name":         "Test",
-		"email":               "admin_test@example.com",
-		"phone":               "+1234567890",
-		"status":              "active",
-		"roles":               []string{"admin"},
-		"groups":              []string{"test_group"},
-		"attributes":          map[string]string{"test": "value"},
-		"profile_picture_uri": "https://example.com/profile.jpg",
-		"login_identifier":    "admin_test@example.com",
-		"entitlements":        []string{"read:users", "write:users"},
-		"consent":             []string{"marketing", "analytics"},
-		"trusted_devices":     []string{"device1"},
+		"id":     "admin_test_user",
+		"status": "active",
+		"tenant": "acme",
+		"realm":  "customers",
 	}
 
 	// Test creating a user
 	t.Run("Create User", func(t *testing.T) {
-		e.POST("/admin/acme/customers/users/"+testUser["username"].(string)).
+		e.POST("/admin/acme/customers/users/"+testUser["id"].(string)).
 			WithJSON(testUser).
 			Expect().
 			Status(http.StatusCreated).
 			JSON().
 			Object().
-			HasValue("username", testUser["username"]).
-			HasValue("display_name", testUser["display_name"]).
-			HasValue("profile_picture_uri", testUser["profile_picture_uri"]).
-			HasValue("login_identifier", testUser["login_identifier"]).
-			HasValue("entitlements", testUser["entitlements"]).
-			HasValue("consent", testUser["consent"]).
-			HasValue("trusted_devices", testUser["trusted_devices"])
+			HasValue("id", testUser["id"]).
+			HasValue("status", testUser["status"]).
+			HasValue("tenant", testUser["tenant"]).
+			HasValue("realm", testUser["realm"])
 	})
 
 	// Test getting user stats
@@ -94,35 +80,29 @@ func TestUserAPI_E2E(t *testing.T) {
 
 	// Test getting a specific user
 	t.Run("Get User", func(t *testing.T) {
-		e.GET("/admin/acme/customers/users/"+testUser["username"].(string)).
+		e.GET("/admin/acme/customers/users/"+testUser["id"].(string)).
 			Expect().
 			Status(http.StatusOK).
 			JSON().
 			Object().
-			HasValue("username", testUser["username"]).
-			HasValue("display_name", testUser["display_name"]).
-			HasValue("profile_picture_uri", testUser["profile_picture_uri"]).
-			HasValue("login_identifier", testUser["login_identifier"]).
-			HasValue("entitlements", testUser["entitlements"]).
-			HasValue("consent", testUser["consent"]).
-			HasValue("trusted_devices", testUser["trusted_devices"])
+			HasValue("id", testUser["id"]).
+			HasValue("status", testUser["status"]).
+			HasValue("tenant", testUser["tenant"]).
+			HasValue("realm", testUser["realm"])
 	})
 
 	// Test getting a user with attributes
 	t.Run("Get User With Attributes", func(t *testing.T) {
-		e.GET("/admin/acme/customers/users/"+testUser["username"].(string)).
+		e.GET("/admin/acme/customers/users/"+testUser["id"].(string)).
 			WithQuery("include_attributes", "true").
 			Expect().
 			Status(http.StatusOK).
 			JSON().
 			Object().
-			HasValue("username", testUser["username"]).
-			HasValue("display_name", testUser["display_name"]).
-			HasValue("profile_picture_uri", testUser["profile_picture_uri"]).
-			HasValue("login_identifier", testUser["login_identifier"]).
-			HasValue("entitlements", testUser["entitlements"]).
-			HasValue("consent", testUser["consent"]).
-			HasValue("trusted_devices", testUser["trusted_devices"]).
+			HasValue("id", testUser["id"]).
+			HasValue("status", testUser["status"]).
+			HasValue("tenant", testUser["tenant"]).
+			HasValue("realm", testUser["realm"]).
 			ContainsKey("user_attributes").
 			Value("user_attributes").Array().Empty()
 	})
@@ -130,31 +110,25 @@ func TestUserAPI_E2E(t *testing.T) {
 	// Test updating a user
 	t.Run("Update User", func(t *testing.T) {
 		updatedUser := testUser
-		updatedUser["display_name"] = "Updated Admin Test User"
-		updatedUser["profile_picture_uri"] = "https://example.com/updated.jpg"
-		updatedUser["entitlements"] = []string{"read:users", "write:users", "admin:users"}
-		updatedUser["consent"] = []string{"marketing", "analytics", "cookies"}
+		updatedUser["status"] = "inactive"
 
-		e.PUT("/admin/acme/customers/users/"+testUser["username"].(string)).
+		e.PUT("/admin/acme/customers/users/"+testUser["id"].(string)).
 			WithJSON(updatedUser).
 			Expect().
 			Status(http.StatusOK).
 			JSON().
 			Object().
-			HasValue("display_name", updatedUser["display_name"]).
-			HasValue("profile_picture_uri", updatedUser["profile_picture_uri"]).
-			HasValue("entitlements", updatedUser["entitlements"]).
-			HasValue("consent", updatedUser["consent"])
+			HasValue("status", updatedUser["status"])
 	})
 
 	// Test deleting a user
 	t.Run("Delete User", func(t *testing.T) {
-		e.DELETE("/admin/acme/customers/users/" + testUser["username"].(string)).
+		e.DELETE("/admin/acme/customers/users/" + testUser["id"].(string)).
 			Expect().
 			Status(http.StatusNoContent)
 
 		// Verify user is deleted
-		e.GET("/admin/acme/customers/users/" + testUser["username"].(string)).
+		e.GET("/admin/acme/customers/users/" + testUser["id"].(string)).
 			Expect().
 			Status(http.StatusNotFound)
 	})
