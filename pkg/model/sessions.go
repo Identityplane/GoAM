@@ -57,9 +57,6 @@ func (s *AuthenticationSession) GetLogger() zerolog.Logger {
 	// Add user context if available
 	if s.User != nil {
 		event = event.Str("user_id", s.User.ID)
-		if s.User.Username != "" {
-			event = event.Str("username", s.User.Username)
-		}
 	}
 
 	// Add OAuth2 context if available

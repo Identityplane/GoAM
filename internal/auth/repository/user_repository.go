@@ -26,11 +26,6 @@ func NewUserRepository(tenant, realm string, db db.UserDB, attributesDB db.UserA
 	return repo
 }
 
-func (r *UserRepositoryImpl) GetByUsername(ctx context.Context, username string) (*model.User, error) {
-
-	return r.db.GetUserByUsername(ctx, r.tenant, r.realm, username)
-}
-
 func (r *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {
 
 	// Ensure the tenant and realm are set to the repository values
@@ -76,19 +71,11 @@ func (r *UserRepositoryImpl) CreateOrUpdate(ctx context.Context, user *model.Use
 }
 
 func (r *UserRepositoryImpl) GetByID(ctx context.Context, id string) (*model.User, error) {
-	return r.db.GetUserByID(ctx, r.tenant, r.realm, id)
+	return r.attributesDB.GetUserWithAttributes(ctx, r.tenant, r.realm, id)
 }
 
-func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	return r.db.GetUserByEmail(ctx, r.tenant, r.realm, email)
-}
-
-func (r *UserRepositoryImpl) GetByLoginIdentifier(ctx context.Context, loginIdentifier string) (*model.User, error) {
-	return r.db.GetUserByLoginIdentifier(ctx, r.tenant, r.realm, loginIdentifier)
-}
-
-func (r *UserRepositoryImpl) GetByFederatedIdentifier(ctx context.Context, provider, identifier string) (*model.User, error) {
-	return r.db.GetUserByFederatedIdentifier(ctx, r.tenant, r.realm, provider, identifier)
+func (r *UserRepositoryImpl) GetByAttributeIndex(ctx context.Context, attributeType, index string) (*model.User, error) {
+	return r.attributesDB.GetUserByAttributeIndexWithAttributes(ctx, r.tenant, r.realm, attributeType, index)
 }
 
 func (r *UserRepositoryImpl) CreateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error {

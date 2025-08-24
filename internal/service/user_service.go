@@ -18,11 +18,10 @@ type PaginationParams struct {
 type UserAdminService interface {
 	// List users with pagination, returns usersn, total count and users
 	ListUsers(ctx context.Context, tenant, realm string, pagination PaginationParams) ([]model.User, int64, error)
-	GetUser(ctx context.Context, tenant, realm, username string) (*model.User, error)
-	GetUserWithAttributes(ctx context.Context, tenant, realm, username string) (*model.User, error)
 	GetUserByID(ctx context.Context, tenant, realm, userID string) (*model.User, error)
-	UpdateUser(ctx context.Context, tenant, realm, username string, updateUser model.User) (*model.User, error)
-	DeleteUser(ctx context.Context, tenant, realm, username string) error
+	GetUserWithAttributesByID(ctx context.Context, tenant, realm, userID string) (*model.User, error)
+	UpdateUserByID(ctx context.Context, tenant, realm, userID string, updateUser model.User) (*model.User, error)
+	DeleteUserByID(ctx context.Context, tenant, realm, userID string) error
 	// Get user statistics
 	GetUserStats(ctx context.Context, tenant, realm string) (*model.UserStats, error)
 	// Create a new user
@@ -62,13 +61,9 @@ func (s *userServiceImpl) ListUsers(ctx context.Context, tenant, realm string, p
 	return users, total, nil
 }
 
-func (s *userServiceImpl) GetUser(ctx context.Context, tenant, realm, username string) (*model.User, error) {
-	return s.userDB.GetUserByUsername(ctx, tenant, realm, username)
-}
-
-func (s *userServiceImpl) GetUserWithAttributes(ctx context.Context, tenant, realm, username string) (*model.User, error) {
+func (s *userServiceImpl) GetUserWithAttributesByID(ctx context.Context, tenant, realm, userID string) (*model.User, error) {
 	// First get the user
-	user, err := s.userDB.GetUserByUsername(ctx, tenant, realm, username)
+	user, err := s.userDB.GetUserByID(ctx, tenant, realm, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +88,9 @@ func (s *userServiceImpl) GetUserByID(ctx context.Context, tenant, realm, userID
 	return s.userDB.GetUserByID(ctx, tenant, realm, userID)
 }
 
-func (s *userServiceImpl) UpdateUser(ctx context.Context, tenant, realm, username string, updateUser model.User) (*model.User, error) {
+func (s *userServiceImpl) UpdateUserByID(ctx context.Context, tenant, realm, userID string, updateUser model.User) (*model.User, error) {
 	// Get existing user
-	user, err := s.userDB.GetUserByUsername(ctx, tenant, realm, username)
+	user, err := s.userDB.GetUserByID(ctx, tenant, realm, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -105,28 +100,7 @@ func (s *userServiceImpl) UpdateUser(ctx context.Context, tenant, realm, usernam
 	}
 
 	// Update user fields
-	user.DisplayName = updateUser.DisplayName
-	user.GivenName = updateUser.GivenName
-	user.FamilyName = updateUser.FamilyName
-	user.ProfilePictureURI = updateUser.ProfilePictureURI
-	user.Email = updateUser.Email
-	user.Phone = updateUser.Phone
-	user.EmailVerified = updateUser.EmailVerified
-	user.PhoneVerified = updateUser.PhoneVerified
-	user.LoginIdentifier = updateUser.LoginIdentifier
-	user.Locale = updateUser.Locale
 	user.Status = updateUser.Status
-	user.Roles = updateUser.Roles
-	user.Groups = updateUser.Groups
-	user.Entitlements = updateUser.Entitlements
-	user.Consent = updateUser.Consent
-	user.Attributes = updateUser.Attributes
-	user.PasswordLocked = updateUser.PasswordLocked
-	user.WebAuthnLocked = updateUser.WebAuthnLocked
-	user.MFALocked = updateUser.MFALocked
-	user.FailedLoginAttemptsPassword = updateUser.FailedLoginAttemptsPassword
-	user.FailedLoginAttemptsWebAuthn = updateUser.FailedLoginAttemptsWebAuthn
-	user.FailedLoginAttemptsMFA = updateUser.FailedLoginAttemptsMFA
 
 	// Update user in database
 	if err := s.userDB.UpdateUser(ctx, user); err != nil {
@@ -136,9 +110,9 @@ func (s *userServiceImpl) UpdateUser(ctx context.Context, tenant, realm, usernam
 	return user, nil
 }
 
-func (s *userServiceImpl) DeleteUser(ctx context.Context, tenant, realm, username string) error {
+func (s *userServiceImpl) DeleteUserByID(ctx context.Context, tenant, realm, userID string) error {
 	// Check if user exists
-	user, err := s.userDB.GetUserByUsername(ctx, tenant, realm, username)
+	user, err := s.userDB.GetUserByID(ctx, tenant, realm, userID)
 	if err != nil {
 		return err
 	}
@@ -148,7 +122,7 @@ func (s *userServiceImpl) DeleteUser(ctx context.Context, tenant, realm, usernam
 	}
 
 	// Delete the user
-	return s.userDB.DeleteUser(ctx, tenant, realm, username)
+	return s.userDB.DeleteUser(ctx, tenant, realm, userID)
 }
 
 func (s *userServiceImpl) GetUserStats(ctx context.Context, tenant, realm string) (*model.UserStats, error) {
@@ -163,7 +137,7 @@ func (s *userServiceImpl) GetUserStats(ctx context.Context, tenant, realm string
 
 func (s *userServiceImpl) CreateUser(ctx context.Context, tenant, realm string, createUser model.User) (*model.User, error) {
 	// Check if user already exists
-	existing, err := s.userDB.GetUserByUsername(ctx, tenant, realm, createUser.Username)
+	existing, err := s.userDB.GetUserByID(ctx, tenant, realm, createUser.ID)
 	if err != nil {
 		return nil, err
 	}

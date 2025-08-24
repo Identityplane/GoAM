@@ -10,71 +10,19 @@ import (
 // @description User information and attributes
 type User struct {
 	// Unique UUID for the user
-	ID string `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	ID string `json:"id" db:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
 
 	// Organization Context
-	Tenant   string `json:"tenant" example:"acme"`
-	Realm    string `json:"realm" example:"customers"`
-	Username string `json:"username" example:"john.doe"`
+	Tenant string `json:"tenant" db:"tenant" example:"acme"`
+	Realm  string `json:"realm" db:"realm" example:"customers"`
 
 	// User status
-	Status string `json:"status" example:"active"`
-
-	// Identity Information
-	DisplayName string `json:"display_name" example:"John Doe"`
-	GivenName   string `json:"given_name" example:"John"`
-	FamilyName  string `json:"family_name" example:"Doe"`
-
-	// Profile Information
-	ProfilePictureURI string `json:"profile_picture_uri" example:"https://example.com/profile.jpg"`
-
-	// Additional contact information
-	Email         string `json:"email" example:"john.doe@example.com"`
-	Phone         string `json:"phone" example:"+1234567890"`
-	EmailVerified bool   `json:"email_verified" example:"true"`
-	PhoneVerified bool   `json:"phone_verified" example:"false"`
-
-	// Login Information
-	LoginIdentifier string `json:"login_identifier" example:"john.doe@example.com"`
-
-	// Locale
-	Locale string `json:"locale" example:"en-US"`
-
-	// Authentication credentials
-	PasswordCredential string `json:"-"`
-	WebAuthnCredential string `json:"-"`
-	MFACredential      string `json:"-"`
-
-	PasswordLocked bool `json:"password_locked" example:"false"`
-	WebAuthnLocked bool `json:"webauthn_locked" example:"false"`
-	MFALocked      bool `json:"mfa_locked" example:"false"`
-
-	FailedLoginAttemptsPassword int `json:"failed_login_attempts_password" example:"0"`
-	FailedLoginAttemptsWebAuthn int `json:"failed_login_attempts_webauthn" example:"0"`
-	FailedLoginAttemptsMFA      int `json:"failed_login_attempts_mfa" example:"0"`
-
-	// User roles, groups and entitlements
-	Roles        []string `json:"roles" example:"['admin', 'user']"`
-	Groups       []string `json:"groups" example:"['developers', 'support']"`
-	Entitlements []string `json:"entitlements" example:"['read:users', 'write:users']"`
-
-	// User consents
-	Consent []string `json:"consent,omitempty" example:"['marketing', 'analytics']"`
-
-	// Extensibility
-	Attributes map[string]string `json:"attributes,omitempty" example:"{'key1': 'value1', 'key2': 'value2'}"`
+	Status string `json:"status" db:"status" example:"active"`
 
 	// Audit
-	CreatedAt   time.Time  `json:"created_at" example:"2024-01-01T00:00:00Z"`
-	UpdatedAt   time.Time  `json:"updated_at" example:"2024-01-01T00:00:00Z"`
-	LastLoginAt *time.Time `json:"last_login_at,omitempty" example:"2024-01-01T00:00:00Z"`
-
-	// Federation
-	FederatedIDP *string `json:"federated_idp,omitempty" example:"google"`
-	FederatedID  *string `json:"federated_id,omitempty" example:"123456789"`
-
-	// Devices
-	TrustedDevices []string `json:"trusted_devices,omitempty" example:"['device1', 'device2']"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at" example:"2024-01-01T00:00:00Z"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at" example:"2024-01-01T00:00:00Z"`
+	LastLoginAt *time.Time `json:"last_login_at,omitempty" db:"last_login_at" example:"2024-01-01T00:00:00Z"`
 
 	// Attributes
 	UserAttributes []UserAttribute `json:"user_attributes,omitempty"`

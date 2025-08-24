@@ -112,24 +112,24 @@ func HandleListUsers(ctx *fasthttp.RequestCtx) {
 }
 
 // @Summary Get user
-// @Description Get a specific user by username
+// @Description Get a specific user by id
 // @Tags Users
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
-// @Param username path string true "Username"
+// @Param id path string true "User ID"
 // @Param include_attributes query bool false "Include user attributes" default(false)
 // @Success 200 {object} model.User
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /admin/{tenant}/{realm}/users/{username} [get]
+// @Router /admin/{tenant}/{realm}/users/{id} [get]
 func HandleGetUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
-	username := ctx.UserValue("username").(string)
+	id := ctx.UserValue("id").(string)
 
 	// Lookup the loaded realm
 	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
@@ -152,10 +152,10 @@ func HandleGetUser(ctx *fasthttp.RequestCtx) {
 
 	if includeAttributes {
 		// Get user with attributes
-		user, err = service.GetServices().UserService.GetUserWithAttributes(ctx, tenant, realm, username)
+		user, err = service.GetServices().UserService.GetUserWithAttributesByID(ctx, tenant, realm, id)
 	} else {
 		// Get user without attributes (default behavior)
-		user, err = service.GetServices().UserService.GetUser(ctx, tenant, realm, username)
+		user, err = service.GetServices().UserService.GetUserByID(ctx, tenant, realm, id)
 	}
 
 	if err != nil {
@@ -190,17 +190,17 @@ func HandleGetUser(ctx *fasthttp.RequestCtx) {
 // @Produce json
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
-// @Param username path string true "Username"
+// @Param id path string true "User ID"
 // @Param user body model.User true "User object"
 // @Success 201 {object} model.User
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /admin/{tenant}/{realm}/users/{username} [post]
+// @Router /admin/{tenant}/{realm}/users/{id} [post]
 func HandleCreateUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
-	username := ctx.UserValue("username").(string)
+	id := ctx.UserValue("id").(string)
 
 	// Lookup the loaded realm
 	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
@@ -218,10 +218,10 @@ func HandleCreateUser(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Check if username matched the path parameter
-	if createUser.Username != username {
+	// Check if id matched the path parameter
+	if createUser.ID != id {
 		ctx.SetStatusCode(http.StatusBadRequest)
-		ctx.SetBodyString("Username does not match path parameter")
+		ctx.SetBodyString("ID does not match path parameter")
 		return
 	}
 
@@ -254,18 +254,18 @@ func HandleCreateUser(ctx *fasthttp.RequestCtx) {
 // @Produce json
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
-// @Param username path string true "Username"
+// @Param id path string true "User ID"
 // @Param user body model.User true "User object"
 // @Success 200 {object} model.User
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /admin/{tenant}/{realm}/users/{username} [put]
+// @Router /admin/{tenant}/{realm}/users/{id} [put]
 func HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
-	username := ctx.UserValue("username").(string)
+	id := ctx.UserValue("id").(string)
 
 	// Lookup the loaded realm
 	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
@@ -284,7 +284,7 @@ func HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Update user through service
-	user, err := service.GetServices().UserService.UpdateUser(ctx, tenant, realm, username, updateUser)
+	user, err := service.GetServices().UserService.UpdateUserByID(ctx, tenant, realm, id, updateUser)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to update user: " + err.Error())
@@ -317,17 +317,17 @@ func HandleUpdateUser(ctx *fasthttp.RequestCtx) {
 // @Produce json
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
-// @Param username path string true "Username"
+// @Param id path string true "User ID"
 // @Success 204 "No Content"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /admin/{tenant}/{realm}/users/{username} [delete]
+// @Router /admin/{tenant}/{realm}/users/{id} [delete]
 func HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
-	username := ctx.UserValue("username").(string)
+	id := ctx.UserValue("id").(string)
 
 	// Lookup the loaded realm
 	_, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
@@ -338,7 +338,7 @@ func HandleDeleteUser(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Delete user through service
-	err := service.GetServices().UserService.DeleteUser(ctx, tenant, realm, username)
+	err := service.GetServices().UserService.DeleteUserByID(ctx, tenant, realm, id)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to delete user: " + err.Error())
