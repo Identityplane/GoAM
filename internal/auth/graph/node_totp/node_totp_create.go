@@ -28,7 +28,7 @@ var TOTPCreateNode = &model.NodeDefinition{
 		"totpIssuer": "The name of the issuer displayed in the TOTP QR code",
 		"saveUser":   "If true, the user will be saved to the database after the TOTP is created",
 	},
-	PossibleResultStates: []string{"success", "failure"},
+	PossibleResultStates: []string{"success"},
 	Run:                  RunTOTPCreateNode,
 }
 
@@ -49,6 +49,11 @@ func RunTOTPCreateNode(state *model.AuthenticationSession, node *model.GraphNode
 		// Get the display name of the user
 		accountName := node_utils.GetAccountNameFromContext(state)
 
+		// If the account name is empty we set it to the issuer as a fallback because the totp library requires a non empty account name
+		if accountName == "" {
+			accountName = issuer
+		}
+
 		// Create a new TOTP secret
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      issuer,
@@ -66,14 +71,17 @@ func RunTOTPCreateNode(state *model.AuthenticationSession, node *model.GraphNode
 			return nil, err
 		}
 
+		// Get the secret from the key
+		secret := key.Secret()
+
 		// Store the TOTP secret in the context
-		state.Context["totpSecret"] = key.Secret()
+		state.Context["totpSecret"] = secret
 		state.Context["totpImageUrl"] = imageUrl
 		state.Context["totpIssuer"] = issuer
 
 		// Return a prompt with the information for the user to scan the QR code or client to display the secret
 		return model.NewNodeResultWithPrompts(map[string]string{
-			"totpSecret":       key.Secret(),
+			"totpSecret":       secret,
 			"totpVerification": "string",
 			"totpIssuer":       issuer,
 			"totpImageUrl":     imageUrl,
@@ -86,13 +94,23 @@ func RunTOTPCreateNode(state *model.AuthenticationSession, node *model.GraphNode
 
 	valid := totp.Validate(verificationCode, totpSecret)
 	if !valid {
+
+		errMsg := "Invalid Code"
+		state.Error = &errMsg
+
+		secret := state.Context["totpSecret"]
+		issuer := state.Context["totpIssuer"]
+		imageUrl := state.Context["totpImageUrl"]
+
 		// During registration we dont need to increment the failed attempts
 		// as we are not storing the totp secret in the database
 		// so we can just prompt again and the user can try again
-		return &model.NodeResult{
-			Prompts:   map[string]string{"totpVerification": "string"},
-			Condition: "",
-		}, nil
+		return model.NewNodeResultWithPrompts(map[string]string{
+			"totpSecret":       secret,
+			"totpVerification": "string",
+			"totpIssuer":       issuer,
+			"totpImageUrl":     imageUrl,
+		})
 	}
 
 	// Create the totp attribute

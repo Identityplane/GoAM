@@ -177,7 +177,7 @@ func (p *PostgresUserDB) UpdateUser(ctx context.Context, user *model.User) error
 	mfaLocked := user.MFALocked
 
 	// Use CURRENT_TIMESTAMP for updated_at to ensure it's set by the database
-	_, err := p.db.Exec(ctx, `
+	result, err := p.db.Exec(ctx, `
 		UPDATE users SET
 			status = $1,
 			display_name = $2,
@@ -244,7 +244,18 @@ func (p *PostgresUserDB) UpdateUser(ctx context.Context, user *model.User) error
 		user.Tenant,
 		user.Realm,
 	)
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	// Check if any rows were affected
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found: tenant=%s, realm=%s, id=%s", user.Tenant, user.Realm, user.ID)
+	}
+
+	return nil
 }
 
 func (p *PostgresUserDB) ListUsers(ctx context.Context, tenant, realm string) ([]model.User, error) {

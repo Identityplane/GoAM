@@ -2,6 +2,7 @@ package graph
 
 import (
 	nodetotp "github.com/Identityplane/GoAM/internal/auth/graph/node_totp"
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_user"
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
@@ -25,6 +26,7 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	PasskeyOnboardingNode.Name:       PasskeyOnboardingNode,
 
 	// User Management
+	node_user.InitUserNode.Name: node_user.InitUserNode,
 	LoadUserByUsernameNode.Name: LoadUserByUsernameNode,
 
 	// Password or Social Login

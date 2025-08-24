@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -43,7 +44,7 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, user *model.User) error
 
 	// If the user has no id we return an error
 	if user.ID == "" {
-		return fmt.Errorf("user has no id - create user first")
+		return fmt.Errorf("user not found: user has no id - create user first")
 	}
 
 	// Ensure the tenant and realm are set to the repository values
@@ -63,7 +64,15 @@ func (r *UserRepositoryImpl) CreateOrUpdate(ctx context.Context, user *model.Use
 		return r.Create(ctx, user)
 	}
 
-	return r.Update(ctx, user)
+	// Update the user
+	err := r.Update(ctx, user)
+
+	// If the user is not found we create it
+	if err != nil && strings.Contains(err.Error(), "user not found") {
+		return r.Create(ctx, user)
+	}
+
+	return err
 }
 
 func (r *UserRepositoryImpl) GetByID(ctx context.Context, id string) (*model.User, error) {
@@ -110,13 +119,13 @@ func (r *UserRepositoryImpl) ensureTenantAndRealm(user *model.User, tenant, real
 	user.Realm = realm
 
 	// For each attribute we ensure that the tenant and realm are set and the user id is set as well as a attribute id
-	for _, attribute := range user.UserAttributes {
-		attribute.Tenant = tenant
-		attribute.Realm = realm
-		attribute.UserID = user.ID
+	for idx, _ := range user.UserAttributes {
+		user.UserAttributes[idx].Tenant = tenant
+		user.UserAttributes[idx].Realm = realm
+		user.UserAttributes[idx].UserID = user.ID
 
-		if attribute.ID == "" {
-			attribute.ID = uuid.NewString()
+		if user.UserAttributes[idx].ID == "" {
+			user.UserAttributes[idx].ID = uuid.NewString()
 		}
 	}
 }
