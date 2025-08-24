@@ -1,4 +1,4 @@
-package graph
+package node_username
 
 import (
 	"context"
@@ -28,12 +28,19 @@ func RunCheckUsernameAvailableNode(state *model.AuthenticationSession, node *mod
 		return model.NewNodeResultWithTextError("UserRepo not initialized")
 	}
 
-	existing, err := userRepo.GetByUsername(ctx, username)
+	existing, err := userRepo.GetByAttributeIndex(ctx, model.AttributeTypeUsername, username)
 	if err != nil {
+		state.Error = ptr("Username taken")
 		return model.NewNodeResultWithCondition("taken")
 	}
 	if existing != nil {
+		state.Error = ptr("Username taken")
 		return model.NewNodeResultWithCondition("taken")
 	}
 	return model.NewNodeResultWithCondition("available")
+}
+
+// ptr returns a pointer to the given value
+func ptr[T any](v T) *T {
+	return &v
 }
