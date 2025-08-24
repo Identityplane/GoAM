@@ -57,16 +57,8 @@ func HandleWhoAmI(ctx *fasthttp.RequestCtx) {
 
 	response := AuthzResponse{
 		User: AuthzUser{
-			ID:            user.ID,
-			DisplayName:   user.DisplayName,
-			Email:         user.Email,
-			EmailVerified: user.EmailVerified,
-			GivenName:     user.GivenName,
-			FamilyName:    user.FamilyName,
-			LastLoginAt:   lastLoginAt,
-			Locale:        user.Locale,
-			Phone:         user.Phone,
-			PhoneVerified: user.PhoneVerified,
+			ID:          user.ID,
+			LastLoginAt: lastLoginAt,
 		},
 		Entitlements: entitlements,
 	}

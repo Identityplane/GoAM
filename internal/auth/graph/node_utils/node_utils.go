@@ -11,20 +11,7 @@ func GetAccountNameFromContext(state *model.AuthenticationSession) string {
 		return ""
 	}
 
-	// If we have a username we use that
-	if state.User.Username != "" {
-		return state.User.Username
-	}
-
-	// If we have a email we use that
-	if state.User.Email != "" {
-		return state.User.Email
-	}
-
-	// If we have a phone we use that
-	if state.User.Phone != "" {
-		return state.User.Phone
-	}
+	// TODO we need to get the display name from the user attributes
 
 	// Otherwise we return the id
 	return state.User.ID

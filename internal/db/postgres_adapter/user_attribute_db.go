@@ -171,24 +171,10 @@ func (p *PostgresUserAttributeDB) GetUserByAttributeIndex(ctx context.Context, t
 		return nil, err
 	}
 
-	// Now get the user from the users table
-	// We need to use the existing user DB implementation
-	// For now, we'll do a direct query here
+	// Now get the user from the users table using the correct columns
 	row := p.db.QueryRow(ctx, `
-		SELECT id, tenant, realm, username,
-		       status,
-		       display_name, given_name, family_name,
-		       profile_picture_uri,
-		       email, phone, email_verified, phone_verified,
-		       login_identifier,
-		       locale,
-		       password_credential, webauthn_credential, mfa_credential,
-		       password_locked, webauthn_locked, mfa_locked,
-		       failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-		       roles, groups, entitlements, consent, attributes,
-		       created_at, updated_at, last_login_at,
-		       federated_idp, federated_id,
-		       trusted_devices
+		SELECT id, tenant, realm, status,
+		       created_at, updated_at, last_login_at
 		FROM users 
 		WHERE tenant = $1 AND realm = $2 AND id = $3
 	`, tenant, realm, userID)
@@ -200,23 +186,11 @@ func (p *PostgresUserAttributeDB) GetUserByAttributeIndex(ctx context.Context, t
 
 // GetUserWithAttributes loads a user with all their attributes in one efficient database query
 func (p *PostgresUserAttributeDB) GetUserWithAttributes(ctx context.Context, tenant, realm, userID string) (*model.User, error) {
-	// Single query to get user with attributes as JSONB
+	// Single query to get user with attributes as JSONB using simplified schema
 	row := p.db.QueryRow(ctx, `
 		SELECT 
-			u.id, u.tenant, u.realm, u.username,
-			u.status,
-			u.display_name, u.given_name, u.family_name,
-			u.profile_picture_uri,
-			u.email, u.phone, u.email_verified, u.phone_verified,
-			u.login_identifier,
-			u.locale,
-			u.password_credential, u.webauthn_credential, u.mfa_credential,
-			u.password_locked, u.webauthn_locked, u.mfa_locked,
-			u.failed_login_attempts_password, u.failed_login_attempts_webauthn, u.failed_login_attempts_mfa,
-			u.roles, u.groups, u.entitlements, u.consent, u.attributes,
+			u.id, u.tenant, u.realm, u.status,
 			u.created_at, u.updated_at, u.last_login_at,
-			u.federated_idp, u.federated_id,
-			u.trusted_devices,
 			COALESCE(
 				(
 					SELECT jsonb_agg(
@@ -246,44 +220,15 @@ func (p *PostgresUserAttributeDB) GetUserWithAttributes(ctx context.Context, ten
 	var userAttributesJSONB []byte
 	var createdAt, updatedAt time.Time
 	var lastLoginAt *time.Time
-	var federatedIDP, federatedID *string
 
 	err := row.Scan(
 		&user.ID,
 		&user.Tenant,
 		&user.Realm,
-		&user.Username,
 		&user.Status,
-		&user.DisplayName,
-		&user.GivenName,
-		&user.FamilyName,
-		&user.ProfilePictureURI,
-		&user.Email,
-		&user.Phone,
-		&user.EmailVerified,
-		&user.PhoneVerified,
-		&user.LoginIdentifier,
-		&user.Locale,
-		&user.PasswordCredential,
-		&user.WebAuthnCredential,
-		&user.MFACredential,
-		&user.PasswordLocked,
-		&user.WebAuthnLocked,
-		&user.MFALocked,
-		&user.FailedLoginAttemptsPassword,
-		&user.FailedLoginAttemptsWebAuthn,
-		&user.FailedLoginAttemptsMFA,
-		&user.Roles,
-		&user.Groups,
-		&user.Entitlements,
-		&user.Consent,
-		&user.Attributes,
 		&createdAt,
 		&updatedAt,
 		&lastLoginAt,
-		&federatedIDP,
-		&federatedID,
-		&user.TrustedDevices,
 		&userAttributesJSONB,
 	)
 
@@ -298,8 +243,6 @@ func (p *PostgresUserAttributeDB) GetUserWithAttributes(ctx context.Context, ten
 	user.CreatedAt = createdAt.UTC()
 	user.UpdatedAt = updatedAt.UTC()
 	user.LastLoginAt = lastLoginAt
-	user.FederatedIDP = federatedIDP
-	user.FederatedID = federatedID
 
 	// Parse the JSONB attributes
 	if len(userAttributesJSONB) > 0 {
@@ -318,23 +261,11 @@ func (p *PostgresUserAttributeDB) GetUserWithAttributes(ctx context.Context, ten
 // GetUserByAttributeIndexWithAttributes finds a user by attribute index and loads all their attributes
 // Uses a single efficient query with JOIN and subquery for production performance
 func (p *PostgresUserAttributeDB) GetUserByAttributeIndexWithAttributes(ctx context.Context, tenant, realm, attributeType, index string) (*model.User, error) {
-	// Single query with JOIN to get user by attribute index and all their attributes
+	// Single query with JOIN to get user by attribute index and all their attributes using simplified schema
 	row := p.db.QueryRow(ctx, `
 		SELECT 
-			u.id, u.tenant, u.realm, u.username,
-			u.status,
-			u.display_name, u.given_name, u.family_name,
-			u.profile_picture_uri,
-			u.email, u.phone, u.email_verified, u.phone_verified,
-			u.login_identifier,
-			u.locale,
-			u.password_credential, u.webauthn_credential, u.mfa_credential,
-			u.password_locked, u.webauthn_locked, u.mfa_locked,
-			u.failed_login_attempts_password, u.failed_login_attempts_webauthn, u.failed_login_attempts_mfa,
-			u.roles, u.groups, u.entitlements, u.consent, u.attributes,
+			u.id, u.tenant, u.realm, u.status,
 			u.created_at, u.updated_at, u.last_login_at,
-			u.federated_idp, u.federated_id,
-			u.trusted_devices,
 			COALESCE(
 				(
 					SELECT jsonb_agg(
@@ -368,44 +299,15 @@ func (p *PostgresUserAttributeDB) GetUserByAttributeIndexWithAttributes(ctx cont
 	var userAttributesJSONB []byte
 	var createdAt, updatedAt time.Time
 	var lastLoginAt *time.Time
-	var federatedIDP, federatedID *string
 
 	err := row.Scan(
 		&user.ID,
 		&user.Tenant,
 		&user.Realm,
-		&user.Username,
 		&user.Status,
-		&user.DisplayName,
-		&user.GivenName,
-		&user.FamilyName,
-		&user.ProfilePictureURI,
-		&user.Email,
-		&user.Phone,
-		&user.EmailVerified,
-		&user.PhoneVerified,
-		&user.LoginIdentifier,
-		&user.Locale,
-		&user.PasswordCredential,
-		&user.WebAuthnCredential,
-		&user.MFACredential,
-		&user.PasswordLocked,
-		&user.WebAuthnLocked,
-		&user.MFALocked,
-		&user.FailedLoginAttemptsPassword,
-		&user.FailedLoginAttemptsWebAuthn,
-		&user.FailedLoginAttemptsMFA,
-		&user.Roles,
-		&user.Groups,
-		&user.Entitlements,
-		&user.Consent,
-		&user.Attributes,
 		&createdAt,
 		&updatedAt,
 		&lastLoginAt,
-		&federatedIDP,
-		&federatedID,
-		&user.TrustedDevices,
 		&userAttributesJSONB,
 	)
 
@@ -420,8 +322,6 @@ func (p *PostgresUserAttributeDB) GetUserByAttributeIndexWithAttributes(ctx cont
 	user.CreatedAt = createdAt.UTC()
 	user.UpdatedAt = updatedAt.UTC()
 	user.LastLoginAt = lastLoginAt
-	user.FederatedIDP = federatedIDP
-	user.FederatedID = federatedID
 
 	// Parse the JSONB attributes
 	if len(userAttributesJSONB) > 0 {
@@ -460,68 +360,25 @@ func (p *PostgresUserAttributeDB) CreateUserWithAttributes(ctx context.Context, 
 	user.CreatedAt = now
 	user.UpdatedAt = now
 
-	// Convert JSON fields to JSONB for PostgreSQL
-	rolesJSONB, _ := json.Marshal(user.Roles)
-	groupsJSONB, _ := json.Marshal(user.Groups)
-	attributesJSONB, _ := json.Marshal(user.Attributes)
-	trustedDevicesJSONB, _ := json.Marshal(user.TrustedDevices)
-	entitlementsJSONB, _ := json.Marshal(user.Entitlements)
-	consentJSONB, _ := json.Marshal(user.Consent)
-
 	// Create the user first
+	var lastLoginAt interface{}
+	if user.LastLoginAt != nil {
+		lastLoginAt = user.LastLoginAt
+	}
+
 	_, err = tx.Exec(ctx, `
 		INSERT INTO users (
-			id, tenant, realm, username,
-			status,
-			display_name, given_name, family_name,
-			profile_picture_uri,
-			email, phone, email_verified, phone_verified,
-			login_identifier,
-			locale,
-			password_credential, webauthn_credential, mfa_credential,
-			password_locked, webauthn_locked, mfa_locked,
-			failed_login_attempts_password, failed_login_attempts_webauthn, failed_login_attempts_mfa,
-			roles, groups, entitlements, consent, attributes,
-			created_at, updated_at, last_login_at,
-			federated_idp, federated_id,
-			trusted_devices
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
+			id, tenant, realm, status,
+			created_at, updated_at, last_login_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`,
 		user.ID,
 		user.Tenant,
 		user.Realm,
-		user.Username,
 		user.Status,
-		user.DisplayName,
-		user.GivenName,
-		user.FamilyName,
-		user.ProfilePictureURI,
-		user.Email,
-		user.Phone,
-		user.EmailVerified,
-		user.PhoneVerified,
-		user.LoginIdentifier,
-		user.Locale,
-		user.PasswordCredential,
-		user.WebAuthnCredential,
-		user.MFACredential,
-		user.PasswordLocked,
-		user.WebAuthnLocked,
-		user.MFALocked,
-		user.FailedLoginAttemptsPassword,
-		user.FailedLoginAttemptsWebAuthn,
-		user.FailedLoginAttemptsMFA,
-		rolesJSONB,
-		groupsJSONB,
-		entitlementsJSONB,
-		consentJSONB,
-		attributesJSONB,
 		user.CreatedAt,
 		user.UpdatedAt,
-		user.LastLoginAt,
-		user.FederatedIDP,
-		user.FederatedID,
-		trustedDevicesJSONB,
+		lastLoginAt,
 	)
 
 	if err != nil {
