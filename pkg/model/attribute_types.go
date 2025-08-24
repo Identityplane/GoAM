@@ -3,7 +3,9 @@ package model
 import "time"
 
 const (
-	AttributeTypeTOTP = "identityplane:totp"
+	AttributeTypeTOTP     = "identityplane:totp"
+	AttributeTypeUsername = "identityplane:username"
+	AttributeTypeGitHub   = "identityplane:github"
 )
 
 // TOTPAttributeValue is the attribute value for TOTP
@@ -18,6 +20,25 @@ type TOTPAttributeValue struct {
 
 	// @description The number of failed attempts
 	FailedAttempts int `json:"failed_attempts" example:"0"`
+}
+
+// UsernameAttributeValue is the attribute value for usernames
+// @description Username information
+type UsernameAttributeValue struct {
+	Username string `json:"username" example:"john.doe"`
+}
+
+// GitHubAttributeValue is the attribute value for GitHub
+// @description GitHub information
+type GitHubAttributeValue struct {
+	GitHubUserID       string `json:"github_user_id" example:"1234567890"`
+	GitHubRefreshToken string `json:"github_refresh_token" example:"1234567890"`
+	GitHubEmail        string `json:"github_email" example:"john.doe@example.com"`
+	GitHubAvatarURL    string `json:"github_avatar_url" example:"https://example.com/avatar.jpg"`
+	GitHubUsername     string `json:"github_username" example:"john.doe"`
+	GitHubAccessToken  string `json:"github_access_token" example:"1234567890"`
+	GitHubTokenType    string `json:"github_token_type" example:"bearer"`
+	GitHubScope        string `json:"github_scope" example:"user:email"`
 }
 
 // SocialAttributeValue is the attribute value for social accounts
