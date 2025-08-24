@@ -66,6 +66,11 @@ func RunTOTPVerifyNode(state *model.AuthenticationSession, node *model.GraphNode
 		})
 	}
 
+	// If the totp is locked we return a locked state
+	if totpValue.Locked {
+		return model.NewNodeResultWithCondition("locked")
+	}
+
 	// Validate the TOTP verification code
 	valid := totp.Validate(input["totpVerification"], totpValue.SecretKey)
 	if !valid {
