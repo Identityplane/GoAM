@@ -7,11 +7,17 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/web/webutils"
 	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/valyala/fasthttp"
 	"gopkg.in/yaml.v2"
 )
+
+type EnrichedFlow struct {
+	model.Flow
+	DebugUrl string `json:"debug_url"`
+}
 
 // HandleListFlows returns all flows for a realm
 // @Summary List all flows
@@ -29,6 +35,17 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 
+	// Load the realm
+	loadedRealm, found := service.GetServices().RealmService.GetRealm(tenant, realm)
+	if !found {
+		ctx.SetStatusCode(http.StatusInternalServerError)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Failed to load realm",
+		})
+		return
+	}
+
 	flows, err := service.GetServices().FlowService.ListFlows(tenant, realm)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
@@ -39,13 +56,14 @@ func HandleListFlows(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Ensure flows is never nil
-	if flows == nil {
-		flows = []model.Flow{}
+	result := []EnrichedFlow{}
+	for _, flow := range flows {
+
+		result = append(result, EnrichFlow(ctx, flow, loadedRealm))
 	}
 
 	// Marshal response to JSON with pretty printing
-	jsonData, err := json.MarshalIndent(flows, "", "  ")
+	jsonData, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
@@ -77,6 +95,17 @@ func HandleGetFlow(ctx *fasthttp.RequestCtx) {
 	realm := ctx.UserValue("realm").(string)
 	flowId := ctx.UserValue("flow").(string)
 
+	// Load the realm
+	loadedRealm, found := service.GetServices().RealmService.GetRealm(tenant, realm)
+	if !found {
+		ctx.SetStatusCode(http.StatusInternalServerError)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Failed to load realm",
+		})
+		return
+	}
+
 	flow, ok := service.GetServices().FlowService.GetFlowById(tenant, realm, flowId)
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
@@ -87,8 +116,10 @@ func HandleGetFlow(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	enrichedFlow := EnrichFlow(ctx, *flow, loadedRealm)
+
 	// Marshal response to JSON with pretty printing
-	jsonData, err := json.MarshalIndent(flow, "", "  ")
+	jsonData, err := json.MarshalIndent(enrichedFlow, "", "  ")
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
@@ -511,4 +542,18 @@ func HandlePutFlowDefintion(ctx *fasthttp.RequestCtx) {
 
 	// Return 200 OK
 	ctx.SetStatusCode(http.StatusOK)
+}
+
+func EnrichFlow(ctx *fasthttp.RequestCtx, flow model.Flow, realm *service.LoadedRealm) EnrichedFlow {
+
+	// If the base url is empty we use the fallback url
+	baseUrl := realm.Config.BaseUrl
+	if baseUrl == "" {
+		baseUrl = webutils.GetFallbackUrl(ctx, flow.Tenant, flow.Realm)
+	}
+
+	return EnrichedFlow{
+		Flow:     flow,
+		DebugUrl: fmt.Sprintf("%s/auth/%s", baseUrl, flow.Route),
+	}
 }
