@@ -62,23 +62,14 @@ func (s *userServiceImpl) ListUsers(ctx context.Context, tenant, realm string, p
 }
 
 func (s *userServiceImpl) GetUserWithAttributesByID(ctx context.Context, tenant, realm, userID string) (*model.User, error) {
-	// First get the user
-	user, err := s.userDB.GetUserByID(ctx, tenant, realm, userID)
+
+	user, err := s.attributesDB.GetUserWithAttributes(ctx, tenant, realm, userID)
 	if err != nil {
 		return nil, err
 	}
+
 	if user == nil {
 		return nil, nil
-	}
-
-	// Get user attributes from the attributes database
-	attributes, err := s.attributesDB.ListUserAttributes(ctx, tenant, realm, user.ID)
-	if err != nil {
-		// If there's an error getting attributes, set to empty slice and continue
-		// This ensures the user_attributes field is always present in the response
-		user.UserAttributes = []model.UserAttribute{}
-	} else {
-		user.UserAttributes = attributes
 	}
 
 	return user, nil
