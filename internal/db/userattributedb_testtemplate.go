@@ -32,6 +32,10 @@ func UserAttributeDBTests(t *testing.T, db UserAttributeDB) {
 		clearUserAttributeDB(t, db)
 		TemplateTestCreateUserWithAttributes(t, db)
 	})
+	t.Run("TestIndexUniqueConstraint", func(t *testing.T) {
+		clearUserAttributeDB(t, db)
+		TemplateTestIndexUniqueConstraint(t, db)
+	})
 }
 
 func clearUserAttributeDB(t *testing.T, db UserAttributeDB) {
@@ -52,7 +56,7 @@ func TemplateTestUserAttributeCRUD(t *testing.T, db UserAttributeDB) {
 		UserID: testUserID,
 		Tenant: testTenant,
 		Realm:  testRealm,
-		Index:  "test@example.com",
+		Index:  stringPtr("test@example.com"),
 		Type:   "email",
 		Value: model.EmailAttributeValue{
 			Email:      "test@example.com",
@@ -73,7 +77,9 @@ func TemplateTestUserAttributeCRUD(t *testing.T, db UserAttributeDB) {
 		assert.NoError(t, err)
 		assert.Len(t, attrs, 1)
 		assert.Equal(t, "email", attrs[0].Type)
-		assert.Equal(t, "test@example.com", attrs[0].Index)
+		if attrs[0].Index != nil {
+			assert.Equal(t, "test@example.com", *attrs[0].Index)
+		}
 
 		// Update the test attribute with the ID from the database
 		testAttribute.ID = attrs[0].ID
@@ -161,7 +167,7 @@ func TemplateTestMultipleAttributesOfSameType(t *testing.T, db UserAttributeDB) 
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
-			Index:  "primary@example.com",
+			Index:  stringPtr("primary@example.com"),
 			Type:   "email",
 			Value: model.EmailAttributeValue{
 				Email:    "primary@example.com",
@@ -174,7 +180,7 @@ func TemplateTestMultipleAttributesOfSameType(t *testing.T, db UserAttributeDB) 
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
-			Index:  "work@example.com",
+			Index:  stringPtr("work@example.com"),
 			Type:   "email",
 			Value: model.EmailAttributeValue{
 				Email:    "work@example.com",
@@ -199,7 +205,9 @@ func TemplateTestMultipleAttributesOfSameType(t *testing.T, db UserAttributeDB) 
 		// Verify both attributes exist
 		indexes := make(map[string]bool)
 		for _, attr := range attrs {
-			indexes[attr.Index] = true
+			if attr.Index != nil {
+				indexes[*attr.Index] = true
+			}
 		}
 		assert.True(t, indexes["primary@example.com"])
 		assert.True(t, indexes["work@example.com"])
@@ -226,7 +234,7 @@ func TemplateTestGetUserWithAttributes(t *testing.T, db UserAttributeDB) {
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
-			Index:  "primary@example.com",
+			Index:  stringPtr("primary@example.com"),
 			Type:   "email",
 			Value: model.EmailAttributeValue{
 				Email:    "primary@example.com",
@@ -239,7 +247,7 @@ func TemplateTestGetUserWithAttributes(t *testing.T, db UserAttributeDB) {
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
-			Index:  "work@example.com",
+			Index:  stringPtr("work@example.com"),
 			Type:   "email",
 			Value: model.EmailAttributeValue{
 				Email:    "work@example.com",
@@ -252,7 +260,7 @@ func TemplateTestGetUserWithAttributes(t *testing.T, db UserAttributeDB) {
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
-			Index:  "+1234567890",
+			Index:  stringPtr("+1234567890"),
 			Type:   "phone",
 			Value: model.PhoneAttributeValue{
 				Phone:    "+1234567890",
@@ -287,7 +295,9 @@ func TemplateTestGetUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		// Verify phone attribute using the helper method
 		phoneAttrs := user.GetAttributesByType("phone")
 		assert.Len(t, phoneAttrs, 1)
-		assert.Equal(t, "+1234567890", phoneAttrs[0].Index)
+		if phoneAttrs[0].Index != nil {
+			assert.Equal(t, "+1234567890", *phoneAttrs[0].Index)
+		}
 
 		// Test the generic GetAttribute method
 		emailAttr, _, err := model.GetAttribute[model.EmailAttributeValue](user, "email")
@@ -341,7 +351,7 @@ func TemplateTestGetUserByAttributeIndexWithAttributes(t *testing.T, db UserAttr
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
-			Index:  "primary@example.com",
+			Index:  stringPtr("primary@example.com"),
 			Type:   "email",
 			Value: model.EmailAttributeValue{
 				Email:    "primary@example.com",
@@ -354,7 +364,7 @@ func TemplateTestGetUserByAttributeIndexWithAttributes(t *testing.T, db UserAttr
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
-			Index:  "work@example.com",
+			Index:  stringPtr("work@example.com"),
 			Type:   "email",
 			Value: model.EmailAttributeValue{
 				Email:    "work@example.com",
@@ -367,7 +377,7 @@ func TemplateTestGetUserByAttributeIndexWithAttributes(t *testing.T, db UserAttr
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
-			Index:  "+1234567890",
+			Index:  stringPtr("+1234567890"),
 			Type:   "phone",
 			Value: model.PhoneAttributeValue{
 				Phone:    "+1234567890",
@@ -484,7 +494,7 @@ func TemplateTestCreateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 				UserID: testUserID,
 				Tenant: testTenant,
 				Realm:  testRealm,
-				Index:  "primary@example.com",
+				Index:  stringPtr("primary@example.com"),
 				Type:   "email",
 				Value: model.EmailAttributeValue{
 					Email:    "primary@example.com",
@@ -497,7 +507,7 @@ func TemplateTestCreateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 				UserID: testUserID,
 				Tenant: testTenant,
 				Realm:  testRealm,
-				Index:  "work@example.com",
+				Index:  stringPtr("work@example.com"),
 				Type:   "email",
 				Value: model.EmailAttributeValue{
 					Email:    "work@example.com",
@@ -510,7 +520,7 @@ func TemplateTestCreateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 				UserID: testUserID,
 				Tenant: testTenant,
 				Realm:  testRealm,
-				Index:  "+1234567890",
+				Index:  stringPtr("+1234567890"),
 				Type:   "phone",
 				Value: model.PhoneAttributeValue{
 					Phone:    "+1234567890",
@@ -544,7 +554,9 @@ func TemplateTestCreateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		// Verify phone attribute using the helper method
 		phoneAttrs := user.GetAttributesByType("phone")
 		assert.Len(t, phoneAttrs, 1)
-		assert.Equal(t, "+1234567890", phoneAttrs[0].Index)
+		if phoneAttrs[0].Index != nil {
+			assert.Equal(t, "+1234567890", *phoneAttrs[0].Index)
+		}
 
 		// Test the generic GetAttribute method
 		emailAttr, _, err := model.GetAttribute[model.EmailAttributeValue](user, "email")
@@ -575,6 +587,133 @@ func TemplateTestCreateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		nonexistentValues, _, err := model.GetAttributes[model.EmailAttributeValue](user, "nonexistent")
 		assert.NoError(t, err)
 		assert.Len(t, nonexistentValues, 0)
+	})
+
+	// Clean up
+	attrs, err := db.ListUserAttributes(ctx, testTenant, testRealm, testUserID)
+	require.NoError(t, err)
+	for _, attr := range attrs {
+		db.DeleteUserAttribute(ctx, testTenant, testRealm, attr.ID)
+	}
+}
+
+// TemplateTestIndexUniqueConstraint tests the index unique constraint
+func TemplateTestIndexUniqueConstraint(t *testing.T, db UserAttributeDB) {
+	ctx := context.Background()
+	testTenant := "test-tenant"
+	testRealm := "test-realm"
+	testUserID := "123e4567-e89b-12d3-a456-426614174002" // Use a different UUID for this test
+
+	// Create a user with a unique email attribute
+	uniqueEmailAttr := model.UserAttribute{
+		UserID: testUserID,
+		Tenant: testTenant,
+		Realm:  testRealm,
+		Index:  stringPtr("unique@example.com"),
+		Type:   "email",
+		Value: model.EmailAttributeValue{
+			Email:    "unique@example.com",
+			Verified: true,
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	passwordAttr := model.UserAttribute{
+		UserID: testUserID,
+		Tenant: testTenant,
+		Realm:  testRealm,
+		Index:  nil, // Password attributes don't need an index
+		Type:   "password",
+		Value: model.PasswordAttributeValue{
+			PasswordHash: "supersecret",
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	err := db.CreateUserWithAttributes(ctx, &model.User{
+		ID:     testUserID,
+		Tenant: testTenant,
+		Realm:  testRealm,
+		Status: "active",
+		UserAttributes: []model.UserAttribute{
+			uniqueEmailAttr,
+			passwordAttr,
+		},
+	})
+	require.NoError(t, err)
+
+	t.Run("UniqueEmailIndex", func(t *testing.T) {
+
+		// Try to create a user with a duplicate email index
+		duplicateEmailAttr := model.UserAttribute{
+			UserID: testUserID,
+			Tenant: testTenant,
+			Realm:  testRealm,
+			Index:  stringPtr("unique@example.com"),
+			Type:   "email",
+			Value: model.EmailAttributeValue{
+				Email:    "duplicate@example.com",
+				Verified: false,
+			},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		err = db.CreateUserWithAttributes(ctx, &model.User{
+			ID:     testUserID,
+			Tenant: testTenant,
+			Realm:  testRealm,
+			Status: "active",
+			UserAttributes: []model.UserAttribute{
+				duplicateEmailAttr,
+			},
+		})
+		require.Error(t, err, "Failed to create user with attributes for unique constraint test")
+
+	})
+
+	t.Run("NullIndex Dublication Allowed", func(t *testing.T) {
+
+		passwordAttr := model.UserAttribute{
+			UserID: testUserID,
+			Tenant: testTenant,
+			Realm:  testRealm,
+			Index:  nil, // Password attributes don't need an index
+			Type:   "password",
+			Value: model.PasswordAttributeValue{
+				PasswordHash: "supersecret",
+			},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+
+		anotherEmailAttr := model.UserAttribute{
+			UserID: testUserID,
+			Tenant: testTenant,
+			Realm:  testRealm,
+			Index:  stringPtr("another@example.com"),
+			Type:   "email",
+			Value: model.EmailAttributeValue{
+				Email:    "another@example.com",
+				Verified: false,
+			},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+
+		// Try to create a user with the same password
+		err := db.CreateUserWithAttributes(ctx, &model.User{
+			ID:     "123e4567-e89b-12d3-a456-426614174004", // Use a different UUID
+			Tenant: testTenant,
+			Realm:  testRealm,
+			Status: "active",
+			UserAttributes: []model.UserAttribute{
+				passwordAttr,
+				anotherEmailAttr,
+			},
+		})
+		assert.NoError(t, err)
 	})
 
 	// Clean up

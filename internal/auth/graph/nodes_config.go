@@ -39,6 +39,8 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	node_password.AskPasswordNode.Name:              node_password.AskPasswordNode,
 	node_password.UpdatePasswordNode.Name:           node_password.UpdatePasswordNode,
 	node_password.ValidateUsernamePasswordNode.Name: node_password.ValidateUsernamePasswordNode,
+	node_password.AskUsernamePasswordNode.Name:      node_password.AskUsernamePasswordNode,
+	node_password.AskEmailPasswordNode.Name:         node_password.AskEmailPasswordNode,
 
 	// Forms
 	node_forms.MessageConfirmationNode.Name: node_forms.MessageConfirmationNode,
