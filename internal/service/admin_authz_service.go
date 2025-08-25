@@ -4,20 +4,21 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
 type AuthzEntitlement struct {
-	Tenant string   `json:"tenant"`
-	Realm  string   `json:"realm"`
-	Scopes []string `json:"scopes"`
+	Description string `json:"description"`
+	Resource    string `json:"resource"`
+	Action      string `json:"action"`
+	Effect      string `json:"effect"`
 }
 
 type AdminAuthzService interface {
 	GetEntitlements(user *model.User) []AuthzEntitlement
-	CheckAccess(user *model.User, tenant, realm, scope string) (bool, string)
+	CheckAccess(user *model.User, resource, action string) (bool, string)
 	GetVisibleRealms(user *model.User) (map[string]*LoadedRealm, error)
 	CreateTenant(tenantSlug, tenantName string, user *model.User) error
 }
@@ -30,25 +31,23 @@ func NewAdminAuthzService() AdminAuthzService {
 }
 
 func (s *adminAuthzServiceImpl) GetEntitlements(user *model.User) []AuthzEntitlement {
+
 	entitlements := []AuthzEntitlement{}
 
-	for _, entitlementStr := range user.Entitlements {
+	entitlementsAttrs, _, err := model.GetAttributes[model.EntitlementSetAttributeValue](user, model.AttributeTypeEntitlements)
+	if err != nil {
+		return nil
+	}
 
-		// Split the entitlement string into parts
-		parts := strings.SplitN(entitlementStr, "/", 3)
-		if len(parts) != 3 {
-			continue // Skip invalid entitlement format
+	for _, entitlementAttr := range entitlementsAttrs {
+		for _, entitlement := range entitlementAttr.Entitlements {
+
+			entitlements = append(entitlements, AuthzEntitlement{
+				Resource: entitlement.Resource,
+				Action:   entitlement.Action,
+				Effect:   string(entitlement.Effect),
+			})
 		}
-
-		tenant := parts[0]
-		realm := parts[1]
-		scopes := strings.Fields(parts[2]) // Split scopes by whitespace
-
-		entitlements = append(entitlements, AuthzEntitlement{
-			Tenant: tenant,
-			Realm:  realm,
-			Scopes: scopes,
-		})
 	}
 
 	return entitlements
@@ -66,7 +65,9 @@ func (s *adminAuthzServiceImpl) GetVisibleRealms(user *model.User) (map[string]*
 	// For each realm, check if the user has access to it and return only the realm with access
 	visibleRealms := make(map[string]*LoadedRealm)
 	for realmId, realm := range realms {
-		hasAccess, _ := s.CheckAccess(user, realm.Config.Tenant, realm.Config.Realm, "")
+
+		resource := fmt.Sprintf("%s/%s", realm.Config.Tenant, realm.Config.Realm)
+		hasAccess, _ := s.CheckAccess(user, resource, "GET")
 		if hasAccess {
 			visibleRealms[realmId] = realm
 		}
@@ -79,48 +80,21 @@ func (s *adminAuthzServiceImpl) GetVisibleRealms(user *model.User) (map[string]*
 // CheckAccess checks if a user has access to a specific tenant, realm, and scope.
 // Returns true if access is granted, false otherwise, and the matching entitlement string if access is granted.
 // If scope is empty, it checks if the user has any access to the specified tenant/realm.
-func (s *adminAuthzServiceImpl) CheckAccess(user *model.User, tenant, realm, scope string) (bool, string) {
-	if user == nil || len(user.Entitlements) == 0 {
+// Returns the result and the explanation for the result
+func (s *adminAuthzServiceImpl) CheckAccess(user *model.User, resource, action string) (bool, string) {
+	if user == nil {
 		return false, ""
 	}
 
-	for _, entitlementStr := range user.Entitlements {
-		parts := strings.SplitN(entitlementStr, "/", 3)
-		if len(parts) != 3 {
-			continue // Skip invalid entitlement format
-		}
-
-		entTenant := parts[0]
-		entRealm := parts[1]
-		entScopes := strings.Fields(parts[2])
-
-		// Check tenant match (exact or wildcard)
-		if entTenant != "*" && entTenant != tenant {
-			continue
-		}
-
-		// Check realm match (exact or wildcard)
-		if entRealm != "*" && entRealm != realm {
-			continue
-		}
-
-		// If scope is empty, we just need to check if there are any scopes
-		if scope == "" {
-			if len(entScopes) > 0 {
-				return true, entitlementStr
-			}
-			continue
-		}
-
-		// Check scope match (exact or wildcard)
-		for _, entScope := range entScopes {
-			if entScope == "*" || entScope == scope {
-				return true, entitlementStr
-			}
-		}
+	entitlements, _, err := model.GetAttributes[model.EntitlementSetAttributeValue](user, model.AttributeTypeEntitlements)
+	if err != nil {
+		return false, ""
 	}
 
-	return false, ""
+	// Sue the entitlements against the resource and action
+	result := lib.MatchEntitlementAttributes(entitlements, resource, action)
+
+	return result.Allowed, result.Explentation
 }
 
 func (s *adminAuthzServiceImpl) CreateTenant(tenantSlug, tenantName string, user *model.User) error {
@@ -145,11 +119,25 @@ func (s *adminAuthzServiceImpl) CreateTenant(tenantSlug, tenantName string, user
 	}
 
 	// add an entitlement to the user
-	user.Entitlements = append(user.Entitlements, fmt.Sprintf("%s/*/*", tenantSlug))
-	_, err = services.UserService.UpdateUser(context.Background(), "internal", "internal", user.Username, *user)
-	if err != nil {
-		return err
+	entitlementAttr := model.UserAttribute{
+		Tenant: "internal",
+		Realm:  "internal",
+		UserID: user.ID,
+		Type:   model.AttributeTypeEntitlements,
+		Value: &model.EntitlementSetAttributeValue{
+			Entitlements: []model.Entitlement{
+				{
+					Description: fmt.Sprintf("Creator of tenant '%s'", tenantName),
+					Resource:    fmt.Sprintf("%s/**", tenantSlug),
+					Action:      "*",
+					Effect:      model.EffectTypeAllow,
+				},
+			},
+		},
 	}
+
+	// Save the entitlement to the user
+	services.UserAttributeService.CreateUserAttribute(context.Background(), entitlementAttr)
 
 	// create the realm
 	err = services.RealmService.CreateRealm(&model.Realm{

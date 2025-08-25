@@ -22,11 +22,11 @@ func New() *router.Router {
 	admin := r.Group("/admin")
 	admin.OPTIONS("/{name:*}", WrapMiddleware(handleOptions)) // Cors for options requests requests
 
-	admin.GET("/whoami", adminMiddleware(admin_api.HandleWhoAmI))
-	admin.GET("/realms", adminMiddleware(admin_api.HandleListRealms))
-	admin.GET("/system/stats", adminMiddleware(admin_api.HandleSystemStats))
-	admin.GET("/tenants/check-availability/{tenant_name}", adminMiddleware(admin_api.HandleTenantNameAvailable))
-	admin.POST("/tenants", adminMiddleware(admin_api.HandleCreateTenant))
+	admin.GET("/whoami", adminMiddlewareAllowsAll(admin_api.HandleWhoAmI))
+	admin.GET("/realms", adminMiddlewareAllowsAll(admin_api.HandleListRealms))
+	admin.GET("/system/stats", adminMiddlewareAllowsAll(admin_api.HandleSystemStats))
+	admin.GET("/tenants/check-availability/{tenant_name}", adminMiddlewareAllowsAll(admin_api.HandleTenantNameAvailable))
+	admin.POST("/tenants", adminMiddlewareAllowsAll(admin_api.HandleCreateTenant))
 
 	admin.GET("/{tenant}/{realm}/users", adminMiddleware(admin_api.HandleListUsers))
 	admin.GET("/{tenant}/{realm}/users/stats", adminMiddleware(admin_api.HandleGetUserStats))

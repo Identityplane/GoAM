@@ -32,16 +32,10 @@ func TestAdminAuthzE2E(t *testing.T) {
 
 	// Create test user in internal realm
 	testUser := model.User{
-		Tenant:          "internal",
-		Realm:           "internal",
-		ID:              "testadmin",
-		Username:        "testadmin",
-		DisplayName:     "Test Admin",
-		Email:           "testadmin@example.com",
-		EmailVerified:   true,
-		Status:          "active",
-		LoginIdentifier: "testadmin@example.com",
-		Entitlements:    []string{}, // Give access to internal realm
+		Tenant: "internal",
+		Realm:  "internal",
+		ID:     "testadmin",
+		Status: "active",
 	}
 
 	services := service.GetServices()
@@ -60,8 +54,6 @@ func TestAdminAuthzE2E(t *testing.T) {
 		// Verify user info
 		user := resp.Value("user").Object()
 		user.Value("id").String().IsEqual(testUser.ID)
-		user.Value("display_name").String().IsEqual(testUser.DisplayName)
-		user.Value("email").String().IsEqual(testUser.Email)
 
 		// Verify entitlements
 		entitlements := resp.Value("entitlements").Array()
@@ -112,8 +104,6 @@ func TestAdminAuthzE2E(t *testing.T) {
 		// Verify user info
 		user := resp.Value("user").Object()
 		user.Value("id").String().IsEqual(testUser.ID)
-		user.Value("display_name").String().IsEqual(testUser.DisplayName)
-		user.Value("email").String().IsEqual(testUser.Email)
 
 		// Verify entitlements now include the new tenant
 		entitlements := resp.Value("entitlements").Array()
