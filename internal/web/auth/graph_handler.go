@@ -136,6 +136,9 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 	// Load the inputs from the request
 	input := extractPromptsFromRequest(ctx, flow.Definition, session.Current)
 
+	// Clear the error message if present
+	session.Error = nil
+
 	// Run the flow engine with the current state and input
 	newSession, err := graph.Run(flow.Definition, &session, input, registry)
 	if err != nil {

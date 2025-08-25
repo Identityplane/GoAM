@@ -2,10 +2,12 @@ package admin_api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/web/webutils"
 	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/valyala/fasthttp"
@@ -23,6 +25,11 @@ type Pagination struct {
 	PageSize   int   `json:"page_size"`
 	TotalItems int64 `json:"total_items"`
 	TotalPages int   `json:"total_pages"`
+}
+
+type UserJson struct {
+	model.User
+	Url string `json:"url"`
 }
 
 // @Summary List users
@@ -82,14 +89,14 @@ func HandleListUsers(ctx *fasthttp.RequestCtx) {
 	// Calculate total pages
 	totalPages := (int(total) + pageSize - 1) / pageSize
 
-	// If users is empty, return an empty array
-	if len(users) == 0 {
-		users = []model.User{}
+	userJsons := []UserJson{}
+	for _, user := range users {
+		userJsons = append(userJsons, UserToUserJson(ctx, &user))
 	}
 
 	// Create response
 	response := PagedResponse{
-		Data: users,
+		Data: userJsons,
 		Pagination: &Pagination{
 			Page:       page,
 			PageSize:   pageSize,
@@ -392,4 +399,14 @@ func HandleGetUserStats(ctx *fasthttp.RequestCtx) {
 	// Set response headers and body
 	ctx.SetContentType("application/json")
 	ctx.SetBody(jsonData)
+}
+
+func UserToUserJson(ctx *fasthttp.RequestCtx, user *model.User) UserJson {
+
+	adminBaseUrl := webutils.GetAdminBaseUrl(ctx)
+
+	return UserJson{
+		User: *user,
+		Url:  fmt.Sprintf("%s/%s/%s/users/%s?include_attributes=true", adminBaseUrl, user.Tenant, user.Realm, user.ID),
+	}
 }

@@ -3,7 +3,7 @@ CREATE TABLE user_attributes (
     user_id TEXT NOT NULL,
     tenant TEXT NOT NULL,
     realm TEXT NOT NULL,
-    index_value TEXT NOT NULL,
+    index_value TEXT,
     type TEXT NOT NULL,
     value TEXT NOT NULL,
     created_at TEXT NOT NULL,

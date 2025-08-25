@@ -12,17 +12,16 @@ import (
 )
 
 var ValidateUsernamePasswordNode = &model.NodeDefinition{
-	Name:                 "validateUsernamePassword",
-	PrettyName:           "Validate Username and Password",
-	Description:          "Validates the provided username and password against the database and handles account locking",
+	Name:                 "validatePassword",
+	PrettyName:           "Validate Password",
+	Description:          "Validates the of the current user and handles account locking",
 	Category:             "Authentication",
 	Type:                 model.NodeTypeLogic,
-	RequiredContext:      []string{"username", "password"},
+	RequiredContext:      []string{"user", "password"},
 	OutputContext:        []string{"auth_result"}, // or we may skip outputs if conditions imply it
 	PossibleResultStates: []string{"success", "fail", "locked", "noPassword"},
 	CustomConfigOptions: map[string]string{
 		"max_failed_password_attempts": "Maximum number of failed password attempts before locking the user (default: 10)",
-		"user_lookup_method":           "Method to look up user: 'username', 'email', or 'loginIdentifier' (default: username)",
 	},
 	Run: RunValidateUsernamePasswordNode,
 }
@@ -120,9 +119,6 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 			break
 		}
 	}
-
-	// Update last login time
-	user.LastLoginAt = timePtr(time.Now())
 
 	err = services.UserRepo.UpdateUserAttribute(ctx, attribute)
 	if err != nil {

@@ -3,7 +3,6 @@ package node_email
 import (
 	"context"
 
-	"github.com/Identityplane/GoAM/internal/auth/graph/node_utils"
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
@@ -21,12 +20,6 @@ var CheckEmailAvailableNode = &model.NodeDefinition{
 
 func RunCheckEmailAvailableNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
-	// Try to load the user from the context as we need to check if the email is already in use by a different user
-	user, err := node_utils.TryLoadUserFromContext(state, services)
-	if err != nil {
-		return model.NewNodeResultWithError(err)
-	}
-
 	// Put the email in the context for the next node
 	email := state.Context["email"]
 
@@ -37,10 +30,10 @@ func RunCheckEmailAvailableNode(state *model.AuthenticationSession, node *model.
 	}
 
 	// If we have a user and it is a different user we return an error
-	if otherUser != nil && otherUser.ID != user.ID {
+	if otherUser != nil {
 		errorMsg := "Email already in use"
 		state.Error = &errorMsg
-		return model.NewNodeResultWithCondition("email_taken")
+		return model.NewNodeResultWithCondition("taken")
 	}
 
 	// If we have no user or the user is the same as the one we are checking we return available
