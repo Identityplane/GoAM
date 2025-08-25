@@ -7,14 +7,15 @@ import (
 )
 
 const (
-	AttributeTypeTOTP     = "identityplane:totp"
-	AttributeTypeUsername = "identityplane:username"
-	AttributeTypeGitHub   = "identityplane:github"
-	AttributeTypeTelegram = "identityplane:telegram"
-	AttributeTypePassword = "identityplane:password"
-	AttributeTypeEmail    = "identityplane:email"
-	AttributeTypePhone    = "identityplane:phone"
-	AttributeTypePasskey  = "identityplane:passkey"
+	AttributeTypeTOTP         = "identityplane:totp"
+	AttributeTypeUsername     = "identityplane:username"
+	AttributeTypeGitHub       = "identityplane:github"
+	AttributeTypeTelegram     = "identityplane:telegram"
+	AttributeTypePassword     = "identityplane:password"
+	AttributeTypeEmail        = "identityplane:email"
+	AttributeTypePhone        = "identityplane:phone"
+	AttributeTypePasskey      = "identityplane:passkey"
+	AttributeTypeEntitlements = "identityplane:entitlements"
 )
 
 // TOTPAttributeValue is the attribute value for TOTP
@@ -101,12 +102,8 @@ type UserProfileAttributeValue struct {
 	DisplayName string `json:"display_name" example:"John Doe"`
 	GivenName   string `json:"given_name" example:"John"`
 	FamilyName  string `json:"family_name" example:"Doe"`
-}
-
-// UserPictureAttributeValue is the attribute value for user pictures
-// @description User picture information
-type UserPictureAttributeValue struct {
-	Url string `json:"picture" example:"https://example.com/profile.jpg"`
+	Locale      string `json:"locale" example:"en-US"`
+	PictureUri  string `json:"picture_uri" example:"https://example.com/profile.jpg"`
 }
 
 // TelegramAttributeValue is the attribute value for Telegram accounts
@@ -124,11 +121,30 @@ type TelegramAttributeValue struct {
 type DeviceAttributeValue struct {
 	DeviceID         string `json:"device_id" example:"1234567890"`
 	DeviceSecretHash string `json:"device_secret_hash" example:"1234567890"`
-
-	DeviceName      string `json:"device_name" example:"John Doe's iPhone"`
-	DeviceType      string `json:"device_type" example:"mobile"`
-	DeviceOS        string `json:"device_os" example:"iOS"`
-	DeviceOSVersion string `json:"device_os_version" example:"15.0"`
-	DeviceModel     string `json:"device_model" example:"iPhone 12"`
-	DeviceIP        string `json:"device_ip" example:"192.168.1.100"`
+	DeviceName       string `json:"device_name" example:"John Doe's iPhone"`
+	DeviceType       string `json:"device_type" example:"mobile"`
+	DeviceOS         string `json:"device_os" example:"iOS"`
+	DeviceOSVersion  string `json:"device_os_version" example:"15.0"`
+	DeviceModel      string `json:"device_model" example:"iPhone 12"`
+	DeviceIP         string `json:"device_ip" example:"192.168.1.100"`
 }
+
+// EntitlementSet is a set of entitlements
+// @description Entitlement set information
+type EntitlementSetAttributeValue struct {
+	Entitlements []Entitlement `json:"entitlements" example:"['admin', 'user']"`
+}
+
+type Entitlement struct {
+	Description string     `json:"description" example:"Admin"`
+	Resource    string     `json:"resource" example:"arn:identityplane:acme:customers:users:123"`
+	Action      string     `json:"action" example:"read"`
+	Effect      EffectType `json:"effect" example:"allow"`
+}
+
+type EffectType string
+
+const (
+	EffectTypeAllow EffectType = "allow"
+	EffectTypeDeny  EffectType = "deny"
+)

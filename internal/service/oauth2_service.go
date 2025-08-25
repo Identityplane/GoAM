@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/graph"
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_system"
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/lib/oauth2"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -206,11 +206,11 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 	}
 
 	// If the result node is a failure result we return an oauth2 error
-	if currentNode.Use == graph.FailureResultNode.Name {
+	if currentNode.Use == node_system.FailureResultNode.Name {
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorAccessDenied, "Authentication Failed")
 	}
 
-	if currentNode.Use != graph.SuccessResultNode.Name {
+	if currentNode.Use != node_system.SuccessResultNode.Name {
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Unexpected result node")
 	}
 

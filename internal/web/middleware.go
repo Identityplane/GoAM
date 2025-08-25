@@ -185,7 +185,7 @@ func WrapMiddleware(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 	)
 }
 
-func adminAuthMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+func adminAuthNMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 
 		token := string(ctx.Request.Header.Peek("Authorization"))
@@ -219,7 +219,7 @@ func adminAuthMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			ctx.SetUserValue("scope", introspectionResp.Scope)
 
 			// Load the user from the database
-			user, err := service.GetServices().UserService.GetUserByID(context.Background(), tenant, realm, introspectionResp.Sub)
+			user, err := service.GetServices().UserService.GetUserWithAttributesByID(context.Background(), tenant, realm, introspectionResp.Sub)
 			if err != nil {
 				ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 				ctx.SetBodyString("Invalid access token")
@@ -235,37 +235,40 @@ func adminAuthMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			ctx.SetUserValue("user", user)
 		}
 
-		// If the admin authz check is disabled, we skip the authz check
-		if config.UnsafeDisableAdminAuthzCheck && token == "" {
+		next(ctx)
+	}
+}
+
+func adminAuthZMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+
+		// Get the user from the context
+		userAny := ctx.UserValue("user")
+
+		// If the admin authz check is disabled and the request is unauthenticated, we skip the authz check
+		if config.UnsafeDisableAdminAuthzCheck && userAny == nil {
 			next(ctx)
 			return
 		}
 
+		// Convert the user into the correct type but handle errors
+		user, ok := userAny.(*model.User)
+		if !ok {
+			ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+			ctx.SetBodyString("Unauthorized")
+			return
+		}
+
 		// Validate if the user has access to the tenant and realm
-		tenantAny := ctx.UserValue("tenant")
-		realmAny := ctx.UserValue("realm")
+		path := string(ctx.Path())
+		method := string(ctx.Method())
 
-		if tenantAny != nil && realmAny != nil {
+		hasAccess, explanation := service.GetServices().AdminAuthzService.CheckAccess(user, path, method)
 
-			tenant := tenantAny.(string)
-			realm := realmAny.(string)
-
-			userAny := ctx.UserValue("user")
-
-			if userAny == nil {
-				ctx.SetStatusCode(fasthttp.StatusUnauthorized)
-				ctx.SetBodyString("Unauthorized")
-				return
-			}
-
-			user := userAny.(*model.User)
-
-			hasAccess, _ := service.GetServices().AdminAuthzService.CheckAccess(user, tenant, realm, "")
-			if !hasAccess {
-				ctx.SetStatusCode(fasthttp.StatusForbidden)
-				ctx.SetBodyString("No access to tenant or realm")
-				return
-			}
+		if !hasAccess {
+			ctx.SetStatusCode(fasthttp.StatusForbidden)
+			ctx.SetBodyString("Access denied: " + explanation)
+			return
 		}
 
 		next(ctx)
@@ -276,7 +279,19 @@ func adminMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 	return WrapMiddleware(
 		cors(
-			adminAuthMiddleware(
+			adminAuthNMiddleware(
+				adminAuthZMiddleware(
+					next,
+				),
+			),
+		),
+	)
+}
+
+func adminMiddlewareAllowsAll(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return WrapMiddleware(
+		cors(
+			adminAuthNMiddleware(
 				next,
 			),
 		),
