@@ -3,26 +3,26 @@ realm_name: Our beautiful Customers xoxo
 base_url: http://localhost:8080/acme/customers
 
 flows:
-  login:
-    route: /login
+  username-password-register:
+    route: /username-password-register
     active: yes
     debug_allowed: yes
-    definition_location: login.yaml
-  register:
-    route: /register
+    definition_location: username-password-register.yaml
+  username-password-login:
+    route: /username-password-login
     active: yes
     debug_allowed: yes
-    definition_location: register.yaml
-  unlock_account:
-    route: /unlock-account
-    active: no
-    debug_allowed: yes
-    definition_location: unlock_account.yaml
-  totp-test:
-    route: /totp-test
+    definition_location: username-password-login.yaml
+  email-password-register:
+    route: /email-password-register
     active: yes
     debug_allowed: yes
-    definition_location: totp-test.yaml
+    definition_location: email-password-register.yaml
+  email-password-login:
+    route: /email-password-login
+    active: yes
+    debug_allowed: yes
+    definition_location: email-password-login.yaml
 
 applications:
   customers-app:

@@ -3,7 +3,7 @@ CREATE TABLE user_attributes (
     user_id VARCHAR(36) NOT NULL,
     tenant VARCHAR(255) NOT NULL,
     realm VARCHAR(255) NOT NULL,
-    index_value VARCHAR(255) NOT NULL,
+    index_value VARCHAR(255),
     type VARCHAR(255) NOT NULL,
     value JSONB NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,

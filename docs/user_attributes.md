@@ -26,6 +26,17 @@ The index field serves as a lookup mechanism to find users by specific attribute
 
 This enables efficient user discovery without requiring full user object retrieval.
 
+**Index Uniqueness Constraint**: Within a realm, the combination of `(tenant, realm, type, index_value)` must be unique. This constraint exists because the index is used as a lookup mechanism to find users by attribute values. For example:
+- Only one user can have an email address "john@example.com" as an indexed attribute within a realm
+- This ensures that when someone tries to log in with "john@example.com", the system can uniquely identify which user to authenticate
+- Multiple users cannot share the same email address, phone number, or social login ID as an indexed attribute within the same realm
+
+**Backup/Secondary Attributes**: Users can have multiple attributes of the same type, but only one should have an index for lookup purposes. Additional attributes (like backup emails, secondary phone numbers) should have their index set to `null`:
+- **Primary email**: `index="john@example.com"` (used for login/lookup)
+- **Backup email**: `index=null` (not used for lookup, just stored for reference)
+
+**Nullable Index Support**: The index field is nullable, allowing attributes that don't need to be searchable (such as passwords, user preferences, backup contact methods, or internal flags) to exist without an index value.
+
 ## Attribute Types
 
 The system supports multiple attribute types, each with their own value structure:
@@ -48,6 +59,40 @@ Users can have multiple attributes of the same type. For example:
 - Multiple phone numbers (mobile, work, home)
 
 Each attribute instance has a unique identifier within the user's attribute collection.
+
+## Database Constraints and Validation
+
+### Unique Constraint
+The database enforces a unique constraint on the combination of `(tenant, realm, type, index_value)`:
+```sql
+UNIQUE (tenant, realm, type, index_value)
+```
+
+This constraint ensures:
+- **User Identity Uniqueness**: No two users can have the same email address, phone number, or social login ID within the same realm
+- **Realm Isolation**: The same index value can exist across different realms
+- **Type Separation**: Different attribute types can share the same index value (e.g., an email and username could both be "john.doe")
+
+### Index Value Handling
+- **String Indexes**: Must be unique within the realm for the given type (e.g., only one user can have "john@example.com" as an email)
+- **Null Indexes**: Multiple attributes with `null` indexes are allowed (e.g., multiple password attributes, user preferences)
+- **Empty String Indexes**: Treated as distinct from `null` and must follow uniqueness rules
+
+### Examples of Valid and Invalid Scenarios
+
+**Valid (Allowed):**
+- User A: email="john@example.com", phone="+1234567890"
+- User B: email="jane@example.com", phone="+0987654321"
+- Both users can have password attributes with `null` indexes
+- User A can have multiple email attributes:
+  - Primary: `index="john@example.com"` (used for login)
+  - Backup: `index=null` (stored for reference, not for lookup)
+
+**Invalid (Constraint Violation):**
+- User A: email="john@example.com"
+- User B: email="john@example.com" (same realm) ❌
+- User A: email="john@example.com", username="john@example.com" ✅ (different types)
+- User A cannot have two email attributes with `index="john@example.com"` ❌
 
 ## API Endpoints
 

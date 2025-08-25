@@ -10,6 +10,25 @@ import (
 // We we dont know the base url we use this to get the full url in the cases we need to assemble urls
 func GetFallbackUrl(ctx *fasthttp.RequestCtx, tenant, realm string) string {
 
+	requestUrl := GetUrlOfRequest(ctx)
+	return fmt.Sprintf("%s/%s/%s", requestUrl, tenant, realm)
+}
+
+func RedirectTo(ctx *fasthttp.RequestCtx, location string) {
+	ctx.SetStatusCode(fasthttp.StatusSeeOther)
+	ctx.Response.Header.Set("Location", location)
+	ctx.Response.Header.Set("Cache-Control", "no-store")
+	ctx.Response.Header.Set("Pragma", "no-cache")
+}
+
+func GetAdminBaseUrl(ctx *fasthttp.RequestCtx) string {
+
+	requestUrl := GetUrlOfRequest(ctx)
+	return fmt.Sprintf("%s/admin", requestUrl)
+}
+
+func GetUrlOfRequest(ctx *fasthttp.RequestCtx) string {
+
 	// get the host request header
 	host := string(ctx.Request.Header.Peek("Host"))
 
@@ -38,12 +57,5 @@ func GetFallbackUrl(ctx *fasthttp.RequestCtx, tenant, realm string) string {
 		protocol = "http"
 	}
 
-	return fmt.Sprintf("%s://%s/%s/%s", protocol, host, tenant, realm)
-}
-
-func RedirectTo(ctx *fasthttp.RequestCtx, location string) {
-	ctx.SetStatusCode(fasthttp.StatusSeeOther)
-	ctx.Response.Header.Set("Location", location)
-	ctx.Response.Header.Set("Cache-Control", "no-store")
-	ctx.Response.Header.Set("Pragma", "no-cache")
+	return fmt.Sprintf("%s://%s", protocol, host)
 }

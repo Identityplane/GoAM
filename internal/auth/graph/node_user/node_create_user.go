@@ -121,8 +121,7 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 		}
 
 		passwordAttribute := &model.UserAttribute{
-			Type:  model.AttributeTypePassword,
-			Index: password,
+			Type: model.AttributeTypePassword,
 			Value: model.PasswordAttributeValue{
 				PasswordHash:   string(hashed),
 				Locked:         false,
