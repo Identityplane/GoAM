@@ -1,4 +1,4 @@
-package nodetotp
+package node_totp
 
 import (
 	"database/sql"

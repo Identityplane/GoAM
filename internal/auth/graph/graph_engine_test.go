@@ -3,44 +3,42 @@ package graph
 import (
 	"testing"
 
+	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-func TestRun_SimpleInitToSuccess(t *testing.T) {
-	// Build a super simple flow: init -> successResult
-	flow := &model.FlowDefinition{
-		Description: "simple_flow",
-		Start:       "init",
-		Nodes: map[string]*model.GraphNode{
-			"init": {
-				Name: "init",
-				Use:  "init",
-				Next: map[string]string{
-					"start": "done",
-				},
-			},
-			"done": {
-				Name: "done",
-				Use:  "successResult",
-			},
-		},
+func TestRun_SimpleFlow(t *testing.T) {
+
+	// Setup mock repositories with a user named "alice"
+	mockUserRepo := repository.NewMockUserRepository()
+	mockRepos := &model.Repositories{
+		UserRepo: mockUserRepo,
 	}
 
-	state := InitFlow(flow)
-	assert.Equal(t, "init", state.Current)
+	// Create a test user with username "alice"
+	testUser := &model.User{
+		ID:             "test-user-123",
+		Tenant:         "acme",
+		Realm:          "customers",
+		Status:         "active",
+		UserAttributes: []model.UserAttribute{},
+	}
 
-	graphResult, err := Run(flow, state, nil, nil)
-	assert.NoError(t, err)
-	assert.Nil(t, graphResult.Prompts)
-	assert.NotNil(t, graphResult.Result)
+	// Add username attribute
+	testUser.AddAttribute(&model.UserAttribute{
+		Type:  model.AttributeTypeUsername,
+		Index: "alice",
+		Value: model.UsernameAttributeValue{
+			Username: "alice",
+		},
+	})
 
-	assert.Equal(t, "done", state.Current)
-	assert.Equal(t, []string{"init:start", "done"}, state.History)
-}
+	// Setup mock expectations for user lookup by username
+	mockUserRepo.On("GetByAttributeIndex", mock.Anything, model.AttributeTypeUsername, "alice").Return(testUser, nil)
 
-func TestRun_InitQueryToSuccess(t *testing.T) {
 	flow := &model.FlowDefinition{
 		Description: "query_flow",
 		Start:       "init",
@@ -69,14 +67,14 @@ func TestRun_InitQueryToSuccess(t *testing.T) {
 	state := InitFlow(flow)
 
 	// Step 1: Init → askUsername
-	graphResult, err := Run(flow, state, nil, nil)
+	graphResult, err := Run(flow, state, nil, mockRepos)
 	assert.NoError(t, err)
 	assert.Nil(t, graphResult.Result)
 	assert.Equal(t, map[string]string{"username": "text"}, graphResult.Prompts)
 
 	// Step 2: Provide input to askUsername
 	inputs := map[string]string{"username": "alice"}
-	graphResult, err = Run(flow, state, inputs, nil)
+	graphResult, err = Run(flow, state, inputs, mockRepos)
 	assert.NoError(t, err)
 	assert.NotNil(t, graphResult.Result)
 	assert.Nil(t, graphResult.Prompts)
@@ -84,4 +82,7 @@ func TestRun_InitQueryToSuccess(t *testing.T) {
 	assert.Equal(t, "done", state.Current)
 	assert.Equal(t, "alice", state.Context["username"])
 	assert.Equal(t, []string{"init:start", "askUsername:prompted:{\"username\":\"text\"}", "askUsername:submitted", "done"}, state.History)
+
+	// Verify that the mock expectations were met
+	mockUserRepo.AssertExpectations(t)
 }

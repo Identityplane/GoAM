@@ -1,11 +1,20 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/go-webauthn/webauthn/webauthn"
+)
 
 const (
 	AttributeTypeTOTP     = "identityplane:totp"
 	AttributeTypeUsername = "identityplane:username"
 	AttributeTypeGitHub   = "identityplane:github"
+	AttributeTypeTelegram = "identityplane:telegram"
+	AttributeTypePassword = "identityplane:password"
+	AttributeTypeEmail    = "identityplane:email"
+	AttributeTypePhone    = "identityplane:phone"
+	AttributeTypePasskey  = "identityplane:passkey"
 )
 
 // TOTPAttributeValue is the attribute value for TOTP
@@ -51,9 +60,10 @@ type SocialAttributeValue struct {
 // PasswordAttributeValue is the attribute value for passwords
 // @description Password information
 type PasswordAttributeValue struct {
-	PasswordHash   string `json:"password_hash" example:"password"`
-	Locked         bool   `json:"locked" example:"false"`
-	FailedAttempts int    `json:"failed_attempts" example:"0"`
+	PasswordHash         string     `json:"password_hash" example:"password"`
+	Locked               bool       `json:"locked" example:"false"`
+	FailedAttempts       int        `json:"failed_attempts" example:"0"`
+	LastCorrectTimestamp *time.Time `json:"last_correct_timestamp,omitempty" example:"2024-01-01T00:00:00Z"`
 }
 
 // EmailAttributeValue is the attribute value for emails
@@ -62,6 +72,9 @@ type EmailAttributeValue struct {
 	Email      string     `json:"email" example:"john.doe@example.com"`
 	Verified   bool       `json:"verified" example:"true"`
 	VerifiedAt *time.Time `json:"verified_at" example:"2024-01-01T00:00:00Z"`
+
+	OtpFailedAttempts int  `json:"otp_failed_attempts" example:"0"`
+	OtpLocked         bool `json:"otp_locked" example:"false"`
 }
 
 // PhoneAttributeValue is the attribute value for phones
@@ -75,8 +88,11 @@ type PhoneAttributeValue struct {
 // PasskeyAttributeValue is the attribute value for passkeys
 // @description Passkey information
 type PasskeyAttributeValue struct {
-	RPID               string `json:"rp_id" example:"example.com"`
-	WebAuthnCredential string `json:"webauthn_credential" example:"{}"`
+	RPID               string               `json:"rp_id" example:"example.com"`
+	CredentialID       string               `json:"credential_id" example:"1234567890"`
+	DisplayName        string               `json:"display_name" example:"John Doe"`
+	WebAuthnCredential *webauthn.Credential `json:"webauthn_credential" example:"{}"`
+	LastUsedAt         *time.Time           `json:"last_used_at" example:"2024-01-01T00:00:00Z"`
 }
 
 // UserProfileAttributeValue is the attribute value for user profiles
@@ -91,6 +107,16 @@ type UserProfileAttributeValue struct {
 // @description User picture information
 type UserPictureAttributeValue struct {
 	Url string `json:"picture" example:"https://example.com/profile.jpg"`
+}
+
+// TelegramAttributeValue is the attribute value for Telegram accounts
+// @description Telegram information
+type TelegramAttributeValue struct {
+	TelegramUserID    string `json:"telegram_user_id" example:"1234567890"`
+	TelegramUsername  string `json:"telegram_username" example:"johndoe"`
+	TelegramFirstName string `json:"telegram_first_name" example:"John"`
+	TelegramPhotoURL  string `json:"telegram_photo_url" example:"https://t.me/i/userpic/123/photo.jpg"`
+	TelegramAuthDate  int64  `json:"telegram_auth_date" example:"1753278987"`
 }
 
 // DeviceAttributeValue is the attribute value for devices

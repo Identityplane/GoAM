@@ -1,4 +1,4 @@
-package graph
+package node_system
 
 import (
 	"github.com/Identityplane/GoAM/pkg/model"
