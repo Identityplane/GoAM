@@ -1,4 +1,4 @@
-package graph
+package node_telegram
 
 import (
 	"context"
@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-
+	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/pkg/model"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -124,8 +124,21 @@ func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *mode
 
 		telegramUserID := strconv.FormatInt(authResult.ID, 10)
 
-		// Check if the user exists
-		dbUser, err := services.UserRepo.GetByFederatedIdentifier(context.Background(), "telegram", telegramUserID)
+		// Create Telegram attribute value
+		telegramAttributeValue := model.TelegramAttributeValue{
+			TelegramUserID:    telegramUserID,
+			TelegramUsername:  authResult.Username,
+			TelegramFirstName: authResult.FirstName,
+			TelegramPhotoURL:  authResult.PhotoURL,
+			TelegramAuthDate:  authResult.AuthDate,
+		}
+
+		// Store the telegram attribute in the context
+		telegramAttributeJSON, _ := json.Marshal(telegramAttributeValue)
+		state.Context["telegram"] = string(telegramAttributeJSON)
+
+		// Check if the user exists using the new attribute system
+		dbUser, err := services.UserRepo.GetByAttributeIndex(context.Background(), model.AttributeTypeTelegram, telegramUserID)
 		if err != nil {
 			return model.NewNodeResultWithError(err)
 		}
@@ -136,19 +149,19 @@ func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *mode
 			return model.NewNodeResultWithCondition("existing-user")
 		}
 
-		telegramProviderString := TelegramProviderString
-
 		// If the create user option is enabled we create a new user if it doesn't exist
 		if node.CustomConfig["createUser"] == "true" && dbUser == nil {
 			user := &model.User{
-				ID:                uuid.NewString(),
-				Username:          authResult.Username,
-				ProfilePictureURI: authResult.PhotoURL,
-				FederatedIDP:      &telegramProviderString,
-				FederatedID:       &telegramUserID,
-				CreatedAt:         currentTime,
-				UpdatedAt:         currentTime,
+				ID:     uuid.NewString(),
+				Status: "active",
 			}
+
+			// Add the telegram attribute to the user
+			user.AddAttribute(&model.UserAttribute{
+				Index: telegramUserID,
+				Type:  model.AttributeTypeTelegram,
+				Value: telegramAttributeValue,
+			})
 
 			// Create the user
 			err := services.UserRepo.Create(context.Background(), user)
@@ -162,11 +175,15 @@ func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *mode
 
 		// If we should not create a user just set the telegram fields to the context
 		state.User = &model.User{
-			Username:          authResult.Username,
-			ProfilePictureURI: authResult.PhotoURL,
-			FederatedIDP:      &telegramProviderString,
-			FederatedID:       &telegramUserID,
+			Status: "active",
 		}
+
+		// Add the telegram attribute to the user
+		state.User.AddAttribute(&model.UserAttribute{
+			Index: telegramUserID,
+			Type:  model.AttributeTypeTelegram,
+			Value: telegramAttributeValue,
+		})
 
 		// Return new-user condition even when not creating the user
 		return model.NewNodeResultWithCondition("new-user")
@@ -279,7 +296,7 @@ func TestParseTelegramAuthResultOutdated(t *testing.T) {
 
 func TestRunTelegramLoginNodeExistingUser(t *testing.T) {
 	// Setup
-	mockUserRepo := &MockUserRepository{}
+	mockUserRepo := repository.NewMockUserRepository()
 	mockEmailSender := &MockEmailSender{}
 
 	services := &model.Repositories{
@@ -290,19 +307,29 @@ func TestRunTelegramLoginNodeExistingUser(t *testing.T) {
 	// Create test data
 	tgToken, tgAuthResult := getTestTelegramCredentials()
 
-	// Create existing user
+	// Create existing user with Telegram attribute
 	existingUser := &model.User{
-		ID:                "existing-user-id",
-		Username:          "WhoIsLuca",
-		ProfilePictureURI: "https://t.me/i/userpic/ABC",
-		FederatedIDP:      stringPtr("telegram"),
-		FederatedID:       stringPtr("6745731120"),
-		CreatedAt:         time.Now(),
-		UpdatedAt:         time.Now(),
+		ID:     "existing-user-id",
+		Status: "active",
 	}
 
+	// Add Telegram attribute
+	telegramAttributeValue := model.TelegramAttributeValue{
+		TelegramUserID:    "6745731120",
+		TelegramUsername:  "WhoIsLuca",
+		TelegramFirstName: "Luca",
+		TelegramPhotoURL:  "https://t.me/i/userpic/ABC",
+		TelegramAuthDate:  time.Now().Unix(),
+	}
+
+	existingUser.AddAttribute(&model.UserAttribute{
+		Index: "6745731120",
+		Type:  model.AttributeTypeTelegram,
+		Value: telegramAttributeValue,
+	})
+
 	// Setup expectations
-	mockUserRepo.On("GetByFederatedIdentifier", mock.Anything, "telegram", "6745731120").Return(existingUser, nil)
+	mockUserRepo.On("GetByAttributeIndex", mock.Anything, model.AttributeTypeTelegram, "6745731120").Return(existingUser, nil)
 
 	// Create node and state
 	node := &model.GraphNode{
@@ -336,7 +363,7 @@ func TestRunTelegramLoginNodeExistingUser(t *testing.T) {
 
 func TestRunTelegramLoginNodeNewUser(t *testing.T) {
 	// Setup
-	mockUserRepo := &MockUserRepository{}
+	mockUserRepo := repository.NewMockUserRepository()
 	mockEmailSender := &MockEmailSender{}
 
 	services := &model.Repositories{
@@ -348,14 +375,16 @@ func TestRunTelegramLoginNodeNewUser(t *testing.T) {
 	tgToken, tgAuthResult := getTestTelegramCredentials()
 
 	// Setup expectations - user doesn't exist initially
-	mockUserRepo.On("GetByFederatedIdentifier", mock.Anything, "telegram", "6745731120").Return(nil, nil)
+	mockUserRepo.On("GetByAttributeIndex", mock.Anything, model.AttributeTypeTelegram, "6745731120").Return(nil, nil)
 
 	// Expect user creation
 	mockUserRepo.On("Create", mock.Anything, mock.MatchedBy(func(user *model.User) bool {
-		return user.Username == "WhoIsLuca" &&
-			user.ProfilePictureURI == "https://t.me/i/userpic/ABC" &&
-			*user.FederatedIDP == "telegram" &&
-			*user.FederatedID == "6745731120"
+		// Check that the user has the correct Telegram attribute
+		telegramAttr, _, err := model.GetAttribute[model.TelegramAttributeValue](user, model.AttributeTypeTelegram)
+		return err == nil && telegramAttr != nil &&
+			telegramAttr.TelegramUsername == "WhoIsLuca" &&
+			telegramAttr.TelegramPhotoURL == "https://t.me/i/userpic/ABC" &&
+			telegramAttr.TelegramUserID == "6745731120"
 	})).Return(nil)
 
 	// Create node and state
@@ -385,17 +414,21 @@ func TestRunTelegramLoginNodeNewUser(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, "new-user", result.Condition)
 	assert.NotNil(t, state.User)
-	assert.Equal(t, "WhoIsLuca", state.User.Username)
-	assert.Equal(t, "https://t.me/i/userpic/ABC", state.User.ProfilePictureURI)
-	assert.Equal(t, "telegram", *state.User.FederatedIDP)
-	assert.Equal(t, "6745731120", *state.User.FederatedID)
+
+	// Verify that the Telegram attribute was created correctly
+	telegramAttr, _, err := model.GetAttribute[model.TelegramAttributeValue](state.User, model.AttributeTypeTelegram)
+	assert.NoError(t, err)
+	assert.NotNil(t, telegramAttr)
+	assert.Equal(t, "WhoIsLuca", telegramAttr.TelegramUsername)
+	assert.Equal(t, "https://t.me/i/userpic/ABC", telegramAttr.TelegramPhotoURL)
+	assert.Equal(t, "6745731120", telegramAttr.TelegramUserID)
 
 	mockUserRepo.AssertExpectations(t)
 }
 
 func TestRunTelegramLoginNodeNoCreateUser(t *testing.T) {
 	// Setup
-	mockUserRepo := &MockUserRepository{}
+	mockUserRepo := repository.NewMockUserRepository()
 	mockEmailSender := &MockEmailSender{}
 
 	services := &model.Repositories{
@@ -407,7 +440,7 @@ func TestRunTelegramLoginNodeNoCreateUser(t *testing.T) {
 	tgToken, tgAuthResult := getTestTelegramCredentials()
 
 	// Setup expectations - user doesn't exist initially
-	mockUserRepo.On("GetByFederatedIdentifier", mock.Anything, "telegram", "6745731120").Return(nil, nil)
+	mockUserRepo.On("GetByAttributeIndex", mock.Anything, model.AttributeTypeTelegram, "6745731120").Return(nil, nil)
 
 	// Create node and state
 	node := &model.GraphNode{
@@ -436,17 +469,21 @@ func TestRunTelegramLoginNodeNoCreateUser(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, "new-user", result.Condition) // Should still return new-user even without creating
 	assert.NotNil(t, state.User)
-	assert.Equal(t, "WhoIsLuca", state.User.Username)
-	assert.Equal(t, "https://t.me/i/userpic/ABC", state.User.ProfilePictureURI)
-	assert.Equal(t, "telegram", *state.User.FederatedIDP)
-	assert.Equal(t, "6745731120", *state.User.FederatedID)
+
+	// Verify that the Telegram attribute was created correctly
+	telegramAttr, _, err := model.GetAttribute[model.TelegramAttributeValue](state.User, model.AttributeTypeTelegram)
+	assert.NoError(t, err)
+	assert.NotNil(t, telegramAttr)
+	assert.Equal(t, "WhoIsLuca", telegramAttr.TelegramUsername)
+	assert.Equal(t, "https://t.me/i/userpic/ABC", telegramAttr.TelegramPhotoURL)
+	assert.Equal(t, "6745731120", telegramAttr.TelegramUserID)
 
 	mockUserRepo.AssertExpectations(t)
 }
 
 func TestRunTelegramLoginNodeRedirect(t *testing.T) {
 	// Setup
-	mockUserRepo := &MockUserRepository{}
+	mockUserRepo := repository.NewMockUserRepository()
 	mockEmailSender := &MockEmailSender{}
 
 	services := &model.Repositories{

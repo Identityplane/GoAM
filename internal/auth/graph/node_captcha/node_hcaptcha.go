@@ -1,4 +1,4 @@
-package graph
+package node_captcha
 
 import (
 	"encoding/json"

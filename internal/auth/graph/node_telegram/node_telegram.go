@@ -1,4 +1,4 @@
-package graph
+package node_telegram
 
 import (
 	"context"
@@ -61,8 +61,21 @@ func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphN
 
 		telegramUserID := strconv.FormatInt(authResult.ID, 10)
 
-		// Check if the user exists
-		dbUser, err := services.UserRepo.GetByFederatedIdentifier(context.Background(), "telegram", telegramUserID)
+		// Create Telegram attribute value
+		telegramAttributeValue := model.TelegramAttributeValue{
+			TelegramUserID:    telegramUserID,
+			TelegramUsername:  authResult.Username,
+			TelegramFirstName: authResult.FirstName,
+			TelegramPhotoURL:  authResult.PhotoURL,
+			TelegramAuthDate:  authResult.AuthDate,
+		}
+
+		// Store the telegram attribute in the context
+		telegramAttributeJSON, _ := json.Marshal(telegramAttributeValue)
+		state.Context["telegram"] = string(telegramAttributeJSON)
+
+		// Check if the user exists using the new attribute system
+		dbUser, err := services.UserRepo.GetByAttributeIndex(context.Background(), model.AttributeTypeTelegram, telegramUserID)
 		if err != nil {
 			return model.NewNodeResultWithError(err)
 		}
@@ -73,19 +86,19 @@ func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphN
 			return model.NewNodeResultWithCondition("existing-user")
 		}
 
-		telegramProviderString := TelegramProviderString
-
 		// If the create user option is enabled we create a new user if it doesn't exist
 		if node.CustomConfig["createUser"] == "true" && dbUser == nil {
 			user := &model.User{
-				ID:                uuid.NewString(),
-				Username:          authResult.Username,
-				ProfilePictureURI: authResult.PhotoURL,
-				FederatedIDP:      &telegramProviderString,
-				FederatedID:       &telegramUserID,
-				CreatedAt:         time.Now(),
-				UpdatedAt:         time.Now(),
+				ID:     uuid.NewString(),
+				Status: "active",
 			}
+
+			// Add the telegram attribute to the user
+			user.AddAttribute(&model.UserAttribute{
+				Index: telegramUserID,
+				Type:  model.AttributeTypeTelegram,
+				Value: telegramAttributeValue,
+			})
 
 			// Create the user
 			err := services.UserRepo.Create(context.Background(), user)
@@ -99,11 +112,15 @@ func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphN
 
 		// If we should not create a user just set the telegram fields to the context
 		state.User = &model.User{
-			Username:          authResult.Username,
-			ProfilePictureURI: authResult.PhotoURL,
-			FederatedIDP:      &telegramProviderString,
-			FederatedID:       &telegramUserID,
+			Status: "active",
 		}
+
+		// Add the telegram attribute to the user
+		state.User.AddAttribute(&model.UserAttribute{
+			Index: telegramUserID,
+			Type:  model.AttributeTypeTelegram,
+			Value: telegramAttributeValue,
+		})
 	}
 
 	// Unfortunately with the fragement we cannot know if the user has already logged in or not
