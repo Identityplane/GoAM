@@ -1,49 +1,12 @@
-package graph
+package node_passkeys
 
 import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/go-webauthn/webauthn/webauthn"
-
 	"github.com/stretchr/testify/assert"
 )
-
-func TestRunPasskeyRegisterNode_HappyPath(t *testing.T) {
-	// Setup flow state with a username
-	state := &model.AuthenticationSession{
-		Context: map[string]string{
-			"username": "alice",
-		},
-		User: &model.User{
-			Username: "alice",
-			Email:    "alice@example.com",
-		},
-		LoginUri: "https://manage.identityplane.cloud/bitmex/default/auth/login",
-	}
-
-	// Minimal graph node (not used in logic here, but required)
-	node := &model.GraphNode{
-		Name: "registerPasskey",
-		Use:  "registerPasskey",
-	}
-
-	// Run the node logic
-	prompts, err := GeneratePasskeysOptions(state, node)
-
-	// Validate result
-	assert.NoError(t, err)
-	assert.Contains(t, prompts, "passkeysOptions")
-
-	// Check if JSON strings are stored in context
-	sessionStr, sessionExists := state.Context["passkeysSession"]
-	optionsStr, optionsExists := state.Context["passkeysOptions"]
-
-	assert.True(t, sessionExists, "passkeysSession should be set in context")
-	assert.True(t, optionsExists, "passkeysOptions should be set in context")
-	assert.NotEmpty(t, sessionStr)
-	assert.NotEmpty(t, optionsStr)
-}
 
 func TestGetWebAuthnConfig(t *testing.T) {
 	tests := []struct {

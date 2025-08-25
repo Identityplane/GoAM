@@ -1,9 +1,10 @@
-package graph
+package node_options
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_passkeys"
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
@@ -40,7 +41,7 @@ func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *mode
 	if !latestIsOptionsNdoe || !ok {
 
 		// For passkey discovery we create a passkey challenge
-		passkeysLoginOptions, err := generatePasskeysChallenge(state, node, "", "")
+		passkeysLoginOptions, err := node_passkeys.GeneratePasskeysChallenge(state, node, "", "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate passkey challenge: %w", err)
 		}

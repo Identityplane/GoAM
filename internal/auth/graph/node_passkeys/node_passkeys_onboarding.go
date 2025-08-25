@@ -1,4 +1,4 @@
-package graph
+package node_passkeys
 
 import (
 	"context"
@@ -83,7 +83,7 @@ func generateAnonymousPasskeysOptions(state *model.AuthenticationSession, node *
 	// Store the new user id in the context
 	state.Context["newUserId"] = newUserId
 
-	optionsJSON, err := generatePasskeysChallenge(state, node, "", newUserId)
+	optionsJSON, err := GeneratePasskeysChallenge(state, node, "", newUserId)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate passkeys challenge: %w", err)
@@ -111,7 +111,7 @@ func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.Gr
 	}
 
 	// Check for existing user
-	existing, _ := userRepo.GetByEmail(ctx, email)
+	existing, _ := userRepo.GetByAttributeIndex(ctx, model.AttributeTypeEmail, email)
 	if existing != nil {
 		return "existing", nil
 	}
@@ -126,6 +126,7 @@ func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.Gr
 	// Unmarshal the credential response from the client
 	responseJSONStr := input["passkeysFinishRegistrationJson"]
 
+	// Parse the credential response
 	parsedCredential, err := protocol.ParseCredentialCreationResponseBytes([]byte(responseJSONStr))
 	if err != nil {
 		return "failure", fmt.Errorf("failed to parse credential response: %w", err)
@@ -133,6 +134,8 @@ func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.Gr
 
 	// Recreate the user object based on the email that the user chooses
 	newUserId := state.Context["newUserId"]
+
+	// Create the user credentials
 	userCredentials := &WebAuthnUserCredentials{
 		Username: email,
 		ID:       []byte(newUserId),
@@ -154,22 +157,38 @@ func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.Gr
 		return "failure", fmt.Errorf("failed to finish registration: %w", err)
 	}
 
-	credBytes, err := json.Marshal(cred)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal credential: %w", err)
+	// Create the passkey attribute
+	passkeyAttribute := &model.UserAttribute{
+		Type:  model.AttributeTypePasskey,
+		Index: newUserId,
+		Value: model.PasskeyAttributeValue{
+			CredentialID:       string(cred.ID),
+			DisplayName:        email,
+			RPID:               wconfig.RPID,
+			WebAuthnCredential: cred,
+		},
+	}
+
+	// Create the email attribute
+	emailAttribute := &model.UserAttribute{
+		Type:  model.AttributeTypeEmail,
+		Index: newUserId,
+		Value: model.EmailAttributeValue{
+			Email:    email,
+			Verified: false,
+		},
 	}
 
 	// Create a new user object with the provided email and previously generated user id
 	user := &model.User{
 		ID:        newUserId,
-		Email:     email,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
-	// Store the login identifier and webauthn credential
-	user.LoginIdentifier = string(parsedCredential.ID)
-	user.WebAuthnCredential = string(credBytes)
+	// Add the attributes to the user
+	user.AddAttribute(passkeyAttribute)
+	user.AddAttribute(emailAttribute)
 
 	// Set the user to the context
 	state.User = user
@@ -177,12 +196,8 @@ func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.Gr
 	// If create user is set in the custom config then store the user with updated credential
 	if node.CustomConfig["createUser"] == "true" {
 
-		// TODO Currently we have uniqueness for usernames. This needs to go away but for now we just hack a random id into the username if it is not set by tacking the first 8 characters of the id onto the username
-		if user.Username == "" {
-			user.Username = user.ID[:8]
-		}
-
-		err = userRepo.Create(ctx, user)
+		// Store the user in the database
+		err = services.UserRepo.Create(ctx, user)
 		if err != nil {
 			return "", fmt.Errorf("failed to create user: %w", err)
 		}
