@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -63,7 +64,7 @@ func TestRunEmailOTPNode(t *testing.T) {
 	testUser.AddAttribute(&model.UserAttribute{
 		ID:    uuid.NewString(),
 		Type:  model.AttributeTypeEmail,
-		Index: "test@example.com",
+		Index: lib.StringPtr("test@example.com"),
 		Value: emailAttrValue,
 	})
 
@@ -210,7 +211,7 @@ func TestRunEmailOTPNode_AccountLocked(t *testing.T) {
 	testUser.AddAttribute(&model.UserAttribute{
 		ID:    uuid.NewString(),
 		Type:  model.AttributeTypeEmail,
-		Index: "locked@example.com",
+		Index: lib.StringPtr("locked@example.com"),
 		Value: emailAttrValue,
 	})
 

@@ -283,9 +283,8 @@ func TestTOTPVerifyNodeMaxFailedAttempts(t *testing.T) {
 
 	// Add TOTP attribute to user with a proper Index
 	totpAttribute := &model.UserAttribute{
-		ID:    uuid.NewString(),
-		Type:  model.AttributeTypeTOTP,
-		Index: "TESTSECRET123", // Set the Index field
+		ID:   uuid.NewString(),
+		Type: model.AttributeTypeTOTP,
 		Value: model.TOTPAttributeValue{
 			SecretKey:      "TESTSECRET123",
 			Locked:         false,

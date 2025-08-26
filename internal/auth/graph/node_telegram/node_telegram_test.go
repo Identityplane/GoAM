@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -158,7 +159,7 @@ func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *mode
 
 			// Add the telegram attribute to the user
 			user.AddAttribute(&model.UserAttribute{
-				Index: telegramUserID,
+				Index: lib.StringPtr(telegramUserID),
 				Type:  model.AttributeTypeTelegram,
 				Value: telegramAttributeValue,
 			})
@@ -180,7 +181,7 @@ func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *mode
 
 		// Add the telegram attribute to the user
 		state.User.AddAttribute(&model.UserAttribute{
-			Index: telegramUserID,
+			Index: lib.StringPtr(telegramUserID),
 			Type:  model.AttributeTypeTelegram,
 			Value: telegramAttributeValue,
 		})
@@ -323,7 +324,7 @@ func TestRunTelegramLoginNodeExistingUser(t *testing.T) {
 	}
 
 	existingUser.AddAttribute(&model.UserAttribute{
-		Index: "6745731120",
+		Index: lib.StringPtr("6745731120"),
 		Type:  model.AttributeTypeTelegram,
 		Value: telegramAttributeValue,
 	})

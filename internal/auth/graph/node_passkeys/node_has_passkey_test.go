@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -29,7 +30,7 @@ func TestRunCheckUserHasPasskeyNode_UserHasPasskey(t *testing.T) {
 	// Add a passkey attribute
 	testUser.AddAttribute(&model.UserAttribute{
 		Type:  model.AttributeTypePasskey,
-		Index: "passkey-1",
+		Index: lib.StringPtr("passkey-1"),
 		Value: model.PasskeyAttributeValue{
 			RPID:         "localhost",
 			DisplayName:  "alice",
@@ -79,7 +80,7 @@ func TestRunCheckUserHasPasskeyNode_UserNoPasskey(t *testing.T) {
 	// Add a username attribute but no passkey
 	testUser.AddAttribute(&model.UserAttribute{
 		Type:  model.AttributeTypeUsername,
-		Index: "alice",
+		Index: lib.StringPtr("alice"),
 		Value: model.UsernameAttributeValue{
 			Username: "alice",
 		},
@@ -160,7 +161,7 @@ func TestRunCheckUserHasPasskeyNode_UserWithMultiplePasskeys(t *testing.T) {
 	// Add multiple passkey attributes
 	testUser.AddAttribute(&model.UserAttribute{
 		Type:  model.AttributeTypePasskey,
-		Index: "passkey-1",
+		Index: lib.StringPtr("passkey-1"),
 		Value: model.PasskeyAttributeValue{
 			RPID:         "localhost",
 			DisplayName:  "alice",
@@ -170,7 +171,7 @@ func TestRunCheckUserHasPasskeyNode_UserWithMultiplePasskeys(t *testing.T) {
 
 	testUser.AddAttribute(&model.UserAttribute{
 		Type:  model.AttributeTypePasskey,
-		Index: "passkey-2",
+		Index: lib.StringPtr("passkey-2"),
 		Value: model.PasskeyAttributeValue{
 			RPID:         "localhost",
 			DisplayName:  "alice",

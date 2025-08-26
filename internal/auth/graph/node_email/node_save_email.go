@@ -63,7 +63,7 @@ func RunSaveEmailNode(state *model.AuthenticationSession, node *model.GraphNode,
 	if emailValue != nil {
 
 		attribute.Value = newEmailValue
-		attribute.Index = email
+		attribute.Index = &email
 		services.UserRepo.UpdateUserAttribute(context.Background(), attribute)
 
 		// Update the attribute in the user's UserAttributes slice
@@ -81,7 +81,7 @@ func RunSaveEmailNode(state *model.AuthenticationSession, node *model.GraphNode,
 			ID:    uuid.NewString(),
 			Type:  model.AttributeTypeEmail,
 			Value: newEmailValue,
-			Index: email,
+			Index: &email,
 		})
 
 		user.UserAttributes = append(user.UserAttributes, *attribute)

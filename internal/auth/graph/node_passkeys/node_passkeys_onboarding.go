@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/go-webauthn/webauthn/protocol"
@@ -160,7 +161,7 @@ func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.Gr
 	// Create the passkey attribute
 	passkeyAttribute := &model.UserAttribute{
 		Type:  model.AttributeTypePasskey,
-		Index: newUserId,
+		Index: lib.StringPtr(newUserId),
 		Value: model.PasskeyAttributeValue{
 			CredentialID:       string(cred.ID),
 			DisplayName:        email,
@@ -172,7 +173,7 @@ func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.Gr
 	// Create the email attribute
 	emailAttribute := &model.UserAttribute{
 		Type:  model.AttributeTypeEmail,
-		Index: newUserId,
+		Index: lib.StringPtr(newUserId),
 		Value: model.EmailAttributeValue{
 			Email:    email,
 			Verified: false,
