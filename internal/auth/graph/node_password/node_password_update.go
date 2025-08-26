@@ -76,7 +76,6 @@ func RunUpdatePasswordNode(state *model.AuthenticationSession, node *model.Graph
 		// Create new password attribute
 		passwordAttr := &model.UserAttribute{
 			Type:  model.AttributeTypePassword,
-			Index: "password", // Use "password" as the index for password attributes
 			Value: passwordAttrValue,
 		}
 		state.User.AddAttribute(passwordAttr)

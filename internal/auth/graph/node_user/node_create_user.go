@@ -77,7 +77,7 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 	if username != "" && !alreadyExists {
 		usernameAttribute := &model.UserAttribute{
 			Type:  model.AttributeTypeUsername,
-			Index: username,
+			Index: &username,
 			Value: model.UsernameAttributeValue{
 				Username: username,
 			},
@@ -102,7 +102,7 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 
 		emailAttribute := &model.UserAttribute{
 			Type:  model.AttributeTypeEmail,
-			Index: email,
+			Index: &email,
 			Value: model.EmailAttributeValue{
 				Email:    email,
 				Verified: false,

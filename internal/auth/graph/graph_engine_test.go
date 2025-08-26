@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,7 @@ func TestRun_SimpleFlow(t *testing.T) {
 	// Add username attribute
 	testUser.AddAttribute(&model.UserAttribute{
 		Type:  model.AttributeTypeUsername,
-		Index: "alice",
+		Index: lib.StringPtr("alice"),
 		Value: model.UsernameAttributeValue{
 			Username: "alice",
 		},

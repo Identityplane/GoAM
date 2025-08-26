@@ -56,7 +56,7 @@ func RunGithubCreateUserNode(state *model.AuthenticationSession, node *model.Gra
 
 	// Append the github attribute to the user with the user id as the index
 	state.User.AddAttribute(&model.UserAttribute{
-		Index: githubAttribute.GitHubUserID,
+		Index: &githubAttribute.GitHubUserID,
 		Type:  model.AttributeTypeGitHub,
 		Value: githubAttribute,
 	})

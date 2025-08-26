@@ -12,7 +12,7 @@ func TestUserAttributeWithSocialValue(t *testing.T) {
 		UserID: "123e4567-e89b-12d3-a456-426614174000",
 		Tenant: "acme",
 		Realm:  "customers",
-		Index:  "google_1234567890",
+		Index:  stringPtr("google_1234567890"),
 		Type:   "social",
 		Value: SocialAttributeValue{
 			SocialIDP: "google",
@@ -70,4 +70,8 @@ func TestUserAttributeWithSocialValue(t *testing.T) {
 	} else {
 		t.Errorf("Failed to type assert Value to map[string]interface{}")
 	}
+}
+
+func stringPtr(s string) *string {
+	return &s
 }

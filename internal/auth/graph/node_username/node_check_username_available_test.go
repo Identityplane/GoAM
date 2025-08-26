@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -80,7 +81,7 @@ func TestRunCheckUsernameAvailableNode_UsernameTaken(t *testing.T) {
 				UserID:    uuid.NewString(),
 				Tenant:    "acme",
 				Realm:     "customers",
-				Index:     "existinguser",
+				Index:     lib.StringPtr("existinguser"),
 				Type:      model.AttributeTypeUsername,
 				Value:     "existinguser",
 				CreatedAt: time.Now(),

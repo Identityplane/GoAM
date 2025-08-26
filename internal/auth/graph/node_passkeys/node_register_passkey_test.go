@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -31,7 +32,7 @@ func TestRunPasskeyRegisterNode_GenerateOptions(t *testing.T) {
 	// Add username attribute using the proper method
 	testUser.AddAttribute(&model.UserAttribute{
 		Type:  model.AttributeTypeUsername,
-		Index: "alice",
+		Index: lib.StringPtr("alice"),
 		Value: model.UsernameAttributeValue{
 			Username: "alice",
 		},
@@ -140,7 +141,7 @@ func TestRunPasskeyRegisterNode_InvalidCredentialResponse(t *testing.T) {
 	// Add username attribute using the proper method
 	testUser.AddAttribute(&model.UserAttribute{
 		Type:  model.AttributeTypeUsername,
-		Index: "alice",
+		Index: lib.StringPtr("alice"),
 		Value: model.UsernameAttributeValue{
 			Username: "alice",
 		},
