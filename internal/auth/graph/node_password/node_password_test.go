@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,6 @@ func TestUpdatePasswordNode(t *testing.T) {
 	testUser.AddAttribute(&model.UserAttribute{
 		ID:    uuid.NewString(),
 		Type:  model.AttributeTypePassword,
-		Index: "password",
 		Value: passwordAttrValue,
 	})
 
@@ -91,7 +91,6 @@ func TestPasswordUpdateAndValidation(t *testing.T) {
 	testUser.AddAttribute(&model.UserAttribute{
 		ID:    uuid.NewString(),
 		Type:  model.AttributeTypePassword,
-		Index: "password",
 		Value: passwordAttrValue,
 	})
 
@@ -102,7 +101,7 @@ func TestPasswordUpdateAndValidation(t *testing.T) {
 	testUser.AddAttribute(&model.UserAttribute{
 		ID:    uuid.NewString(),
 		Type:  model.AttributeTypeUsername,
-		Index: "testuser",
+		Index: lib.StringPtr("testuser"),
 		Value: usernameAttrValue,
 	})
 

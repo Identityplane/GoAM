@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 )
@@ -95,7 +96,7 @@ func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphN
 
 			// Add the telegram attribute to the user
 			user.AddAttribute(&model.UserAttribute{
-				Index: telegramUserID,
+				Index: lib.StringPtr(telegramUserID),
 				Type:  model.AttributeTypeTelegram,
 				Value: telegramAttributeValue,
 			})
@@ -117,7 +118,7 @@ func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphN
 
 		// Add the telegram attribute to the user
 		state.User.AddAttribute(&model.UserAttribute{
-			Index: telegramUserID,
+			Index: lib.StringPtr(telegramUserID),
 			Type:  model.AttributeTypeTelegram,
 			Value: telegramAttributeValue,
 		})

@@ -114,7 +114,7 @@ func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.
 
 	user.AddAttribute(&model.UserAttribute{
 		Type:  model.AttributeTypePasskey,
-		Index: credentialID,
+		Index: &credentialID,
 		Value: passkeyAttributeValue,
 	})
 

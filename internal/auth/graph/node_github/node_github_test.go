@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal/auth/repository"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -275,7 +276,7 @@ func TestGithubCreateUserNode_WithExistingUser(t *testing.T) {
 			{
 				ID:    uuid.NewString(),
 				Type:  "email",
-				Index: "existing@example.com",
+				Index: lib.StringPtr("existing@example.com"),
 				Value: "existing@example.com",
 			},
 		},
