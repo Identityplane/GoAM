@@ -28,6 +28,11 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: username-password-totp.yaml
+  username-password-passkey-upgrade-login:
+    route: /username-password-passkey-upgrade-login
+    active: yes
+    debug_allowed: yes
+    definition_location: username-password-passkey-upgrade-login.yaml
 
 applications:
   customers-app:

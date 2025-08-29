@@ -75,7 +75,7 @@ func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNo
 		return "failure", fmt.Errorf("failed to parse credential assertion: %w", err)
 	}
 
-	credentialID := parsedCredential.ID
+	credentialID := credIdToString(parsedCredential.RawID)
 	log.Debug().Str("credential_id", credentialID).Msg("credential id")
 
 	// Load user by the credential id
@@ -130,7 +130,8 @@ func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNo
 	// if the user id from the session is empty we overwrite it with the user id from the user object
 	// This is needed for passkey discovery as we don't know the user id in that case during session creation
 	if len(session.UserID) == 0 {
-		session.UserID = []byte(passkeyValue.CredentialID)
+		session.UserID = parsedCredential.Response.UserHandle
+		userCredentials.ID = parsedCredential.Response.UserHandle
 	}
 
 	// Validate the passkey login

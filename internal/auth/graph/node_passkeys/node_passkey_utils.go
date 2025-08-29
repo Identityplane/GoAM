@@ -1,6 +1,7 @@
 package node_passkeys
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -9,6 +10,10 @@ import (
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
+
+func credIdToString(credId []byte) string {
+	return base64.StdEncoding.EncodeToString(credId)
+}
 
 func generatePasskeysOptions(state *model.AuthenticationSession, node *model.GraphNode, accountName string, userId string) (map[string]string, error) {
 
