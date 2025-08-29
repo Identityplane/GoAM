@@ -102,7 +102,7 @@ func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.
 		return "failure", fmt.Errorf("failed to finish registration: %w", err)
 	}
 
-	credentialID := string(cred.ID)
+	credentialID := credIdToString(cred.ID)
 
 	// Store new credential with user
 	passkeyAttributeValue := model.PasskeyAttributeValue{
