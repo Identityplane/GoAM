@@ -163,7 +163,7 @@ func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.Gr
 		Type:  model.AttributeTypePasskey,
 		Index: lib.StringPtr(newUserId),
 		Value: model.PasskeyAttributeValue{
-			CredentialID:       string(cred.ID),
+			CredentialID:       credIdToString(cred.ID),
 			DisplayName:        email,
 			RPID:               wconfig.RPID,
 			WebAuthnCredential: cred,
