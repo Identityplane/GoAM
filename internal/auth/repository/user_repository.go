@@ -49,7 +49,7 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, user *model.User) error
 	user.Tenant = r.tenant
 	user.Realm = r.realm
 
-	return r.db.UpdateUser(ctx, user)
+	return r.attributesDB.UpdateUserWithAttributes(ctx, user)
 }
 
 func (r *UserRepositoryImpl) CreateOrUpdate(ctx context.Context, user *model.User) error {
@@ -83,10 +83,16 @@ func (r *UserRepositoryImpl) CreateUserAttribute(ctx context.Context, attribute 
 }
 
 func (r *UserRepositoryImpl) UpdateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error {
+
+	// Ensure the tenant and realm are set to the repository values
+	attribute.Tenant = r.tenant
+	attribute.Realm = r.realm
+
 	return r.attributesDB.UpdateUserAttribute(ctx, attribute)
 }
 
 func (r *UserRepositoryImpl) DeleteUserAttribute(ctx context.Context, attributeID string) error {
+
 	return r.attributesDB.DeleteUserAttribute(ctx, r.tenant, r.realm, attributeID)
 }
 

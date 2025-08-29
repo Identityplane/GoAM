@@ -11,3 +11,4 @@ node_modules/*
 auth-js/dist/*
 goiam.db
 .secrets
+internal/db/sqlite_adapter/user_attribute_db.go

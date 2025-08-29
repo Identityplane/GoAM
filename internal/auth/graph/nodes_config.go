@@ -65,6 +65,7 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	// TOTP
 	node_totp.TOTPCreateNode.Name: node_totp.TOTPCreateNode,
 	node_totp.TOTPVerifyNode.Name: node_totp.TOTPVerifyNode,
+	node_totp.HasTOTPNode.Name:    node_totp.HasTOTPNode,
 
 	// Captcha
 	node_captcha.HcaptchaNode.Name: node_captcha.HcaptchaNode,

@@ -121,7 +121,7 @@ func (p *PostgresUserAttributeDB) UpdateUserAttribute(ctx context.Context, attri
 		return fmt.Errorf("failed to marshal attribute value: %w", err)
 	}
 
-	_, err = p.db.Exec(ctx, `
+	result, err := p.db.Exec(ctx, `
 		UPDATE user_attributes SET
 			index_value = $1,
 			type = $2,
@@ -138,7 +138,16 @@ func (p *PostgresUserAttributeDB) UpdateUserAttribute(ctx context.Context, attri
 		attribute.ID,
 	)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected != 1 {
+		return fmt.Errorf("expected 1 row to be affected for attribute update, but got %d", rowsAffected)
+	}
+
+	return nil
 }
 
 func (p *PostgresUserAttributeDB) DeleteUserAttribute(ctx context.Context, tenant, realm, attributeID string) error {
@@ -438,6 +447,200 @@ func (p *PostgresUserAttributeDB) CreateUserWithAttributes(ctx context.Context, 
 
 		if err != nil {
 			return fmt.Errorf("failed to create attribute %s: %w", attribute.Type, err)
+		}
+	}
+
+	// Commit the transaction
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateUserWithAttributes updates a user and their attributes in a single transaction
+func (p *PostgresUserAttributeDB) UpdateUserWithAttributes(ctx context.Context, user *model.User) error {
+	// Start a transaction
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		}
+	}()
+
+	// Update the user
+	var lastLoginAt interface{}
+	if user.LastLoginAt != nil {
+		lastLoginAt = user.LastLoginAt
+	}
+
+	result, err := tx.Exec(ctx, `
+		UPDATE users SET
+			status = $1,
+			updated_at = NOW(),
+			last_login_at = $2
+		WHERE tenant = $3 AND realm = $4 AND id = $5
+	`,
+		user.Status,
+		lastLoginAt,
+		user.Tenant,
+		user.Realm,
+		user.ID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected != 1 {
+		return fmt.Errorf("expected 1 row to be affected for user update, but got %d", rowsAffected)
+	}
+
+	// Process each attribute in the updated user
+	for i := range user.UserAttributes {
+		attribute := &user.UserAttributes[i]
+
+		// Set the user_id if not already set
+		if attribute.UserID == "" {
+			attribute.UserID = user.ID
+		}
+
+		// Set tenant and realm if not already set
+		if attribute.Tenant == "" {
+			attribute.Tenant = user.Tenant
+		}
+		if attribute.Realm == "" {
+			attribute.Realm = user.Realm
+		}
+
+		// Generate ID if not set (for new attributes)
+		if attribute.ID == "" {
+			attribute.ID = uuid.NewString()
+		}
+
+		// Check if this attribute exists in the database
+		var existingAttributeID string
+		err := tx.QueryRow(ctx, `
+			SELECT id FROM user_attributes 
+			WHERE tenant = $1 AND realm = $2 AND id = $3
+		`, attribute.Tenant, attribute.Realm, attribute.ID).Scan(&existingAttributeID)
+
+		if err != nil && err != pgx.ErrNoRows {
+			return fmt.Errorf("failed to check if attribute exists: %w", err)
+		}
+
+		if err == pgx.ErrNoRows {
+			// Attribute doesn't exist - create it
+			// Convert value to JSONB
+			valueJSONB, err := json.Marshal(attribute.Value)
+			if err != nil {
+				return fmt.Errorf("failed to marshal attribute value: %w", err)
+			}
+
+			// Insert the new attribute using NOW() for timestamps
+			result, err := tx.Exec(ctx, `
+				INSERT INTO user_attributes (
+					id, user_id, tenant, realm, index_value, type, value,
+					created_at, updated_at
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+			`,
+				attribute.ID,
+				attribute.UserID,
+				attribute.Tenant,
+				attribute.Realm,
+				attribute.Index,
+				attribute.Type,
+				valueJSONB,
+			)
+
+			if err != nil {
+				return fmt.Errorf("failed to create new attribute %s: %w", attribute.Type, err)
+			}
+
+			rowsAffected := result.RowsAffected()
+			if rowsAffected != 1 {
+				return fmt.Errorf("expected 1 row to be affected for attribute creation %s, but got %d", attribute.Type, rowsAffected)
+			}
+		} else {
+			// Attribute exists - check if it needs updating
+			// Query the existing attribute directly within the transaction
+			var existingValue, existingType string
+			var existingIndex *string // Use pointer to handle NULL values
+			var existingCreatedAt, existingUpdatedAt time.Time
+
+			err := tx.QueryRow(ctx, `
+				SELECT value, index_value, type, created_at, updated_at 
+				FROM user_attributes 
+				WHERE tenant = $1 AND realm = $2 AND id = $3
+			`, attribute.Tenant, attribute.Realm, attribute.ID).Scan(
+				&existingValue, &existingIndex, &existingType, &existingCreatedAt, &existingUpdatedAt,
+			)
+
+			if err != nil {
+				return fmt.Errorf("failed to get existing attribute for comparison: %w", err)
+			}
+
+			// Create the existing attribute for comparison
+			existingAttribute := &model.UserAttribute{
+				ID:        attribute.ID,
+				UserID:    attribute.UserID,
+				Tenant:    attribute.Tenant,
+				Realm:     attribute.Realm,
+				Index:     existingIndex, // Already a pointer, no need to take address
+				Type:      existingType,
+				Value:     existingValue, // This will be the raw JSON string
+				CreatedAt: existingCreatedAt,
+				UpdatedAt: existingUpdatedAt,
+			}
+
+			// Parse the existing value from JSON
+			if existingValue != "" && existingValue != "null" {
+				var rawValue interface{}
+				if err := json.Unmarshal([]byte(existingValue), &rawValue); err == nil {
+					existingAttribute.Value = rawValue
+				}
+			}
+
+			// Check if anything has changed using the Equals method
+			if attribute.Equals(existingAttribute) {
+				continue
+			}
+
+			// Something changed - update it using NOW() for the timestamp
+			// Convert value to JSONB
+			valueJSONB, err := json.Marshal(attribute.Value)
+			if err != nil {
+				return fmt.Errorf("failed to marshal attribute value: %w", err)
+			}
+
+			result, err := tx.Exec(ctx, `
+				UPDATE user_attributes SET
+					index_value = $1,
+					type = $2,
+					value = $3,
+					updated_at = NOW()
+				WHERE tenant = $4 AND realm = $5 AND id = $6
+			`,
+				attribute.Index,
+				attribute.Type,
+				valueJSONB,
+				attribute.Tenant,
+				attribute.Realm,
+				attribute.ID,
+			)
+
+			if err != nil {
+				return fmt.Errorf("failed to update attribute %s: %w", attribute.ID, err)
+			}
+
+			rowsAffected := result.RowsAffected()
+			if rowsAffected != 1 {
+				return fmt.Errorf("expected 1 row to be affected for attribute update %s, but got %d", attribute.ID, rowsAffected)
+			}
 		}
 	}
 

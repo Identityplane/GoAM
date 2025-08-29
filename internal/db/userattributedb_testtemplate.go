@@ -32,6 +32,10 @@ func UserAttributeDBTests(t *testing.T, db UserAttributeDB) {
 		clearUserAttributeDB(t, db)
 		TemplateTestCreateUserWithAttributes(t, db)
 	})
+	t.Run("TestUpdateUserWithAttributes", func(t *testing.T) {
+		clearUserAttributeDB(t, db)
+		TemplateTestUpdateUserWithAttributes(t, db)
+	})
 	t.Run("TestIndexUniqueConstraint", func(t *testing.T) {
 		clearUserAttributeDB(t, db)
 		TemplateTestIndexUniqueConstraint(t, db)
@@ -587,6 +591,235 @@ func TemplateTestCreateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		nonexistentValues, _, err := model.GetAttributes[model.EmailAttributeValue](user, "nonexistent")
 		assert.NoError(t, err)
 		assert.Len(t, nonexistentValues, 0)
+	})
+
+	// Clean up
+	attrs, err := db.ListUserAttributes(ctx, testTenant, testRealm, testUserID)
+	require.NoError(t, err)
+	for _, attr := range attrs {
+		db.DeleteUserAttribute(ctx, testTenant, testRealm, attr.ID)
+	}
+}
+
+// TemplateTestUpdateUserWithAttributes tests updating a user with modified attributes
+func TemplateTestUpdateUserWithAttributes(t *testing.T, db UserAttributeDB) {
+	ctx := context.Background()
+	testTenant := "test-tenant"
+	testRealm := "test-realm"
+	testUserID := "123e4567-e89b-12d3-a456-426614174003" // Use a different UUID from other tests
+
+	// Create a test user with multiple attributes
+	testUser := &model.User{
+		ID:     testUserID,
+		Tenant: testTenant,
+		Realm:  testRealm,
+		Status: "active",
+		UserAttributes: []model.UserAttribute{
+			{
+				UserID: testUserID,
+				Tenant: testTenant,
+				Realm:  testRealm,
+				Index:  stringPtr("primary@example.com"),
+				Type:   "email",
+				Value: model.EmailAttributeValue{
+					Email:    "primary@example.com",
+					Verified: false,
+				},
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			{
+				UserID: testUserID,
+				Tenant: testTenant,
+				Realm:  testRealm,
+				Index:  stringPtr("+1234567890"),
+				Type:   "phone",
+				Value: model.PhoneAttributeValue{
+					Phone:    "+1234567890",
+					Verified: false,
+				},
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+		},
+	}
+
+	// Create the user and all attributes
+	err := db.CreateUserWithAttributes(ctx, testUser)
+	require.NoError(t, err, "Failed to create user with attributes")
+
+	// Get the created user to have the actual timestamps and IDs
+	createdUser, err := db.GetUserWithAttributes(ctx, testTenant, testRealm, testUserID)
+	require.NoError(t, err, "Failed to get created user")
+	require.Len(t, createdUser.UserAttributes, 2, "User should have 2 attributes")
+
+	// Store original timestamps for comparison
+	originalEmailUpdatedAt := createdUser.UserAttributes[0].UpdatedAt
+	originalPhoneUpdatedAt := createdUser.UserAttributes[1].UpdatedAt
+
+	// Wait a bit to ensure timestamp differences
+	time.Sleep(1 * time.Second)
+
+	// Prepare the updated user
+	updatedUser := &model.User{
+		ID:     testUserID,
+		Tenant: testTenant,
+		Realm:  testRealm,
+		Status: "suspended", // Change user status
+		UserAttributes: []model.UserAttribute{
+			// Update existing email attribute
+			{
+				ID:     createdUser.UserAttributes[0].ID,
+				UserID: testUserID,
+				Tenant: testTenant,
+				Realm:  testRealm,
+				Index:  stringPtr("primary@example.com"),
+				Type:   "email",
+				Value: model.EmailAttributeValue{
+					Email:      "primary@example.com",
+					Verified:   true, // Change verification status
+					VerifiedAt: timePtr(time.Now()),
+				},
+				CreatedAt: createdUser.UserAttributes[0].CreatedAt,
+				// Remove UpdatedAt - let the database function set it
+			},
+			// Keep phone attribute unchanged
+			{
+				ID:     createdUser.UserAttributes[1].ID,
+				UserID: testUserID,
+				Tenant: testTenant,
+				Realm:  testRealm,
+				Index:  stringPtr("+1234567890"),
+				Type:   "phone",
+				Value: model.PhoneAttributeValue{
+					Phone:    "+1234567890",
+					Verified: false,
+				},
+				CreatedAt: createdUser.UserAttributes[1].CreatedAt,
+				// Remove UpdatedAt - let the database function set it
+			},
+			// Add new attribute
+			{
+				UserID: testUserID,
+				Tenant: testTenant,
+				Realm:  testRealm,
+				Index:  stringPtr("work@example.com"),
+				Type:   "email",
+				Value: model.EmailAttributeValue{
+					Email:    "work@example.com",
+					Verified: false,
+				},
+				// Remove CreatedAt and UpdatedAt - let the database function set them
+			},
+		},
+	}
+
+	t.Run("UpdateUserWithAttributes", func(t *testing.T) {
+		// Act: Update the user with attributes
+		err := db.UpdateUserWithAttributes(ctx, updatedUser)
+		require.NoError(t, err, "Failed to update user with attributes")
+
+		// Assert: Retrieve the updated user and verify changes
+		updatedUserFromDB, err := db.GetUserWithAttributes(ctx, testTenant, testRealm, testUserID)
+		require.NoError(t, err, "Failed to get updated user")
+		require.NotNil(t, updatedUserFromDB, "Updated user should not be nil")
+
+		// Check user status was updated
+		assert.Equal(t, "suspended", updatedUserFromDB.Status, "User status should be updated")
+
+		// Check that we now have 3 attributes
+		assert.Len(t, updatedUserFromDB.UserAttributes, 3, "User should have 3 attributes after update")
+
+		// Find attributes by type for easier testing
+		emailAttrs := updatedUserFromDB.GetAttributesByType("email")
+		phoneAttrs := updatedUserFromDB.GetAttributesByType("phone")
+
+		assert.Len(t, emailAttrs, 2, "Should have 2 email attributes")
+		assert.Len(t, phoneAttrs, 1, "Should have 1 phone attribute")
+
+		// Check primary email attribute was updated
+		var primaryEmailAttr *model.UserAttribute
+		for _, attr := range emailAttrs {
+			if attr.Index != nil && *attr.Index == "primary@example.com" {
+				primaryEmailAttr = &attr
+				break
+			}
+		}
+		require.NotNil(t, primaryEmailAttr, "Primary email attribute should exist")
+
+		// Verify email attribute was updated
+		if emailValue, ok := primaryEmailAttr.Value.(map[string]interface{}); ok {
+			assert.Equal(t, true, emailValue["verified"], "Email verification status should be updated")
+			assert.NotNil(t, emailValue["verified_at"], "Email verification timestamp should be set")
+		} else {
+			t.Errorf("Failed to type assert primary email Value to map[string]interface{}")
+		}
+
+		// Check that email attribute updated timestamp changed
+		assert.NotEqual(t, originalEmailUpdatedAt, primaryEmailAttr.UpdatedAt,
+			"Primary email attribute should have updated timestamp")
+
+		// Check phone attribute remained unchanged
+		var phoneAttr *model.UserAttribute
+		for _, attr := range phoneAttrs {
+			if attr.Index != nil && *attr.Index == "+1234567890" {
+				phoneAttr = &attr
+				break
+			}
+		}
+		require.NotNil(t, phoneAttr, "Phone attribute should exist")
+
+		// Verify phone attribute was not changed
+		if phoneValue, ok := phoneAttr.Value.(map[string]interface{}); ok {
+			assert.Equal(t, false, phoneValue["verified"], "Phone verification status should remain unchanged")
+		} else {
+			t.Errorf("Failed to type assert phone Value to map[string]interface{}")
+		}
+
+		// Check that phone attribute timestamp did not change
+		assert.Equal(t, originalPhoneUpdatedAt, phoneAttr.UpdatedAt,
+			"Phone attribute timestamp should remain unchanged")
+
+		// Check new work email attribute was added
+		var workEmailAttr *model.UserAttribute
+		for _, attr := range emailAttrs {
+			if attr.Index != nil && *attr.Index == "work@example.com" {
+				workEmailAttr = &attr
+				break
+			}
+		}
+		require.NotNil(t, workEmailAttr, "Work email attribute should exist")
+
+		// Verify new work email attribute
+		if emailValue, ok := workEmailAttr.Value.(map[string]interface{}); ok {
+			assert.Equal(t, "work@example.com", emailValue["email"], "Work email should be correct")
+			assert.Equal(t, false, emailValue["verified"], "Work email should be unverified")
+		} else {
+			t.Errorf("Failed to type assert work email Value to map[string]interface{}")
+		}
+
+		// Verify new attribute has recent timestamps (should be different from original)
+		assert.NotEqual(t, originalEmailUpdatedAt, workEmailAttr.CreatedAt,
+			"New work email should have different created timestamp")
+		assert.NotEqual(t, originalEmailUpdatedAt, workEmailAttr.UpdatedAt,
+			"New work email should have different updated timestamp")
+	})
+
+	t.Run("TestUpdateNonExistentAttribute", func(t *testing.T) {
+		// Test updating a non-existent attribute should return an error
+		nonExistentAttribute := model.UserAttribute{
+			ID:        "non-existent-id",
+			UserID:    "non-existent-user",
+			Tenant:    testTenant,
+			Realm:     testRealm,
+			Type:      "email",
+			Value:     map[string]interface{}{"email": "test@example.com"},
+			UpdatedAt: time.Now(),
+		}
+
+		err := db.UpdateUserAttribute(ctx, &nonExistentAttribute)
+		assert.Error(t, err, "UpdateUserAttribute should return an error for non-existent attribute")
+		assert.Contains(t, err.Error(), "expected 1 row to be affected", "Error should mention rows affected")
 	})
 
 	// Clean up
