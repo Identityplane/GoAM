@@ -23,6 +23,11 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: email-password-login.yaml
+  username-password-totp:
+    route: /username-password-totp
+    active: yes
+    debug_allowed: yes
+    definition_location: username-password-totp.yaml
 
 applications:
   customers-app:
