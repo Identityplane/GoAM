@@ -39,6 +39,6 @@ func TestUserAttributeDb(t *testing.T) {
 	db.UserAttributeDBTests(t, userAttributeDB)
 
 	// Clean up the test user
-	err = userDB.DeleteUser(ctx, "test-tenant", "test-realm", "test-user")
+	err = userDB.DeleteUser(ctx, "test-tenant", "test-realm", "123e4567-e89b-12d3-a456-426614174000")
 	require.NoError(t, err)
 }

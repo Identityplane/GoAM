@@ -25,8 +25,8 @@ var TOTPCreateNode = &model.NodeDefinition{
 	},
 	OutputContext: []string{""},
 	CustomConfigOptions: map[string]string{
-		"totpIssuer": "The name of the issuer displayed in the TOTP QR code",
-		"saveUser":   "If true, the user will be saved to the database after the TOTP is created",
+		"totpIssuer":   "The name of the issuer displayed in the TOTP QR code",
+		"skipSaveUser": "If true, the user will not be saved to the database after the TOTP is created and only the context will be updated",
 	},
 	PossibleResultStates: []string{"success"},
 	Run:                  RunTOTPCreateNode,
@@ -127,7 +127,7 @@ func RunTOTPCreateNode(state *model.AuthenticationSession, node *model.GraphNode
 	state.User.AddAttribute(totpAttribute)
 
 	// If we are saving the user we need to save it to the database
-	if node.CustomConfig["saveUser"] == "true" {
+	if node.CustomConfig["skipSaveUser"] != "true" {
 		err := services.UserRepo.CreateOrUpdate(context.Background(), state.User)
 		if err != nil {
 			return nil, err

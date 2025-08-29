@@ -31,4 +31,7 @@ type UserAttributeDB interface {
 
 	// Create user with attributes
 	CreateUserWithAttributes(ctx context.Context, user *model.User) error
+
+	// Update user with attributes
+	UpdateUserWithAttributes(ctx context.Context, user *model.User) error
 }
