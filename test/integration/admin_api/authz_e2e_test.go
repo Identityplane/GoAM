@@ -16,7 +16,7 @@ import (
 func TestAdminAuthzE2E(t *testing.T) {
 	// Get the base httpexpect instance with in-memory listener
 	e := integration.SetupIntegrationTest(t, "")
-	config.UnsafeDisableAdminAuthzCheck = false
+	config.ServerSettings.UnsafeDisableAdminAuth = false
 
 	// An anonymous call use whoami should return an unauthorized error
 	t.Run("Check Unauthorized Endpoints", func(t *testing.T) {

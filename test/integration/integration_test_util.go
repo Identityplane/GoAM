@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal"
-	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/web"
 	"github.com/Identityplane/GoAM/pkg/model"
+	"github.com/Identityplane/GoAM/pkg/server_settings"
 
 	"github.com/fasthttp/router"
 	"github.com/gavv/httpexpect/v2"
@@ -37,12 +37,22 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 
 	projectRoot := findProjectRoot("README.md")
 
-	config.UnsafeDisableAdminAuthzCheck = true
-	config.ConfigPath = filepath.Join(projectRoot, "test/integration/config")
-	config.DBConnString = ":memory:?_foreign_keys=on"
+	serverSettings, err := server_settings.InitWithViper()
+	if err != nil {
+		t.Fatalf("failed to initialize server settings: %v", err)
+	}
+
+	// Overwrite settings for testing
+	serverSettings.UnsafeDisableAdminAuth = true
+	serverSettings.RealmConfigurationFolder = filepath.Join(projectRoot, "test/integration/config")
+	serverSettings.DBConnString = ":memory:?_foreign_keys=on"
+
+	// Disable the default listeners
+	serverSettings.ListenerHttp = ""
+	serverSettings.ListenerHTTPS = ""
 
 	// Call init function
-	internal.Initialize()
+	internal.Initialize(serverSettings)
 
 	// if present manually add the flow to the realm
 	if flowYaml != "" {

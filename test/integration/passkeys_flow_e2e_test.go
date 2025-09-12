@@ -41,7 +41,7 @@ nodes:
 	e := SetupIntegrationTest(t, flow)
 
 	service.GetServices().UserService.CreateUser(context.Background(), "acme", "customers", model.User{
-		Username: "admin",
+		ID: "admin",
 	})
 
 	e.GET("/acme/customers/auth/test_flow").Expect().
