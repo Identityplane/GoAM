@@ -12,13 +12,14 @@ import (
 	"github.com/Identityplane/GoAM/internal/web/auth"
 	"github.com/Identityplane/GoAM/pkg/server_settings"
 
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
 	// All loaded realm configurations, indexed by "tenant/realm"
-	LoadedRealms     = map[string]*service.LoadedRealm{}
-	UserAdminService service.UserAdminService
+	LoadedRealms     = map[string]*services_interface.LoadedRealm{}
+	UserAdminService services_interface.UserAdminService
 	DBConnections    *service.DatabaseConnections
 )
 

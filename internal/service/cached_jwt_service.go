@@ -7,6 +7,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 const (
@@ -18,12 +19,12 @@ const (
 
 // cachedJWTService implements JWTService with caching
 type cachedJWTService struct {
-	jwtService JWTService
-	cache      CacheService
+	jwtService services_interface.JWTService
+	cache      services_interface.CacheService
 }
 
 // NewCachedJWTService creates a new cached JWT service
-func NewCachedJWTService(jwtService JWTService, cache CacheService) JWTService {
+func NewCachedJWTService(jwtService services_interface.JWTService, cache services_interface.CacheService) services_interface.JWTService {
 	return &cachedJWTService{
 		jwtService: jwtService,
 		cache:      cache,
@@ -107,8 +108,8 @@ func (s *cachedJWTService) invalidateCaches(tenant, realm string) {
 	s.cache.Invalidate(jwksCacheKey)
 }
 
-// getActiveSigningKey returns an active signing key for the given tenant and realm
-func (s *cachedJWTService) getActiveSigningKey(ctx context.Context, tenant, realm string) (*model.SigningKey, error) {
+// GetActiveSigningKey returns an active signing key for the given tenant and realm
+func (s *cachedJWTService) GetActiveSigningKey(ctx context.Context, tenant, realm string) (*model.SigningKey, error) {
 	// Try to get from cache first
 	cacheKey := s.getSigningKeyCacheKey(tenant, realm)
 	if cached, exists := s.cache.Get(cacheKey); exists {
@@ -118,7 +119,7 @@ func (s *cachedJWTService) getActiveSigningKey(ctx context.Context, tenant, real
 	}
 
 	// If not in cache, get from service
-	key, err := s.jwtService.getActiveSigningKey(ctx, tenant, realm)
+	key, err := s.jwtService.GetActiveSigningKey(ctx, tenant, realm)
 	if err != nil {
 		return nil, err
 	}

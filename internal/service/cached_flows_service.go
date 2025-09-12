@@ -6,6 +6,8 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 const (
@@ -15,12 +17,12 @@ const (
 
 // cachedFlowService implements FlowService with caching
 type cachedFlowService struct {
-	flowService FlowService
-	cache       CacheService
+	flowService services_interface.FlowService
+	cache       services_interface.CacheService
 }
 
 // NewCachedFlowService creates a new cached flow service
-func NewCachedFlowService(flowService FlowService, cache CacheService) FlowService {
+func NewCachedFlowService(flowService services_interface.FlowService, cache services_interface.CacheService) services_interface.FlowService {
 	return &cachedFlowService{
 		flowService: flowService,
 		cache:       cache,
@@ -142,7 +144,7 @@ func (s *cachedFlowService) DeleteFlow(tenant, realm, id string) error {
 	return nil
 }
 
-func (s *cachedFlowService) ValidateFlowDefinition(content string) ([]FlowLintError, error) {
+func (s *cachedFlowService) ValidateFlowDefinition(content string) ([]services_interface.FlowLintError, error) {
 	return s.flowService.ValidateFlowDefinition(content)
 }
 

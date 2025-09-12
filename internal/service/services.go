@@ -2,23 +2,8 @@ package service
 
 import (
 	"github.com/Identityplane/GoAM/internal/db"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
-
-// Services holds all service instances
-type Services struct {
-	UserService                UserAdminService
-	UserAttributeService       UserAttributeService
-	RealmService               RealmService
-	FlowService                FlowService
-	ApplicationService         ApplicationService
-	SessionsService            SessionsService
-	StaticConfigurationService StaticConfigurationService
-	OAuth2Service              *OAuth2Service
-	JWTService                 JWTService
-	CacheService               CacheService
-	AdminAuthzService          AdminAuthzService
-	TemplatesService           TemplatesService
-}
 
 // DatabaseConnections holds all database connections
 type DatabaseConnections struct {
@@ -34,12 +19,12 @@ type DatabaseConnections struct {
 
 var (
 	// Global service registry
-	services  *Services
+	services  *services_interface.Services
 	Databases *DatabaseConnections
 )
 
 // InitServices initializes all services with their dependencies
-func InitServices(connections DatabaseConnections) *Services {
+func InitServices(connections DatabaseConnections) *services_interface.Services {
 	Databases = &connections
 
 	// Initialize cache service first
@@ -48,7 +33,7 @@ func InitServices(connections DatabaseConnections) *Services {
 		panic("failed to initialize cache service: " + err.Error())
 	}
 
-	services = &Services{
+	services = &services_interface.Services{
 		UserService:                NewUserService(Databases.UserDB, Databases.UserAttributeDB),
 		UserAttributeService:       NewUserAttributeService(Databases.UserAttributeDB, Databases.UserDB),
 		RealmService:               NewCachedRealmService(NewRealmService(Databases.RealmDB, Databases.UserDB, Databases.UserAttributeDB), cacheService),
@@ -67,7 +52,7 @@ func InitServices(connections DatabaseConnections) *Services {
 }
 
 // GetServices returns the global service registry
-func GetServices() *Services {
+func GetServices() *services_interface.Services {
 	if services == nil {
 		panic("services not initialized - call InitServices first")
 	}

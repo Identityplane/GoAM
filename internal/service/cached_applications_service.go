@@ -6,6 +6,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 const (
@@ -15,12 +16,12 @@ const (
 
 // cachedApplicationService implements ApplicationService with caching
 type cachedApplicationService struct {
-	applicationService ApplicationService
-	cache              CacheService
+	applicationService services_interface.ApplicationService
+	cache              services_interface.CacheService
 }
 
 // NewCachedApplicationService creates a new cached application service
-func NewCachedApplicationService(applicationService ApplicationService, cache CacheService) ApplicationService {
+func NewCachedApplicationService(applicationService services_interface.ApplicationService, cache services_interface.CacheService) services_interface.ApplicationService {
 	return &cachedApplicationService{
 		applicationService: applicationService,
 		cache:              cache,

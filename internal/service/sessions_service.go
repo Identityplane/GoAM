@@ -12,14 +12,10 @@ import (
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 
 	"github.com/google/uuid"
 )
-
-// TimeProvider defines an interface for getting the current time
-type TimeProvider interface {
-	Now() time.Time
-}
 
 // RealTimeProvider implements TimeProvider using the system clock
 type RealTimeProvider struct{}
@@ -28,55 +24,16 @@ func (r *RealTimeProvider) Now() time.Time {
 	return time.Now()
 }
 
-// SessionsService defines the interface for session management
-type SessionsService interface {
-	// SetTimeProvider sets a custom time provider for testing
-	SetTimeProvider(provider TimeProvider)
-
-	// CreateAuthSessionObject creates a new session object but does not store it
-	CreateAuthSessionObject(tenant, realm, flowId, loginUri string) (*model.AuthenticationSession, string)
-
-	// CreateOrUpdateAuthenticationSession creates or updates an authentication session
-	CreateOrUpdateAuthenticationSession(ctx context.Context, tenant, realm string, session model.AuthenticationSession) error
-
-	// GetAuthenticationSessionByID retrieves an authentication session by its ID
-	GetAuthenticationSessionByID(ctx context.Context, tenant, realm, sessionID string) (*model.AuthenticationSession, bool)
-
-	// GetAuthenticationSession retrieves an authentication session by its hash
-	GetAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) (*model.AuthenticationSession, bool)
-
-	// DeleteAuthenticationSession removes an authentication session
-	DeleteAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) error
-
-	// CreateAuthCodeSession creates a new client session with an auth code
-	CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession) (string, *model.ClientSession, error)
-
-	// CreateAccessTokenSession creates a new access token session
-	CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int) (string, *model.ClientSession, error)
-
-	// CreateRefreshTokenSession creates a new refresh token session
-	CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int) (string, *model.ClientSession, error)
-
-	// GetClientSessionByAccessToken retrieves a client session by its access token
-	GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessToken string) (*model.ClientSession, error)
-
-	// LoadAndDeleteAuthCodeSession retrieves a client session by auth code and deletes it
-	LoadAndDeleteAuthCodeSession(ctx context.Context, tenant, realm, authCode string) (*model.ClientSession, *model.AuthenticationSession, error)
-
-	// LoadAndDeleteRefreshTokenSession retrieves a client session by refresh token and deletes it
-	LoadAndDeleteRefreshTokenSession(ctx context.Context, tenant, realm, refreshToken string) (*model.ClientSession, error)
-}
-
 // sessionsService implements SessionsService
 type sessionsService struct {
 	mu              sync.RWMutex
 	clientSessionDB db.ClientSessionDB
 	authSessionDB   db.AuthSessionDB
-	timeProvider    TimeProvider
+	timeProvider    services_interface.TimeProvider
 }
 
 // NewSessionsService creates a new sessions service
-func NewSessionsService(clientSessionDB db.ClientSessionDB, authSessionDB db.AuthSessionDB) SessionsService {
+func NewSessionsService(clientSessionDB db.ClientSessionDB, authSessionDB db.AuthSessionDB) services_interface.SessionsService {
 	return &sessionsService{
 		clientSessionDB: clientSessionDB,
 		authSessionDB:   authSessionDB,
@@ -85,7 +42,7 @@ func NewSessionsService(clientSessionDB db.ClientSessionDB, authSessionDB db.Aut
 }
 
 // SetTimeProvider sets a custom time provider for testing
-func (s *sessionsService) SetTimeProvider(provider TimeProvider) {
+func (s *sessionsService) SetTimeProvider(provider services_interface.TimeProvider) {
 	s.timeProvider = provider
 }
 

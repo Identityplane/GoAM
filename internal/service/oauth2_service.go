@@ -13,6 +13,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/lib/oauth2"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 // OAuth2Service handles OAuth2 related operations
@@ -20,98 +21,12 @@ type OAuth2Service struct {
 }
 
 // NewOAuth2Service creates a new OAuth2Service instance
-func NewOAuth2Service() *OAuth2Service {
+func NewOAuth2Service() services_interface.OAuth2Service {
 	return &OAuth2Service{}
 }
 
-// Enum for the different OAuth2 grant types, we differenciate between authorization_code and authorization_code_pkce
-type OAuth2GrantType string
-
-// Valid OAuth2 grant types
-const (
-	Oauth2_AuthorizationCode     OAuth2GrantType = "authorization_code"
-	Oauth2_AuthorizationCodePKCE OAuth2GrantType = "authorization_code_pkce"
-	Oauth2_ClientCredentials     OAuth2GrantType = "client_credentials"
-	Oauth2_RefreshToken          OAuth2GrantType = "refresh_token"
-	Oauth2_InvalidFlow           OAuth2GrantType = "invalid"
-)
-
-// Valid OAuth2 error codes as defined in RFC 6749
-const (
-	ErrorInvalidRequest          = "invalid_request"
-	ErrorUnauthorizedClient      = "unauthorized_client"
-	ErrorAccessDenied            = "access_denied"
-	ErrorUnsupportedResponseType = "unsupported_response_type"
-	ErrorInvalidScope            = "invalid_scope"
-	ErrorServerError             = "server_error"
-	ErrorTemporarilyUnavailable  = "temporarily_unavailable"
-)
-
-// AuthorizationResponse represents the OAuth2 authorization response
-type AuthorizationResponse struct {
-	Code  string `json:"code"`  // REQUIRED. The authorization code
-	State string `json:"state"` // REQUIRED if state was present in the request
-	Iss   string `json:"iss"`   // OPTIONAL. The identifier of the authorization server
-}
-
-// OAuth2Error represents an OAuth2 error response
-type OAuth2Error struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description,omitempty"`
-	ErrorURI         string `json:"error_uri,omitempty"`
-}
-
-// Oauth2 token request
-type Oauth2TokenRequest struct {
-	Code         string `json:"code"`
-	CodeVerifier string `json:"code_verifier"`
-	ClientID     string `json:"client_id"`
-	GrantType    string `json:"grant_type"`
-	RefreshToken string `json:"refresh_token"`
-	RedirectURI  string `json:"redirect_uri"`
-	Scope        string `json:"scope"` // Only used for the client credentials grant
-}
-
-// Oauth2 client authentication
-type Oauth2ClientAuthentication struct {
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-}
-
-// Oauth2 token response
-type Oauth2TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	IDToken      string `json:"id_token,omitempty"`
-	ExpiresIn    int    `json:"expires_in"`
-	Scope        string `json:"scope,omitempty"`
-	TokenType    string `json:"token_type,omitempty"`
-}
-
-// TokenIntrospectionRequest represents the request to the introspection endpoint
-type TokenIntrospectionRequest struct {
-	Token         string `json:"token"`
-	TokenTypeHint string `json:"token_type_hint,omitempty"`
-}
-
-// TokenIntrospectionResponse represents the response from the introspection endpoint
-type TokenIntrospectionResponse struct {
-	Active    bool   `json:"active"`
-	Scope     string `json:"scope,omitempty"`
-	ClientID  string `json:"client_id,omitempty"`
-	Username  string `json:"username,omitempty"`
-	TokenType string `json:"token_type,omitempty"`
-	Exp       int64  `json:"exp,omitempty"`
-	Iat       int64  `json:"iat,omitempty"`
-	Nbf       int64  `json:"nbf,omitempty"`
-	Sub       string `json:"sub,omitempty"`
-	Aud       string `json:"aud,omitempty"`
-	Iss       string `json:"iss,omitempty"`
-	Jti       string `json:"jti,omitempty"`
-}
-
-func NewOAuth2Error(errorCode string, errorDescription string) *OAuth2Error {
-	errorResponse := OAuth2Error{
+func NewOAuth2Error(errorCode string, errorDescription string) *oauth2.OAuth2Error {
+	errorResponse := oauth2.OAuth2Error{
 		Error:            errorCode,
 		ErrorDescription: errorDescription,
 	}
@@ -258,7 +173,7 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 	return &response, nil
 }
 
-func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication) (*Oauth2TokenResponse, *OAuth2Error) {
+func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *oauth2.Oauth2TokenRequest, clientAuthentication *oauth2.Oauth2ClientAuthentication) (*oauth2.Oauth2TokenResponse, *oauth2.OAuth2Error) {
 
 	// First we need to validate the client authentication if the client is confidential
 	application, ok := GetServices().ApplicationService.GetApplication(tenant, realm, tokenRequest.ClientID)
@@ -309,7 +224,7 @@ func (s *OAuth2Service) ProcessTokenRequest(tenant, realm string, tokenRequest *
 	return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid grant type")
 }
 
-func (s *OAuth2Service) processTokenRequestForClientCredentialsGrant(tenant string, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication, application *model.Application) (*Oauth2TokenResponse, *OAuth2Error) {
+func (s *OAuth2Service) processTokenRequestForClientCredentialsGrant(tenant string, realm string, tokenRequest *oauth2.Oauth2TokenRequest, clientAuthentication *oauth2.Oauth2ClientAuthentication, application *model.Application) (*oauth2.Oauth2TokenResponse, *oauth2.OAuth2Error) {
 
 	// Ensure that this is only allowed for confidential applications
 	if !application.Confidential {
@@ -335,14 +250,14 @@ func (s *OAuth2Service) processTokenRequestForClientCredentialsGrant(tenant stri
 
 }
 
-func (s *OAuth2Service) generateTokenResponseForClientCredentialsGrant(application *model.Application, scopes []string) (*Oauth2TokenResponse, *OAuth2Error) {
+func (s *OAuth2Service) generateTokenResponseForClientCredentialsGrant(application *model.Application, scopes []string) (*oauth2.Oauth2TokenResponse, *oauth2.OAuth2Error) {
 
 	accessToken, expiresIn, scope, tokenType, err := s.generateAccessTokenForClientCredentialsGrant(application, scopes)
 	if err != nil {
 		return nil, NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not generate token response")
 	}
 
-	return &Oauth2TokenResponse{
+	return &oauth2.Oauth2TokenResponse{
 		AccessToken: accessToken,
 		ExpiresIn:   expiresIn,
 		Scope:       scope,
@@ -350,7 +265,7 @@ func (s *OAuth2Service) generateTokenResponseForClientCredentialsGrant(applicati
 	}, nil
 }
 
-func (s *OAuth2Service) processTokenRequestForRefreshTokenGrant(tenant string, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication, application *model.Application) (*Oauth2TokenResponse, *OAuth2Error) {
+func (s *OAuth2Service) processTokenRequestForRefreshTokenGrant(tenant string, realm string, tokenRequest *oauth2.Oauth2TokenRequest, clientAuthentication *oauth2.Oauth2ClientAuthentication, application *model.Application) (*oauth2.Oauth2TokenResponse, *oauth2.OAuth2Error) {
 
 	// Load the refresh token session
 	session, err := GetServices().SessionsService.LoadAndDeleteRefreshTokenSession(context.Background(), tenant, realm, tokenRequest.RefreshToken)
@@ -372,7 +287,7 @@ func (s *OAuth2Service) processTokenRequestForRefreshTokenGrant(tenant string, r
 	return tokenResponse, nil
 }
 
-func (s *OAuth2Service) processTokenRequestForAuthorizationCodeGrant(tenant string, realm string, tokenRequest *Oauth2TokenRequest, clientAuthentication *Oauth2ClientAuthentication, application *model.Application) (*Oauth2TokenResponse, *OAuth2Error) {
+func (s *OAuth2Service) processTokenRequestForAuthorizationCodeGrant(tenant string, realm string, tokenRequest *oauth2.Oauth2TokenRequest, clientAuthentication *oauth2.Oauth2ClientAuthentication, application *model.Application) (*oauth2.Oauth2TokenResponse, *oauth2.OAuth2Error) {
 	session, loginSession, err := GetServices().SessionsService.LoadAndDeleteAuthCodeSession(context.Background(), tenant, realm, tokenRequest.Code)
 	if err != nil {
 		return nil, NewOAuth2Error(oauth2.ErrorAccessDenied, "Invalid authorization code")
@@ -417,7 +332,7 @@ func (s *OAuth2Service) processTokenRequestForAuthorizationCodeGrant(tenant stri
 	return tokenResponse, nil
 }
 
-func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application, grantType oauth2.OAuth2GrantType) (*Oauth2TokenResponse, error) {
+func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application, grantType oauth2.OAuth2GrantType) (*oauth2.Oauth2TokenResponse, error) {
 
 	// first we generate the access token
 	accessToken, expiresIn, scopes, tokenType, err := s.generateAccessToken(session, loginSession, application)
@@ -454,7 +369,7 @@ func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, logi
 		}
 	}
 
-	tokenResponse := Oauth2TokenResponse{
+	tokenResponse := oauth2.Oauth2TokenResponse{
 		AccessToken:  accessToken,
 		IDToken:      idToken,
 		RefreshToken: refreshToken,
@@ -663,7 +578,7 @@ func (s *OAuth2Service) ToQueryString(response *oauth2.AuthorizationResponse) st
 }
 
 // IntrospectAccessToken introspects an OAuth2 access token and returns information about it
-func (s *OAuth2Service) IntrospectAccessToken(tenant, realm string, tokenIntrospectionRequest *TokenIntrospectionRequest) (*TokenIntrospectionResponse, *OAuth2Error) {
+func (s *OAuth2Service) IntrospectAccessToken(tenant, realm string, tokenIntrospectionRequest *oauth2.TokenIntrospectionRequest) (*oauth2.TokenIntrospectionResponse, *oauth2.OAuth2Error) {
 
 	// Load the session from the token
 	session, err := GetServices().SessionsService.GetClientSessionByAccessToken(context.Background(), tenant, realm, tokenIntrospectionRequest.Token)
@@ -673,7 +588,7 @@ func (s *OAuth2Service) IntrospectAccessToken(tenant, realm string, tokenIntrosp
 
 	// If no session found, token is not active
 	if session == nil {
-		return &TokenIntrospectionResponse{Active: false}, nil
+		return &oauth2.TokenIntrospectionResponse{Active: false}, nil
 	}
 
 	loadedRealm, ok := GetServices().RealmService.GetRealm(tenant, realm)
@@ -684,7 +599,7 @@ func (s *OAuth2Service) IntrospectAccessToken(tenant, realm string, tokenIntrosp
 	issuer := loadedRealm.Config.BaseUrl
 
 	// Create the introspection response
-	response := &TokenIntrospectionResponse{
+	response := &oauth2.TokenIntrospectionResponse{
 		Active:    true,
 		Scope:     session.Scope,
 		ClientID:  session.ClientID,

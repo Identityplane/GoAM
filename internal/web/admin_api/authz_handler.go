@@ -9,12 +9,14 @@ import (
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/pkg/model"
 
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
+
 	"github.com/valyala/fasthttp"
 )
 
 type AuthzResponse struct {
-	User         AuthzUser                  `json:"user"`
-	Entitlements []service.AuthzEntitlement `json:"entitlements"`
+	User         AuthzUser                             `json:"user"`
+	Entitlements []services_interface.AuthzEntitlement `json:"entitlements"`
 }
 
 type AuthzUser struct {
@@ -104,7 +106,7 @@ func HandleListRealms(ctx *fasthttp.RequestCtx) {
 	tenants := make(map[string]*ShortTenantInfo)
 	tenantList := make([]ShortTenantInfo, 0, len(tenants))
 
-	var visibleRealms map[string]*service.LoadedRealm
+	var visibleRealms map[string]*services_interface.LoadedRealm
 	var err error
 
 	if userAny == nil {
@@ -146,7 +148,7 @@ func HandleListRealms(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody(jsonData)
 }
 
-func groupRealmsByTenant(visibleRealms map[string]*service.LoadedRealm, tenants map[string]*ShortTenantInfo, tenantList []ShortTenantInfo) []ShortTenantInfo {
+func groupRealmsByTenant(visibleRealms map[string]*services_interface.LoadedRealm, tenants map[string]*ShortTenantInfo, tenantList []ShortTenantInfo) []ShortTenantInfo {
 	for _, realm := range visibleRealms {
 
 		// Get or create tenant info

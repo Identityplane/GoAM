@@ -11,7 +11,7 @@ import (
 func TestLoadTempalte(t *testing.T) {
 
 	// Arrange
-	service := NewTemplatesService()
+	service := NewTemplatesService().(*templatesService)
 	view := &ViewData{
 		Title:         "Test",
 		NodeName:      "askEmail",
@@ -58,7 +58,7 @@ func TestLoadTempalte(t *testing.T) {
 func TestLoadTempalteOverride(t *testing.T) {
 
 	// Arrange
-	service := NewTemplatesService()
+	service := NewTemplatesService().(*templatesService)
 	view := &ViewData{
 		Title:         "Test",
 		NodeName:      "askEmail",
@@ -120,7 +120,7 @@ OVERRIDE
 func TestLayoutTemplateOverride(t *testing.T) {
 
 	// Arrange
-	service := NewTemplatesService()
+	service := NewTemplatesService().(*templatesService)
 	view := &ViewData{
 		Title:         "Test",
 		NodeName:      "askEmail",
@@ -189,7 +189,7 @@ CUSTOM LAYOUT OVERRIDE
 func TestErrorTemplateOverride(t *testing.T) {
 
 	// Arrange
-	service := NewTemplatesService()
+	service := NewTemplatesService().(*templatesService)
 	view := &ViewData{
 		Title:         "Error Test",
 		NodeName:      "error",
@@ -256,7 +256,7 @@ func TestErrorTemplateOverride(t *testing.T) {
 func TestRemoveTemplateOverride(t *testing.T) {
 
 	// Arrange
-	service := NewTemplatesService()
+	service := NewTemplatesService().(*templatesService)
 
 	// Act - Create an override
 	override := `{{ define "content" }}
@@ -296,7 +296,7 @@ OVERRIDE
 func TestMultipleTemplateOverrides(t *testing.T) {
 
 	// Arrange
-	service := NewTemplatesService()
+	service := NewTemplatesService().(*templatesService)
 	view := &ViewData{
 		Title:         "Test",
 		NodeName:      "askEmail",

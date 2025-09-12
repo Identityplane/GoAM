@@ -9,6 +9,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/webutils"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 
 	"github.com/valyala/fasthttp"
 	"gopkg.in/yaml.v2"
@@ -450,7 +451,7 @@ func HandleValidateFlowDefinition(ctx *fasthttp.RequestCtx) {
 	}
 
 	if validationErrors == nil {
-		validationErrors = []service.FlowLintError{}
+		validationErrors = []services_interface.FlowLintError{}
 	}
 
 	// Return the validation results
@@ -544,7 +545,7 @@ func HandlePutFlowDefintion(ctx *fasthttp.RequestCtx) {
 	ctx.SetStatusCode(http.StatusOK)
 }
 
-func EnrichFlow(ctx *fasthttp.RequestCtx, flow model.Flow, realm *service.LoadedRealm) EnrichedFlow {
+func EnrichFlow(ctx *fasthttp.RequestCtx, flow model.Flow, realm *services_interface.LoadedRealm) EnrichedFlow {
 
 	// If the base url is empty we use the fallback url
 	baseUrl := realm.Config.BaseUrl
