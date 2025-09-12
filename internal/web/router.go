@@ -111,7 +111,7 @@ func New() *router.Router {
 	r.GET("/{tenant}/{realm}/oauth2/.well-known/jwks.json", cors(WrapMiddleware(oauth2.HandleJWKs)))
 
 	// handleNotFound is the fallback handler for unmatched routes
-	redirectUrl = config.GetNotFoundRedirectUrl()
+	redirectUrl = config.ServerSettings.NotFoundRedirectUrl
 	r.NotFound = WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
 
 		if redirectUrl != "" {

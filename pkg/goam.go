@@ -1,48 +1,53 @@
 package pkg
 
 import (
+	"sync"
+
 	"github.com/Identityplane/GoAM/internal"
-	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/web"
+	"github.com/Identityplane/GoAM/pkg/server_settings"
 	"github.com/valyala/fasthttp"
 )
 
-func Run(settings *GoamServerSettings) {
+func Run(settings *server_settings.GoamServerSettings) {
 
 	// Init Flows
-	internal.Initialize()
+	internal.Initialize(settings)
 
 	// Start web adapter
 	startWebAdapter(settings)
 }
 
-func SetInfrastructureAsCodeMode(mode bool) {
-	config.InfrastrcutureAsCodeMode = mode
-}
-
-func SetUnsafeDisableAdminAuthzCheck(mode bool) {
-	config.UnsafeDisableAdminAuthzCheck = mode
-}
-
 // startWebAdapter initializes and starts the web server
-func startWebAdapter(settings *GoamServerSettings) {
+func startWebAdapter(settings *server_settings.GoamServerSettings) {
 
 	r := web.New()
 	log := logger.GetLogger()
+	var wg sync.WaitGroup
 
 	if settings.ListenerHTTPS != "" {
-		if err := fasthttp.ListenAndServeTLS(settings.ListenerHTTPS, settings.TlsCertFile, settings.TlsKeyFile, web.TopLevelMiddleware(r.Handler)); err != nil {
-			log.Panic().Err(err).Msg("server error")
-		}
-		log.Info().Msgf("https server running on %s", settings.ListenerHTTPS)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			log.Info().Msgf("https server starting on %s", settings.ListenerHTTPS)
+			if err := fasthttp.ListenAndServeTLS(settings.ListenerHTTPS, settings.TlsCertFile, settings.TlsKeyFile, web.TopLevelMiddleware(r.Handler)); err != nil {
+				log.Panic().Err(err).Msg("https server error")
+			}
+		}()
 	}
 
 	if settings.ListenerHttp != "" {
-		if err := fasthttp.ListenAndServe(settings.ListenerHttp, web.TopLevelMiddleware(r.Handler)); err != nil {
-			log.Panic().Err(err).Msg("server error")
-		}
-
-		log.Info().Msgf("http server running on %s", settings.ListenerHttp)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			log.Info().Msgf("http  server starting on %s", settings.ListenerHttp)
+			if err := fasthttp.ListenAndServe(settings.ListenerHttp, web.TopLevelMiddleware(r.Handler)); err != nil {
+				log.Panic().Err(err).Msg("http server error")
+			}
+		}()
 	}
+
+	// Wait for both servers to start (or fail)
+	wg.Wait()
 }

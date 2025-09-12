@@ -10,6 +10,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/auth"
+	"github.com/Identityplane/GoAM/pkg/server_settings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -23,13 +24,13 @@ var (
 
 // Initialize loads all tenant/realm configurations at startup.
 // Each realm must include its own flow configuration.
-func Initialize() {
+func Initialize(serverSettings *server_settings.GoamServerSettings) {
 
-	config.InitConfiguration()
+	config.InitConfiguration(serverSettings)
 
 	// Print config path
 	log := logger.GetLogger()
-	log.Debug().Str("config_path", config.ConfigPath).Msg("using config path")
+	log.Debug().Str("config_path", config.ServerSettings.RealmConfigurationFolder).Msg("using config path")
 
 	// Step 1: Initialize database connections
 	dbConnections := initDatabase()
@@ -45,7 +46,7 @@ func initDatabase() *service.DatabaseConnections {
 	var err error
 	log := logger.GetLogger()
 
-	if strings.HasPrefix(config.DBConnString, "postgres://") {
+	if strings.HasPrefix(config.ServerSettings.DBConnString, "postgres://") {
 
 		// Init database connection
 		postgresdb, err := initPostgresDB()
@@ -189,7 +190,7 @@ func initPostgresDB() (*pgxpool.Pool, error) {
 	log.Debug().Msg("initializing postgres database")
 	db, err := postgres_adapter.Init(postgres_adapter.Config{
 		Driver: "postgres",
-		DSN:    config.DBConnString,
+		DSN:    config.ServerSettings.DBConnString,
 	})
 	if err != nil {
 		return nil, err
@@ -204,7 +205,7 @@ func initSQLiteDB() (*sql.DB, error) {
 	log.Debug().Msg("initializing sqlite database")
 	db, err := sqlite_adapter.Init(sqlite_adapter.Config{
 		Driver: "sqlite",
-		DSN:    config.DBConnString,
+		DSN:    config.ServerSettings.DBConnString,
 	})
 	if err != nil {
 		return nil, err
@@ -219,7 +220,7 @@ func initServices(dbConnections *service.DatabaseConnections) {
 	services := service.InitServices(*dbConnections)
 
 	// Use the static configuration service to load the realm configurations
-	err := services.StaticConfigurationService.LoadConfigurationFromFiles(config.ConfigPath)
+	err := services.StaticConfigurationService.LoadConfigurationFromFiles(config.ServerSettings.RealmConfigurationFolder)
 	if err != nil {
 		log := logger.GetLogger()
 		log.Panic().Err(err).Msg("failed to load static configuration")

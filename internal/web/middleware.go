@@ -67,7 +67,7 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		// Calculate request processing time
 		duration := time.Since(startTime)
 		durationMs := duration.Milliseconds()
-		if config.EnableRequestTiming {
+		if config.ServerSettings.EnableRequestTiming {
 			ctx.Response.Header.Set("Server-Timing", fmt.Sprintf("req;dur=%d", durationMs))
 		}
 
@@ -246,7 +246,7 @@ func adminAuthZMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler 
 		userAny := ctx.UserValue("user")
 
 		// If the admin authz check is disabled and the request is unauthenticated, we skip the authz check
-		if config.UnsafeDisableAdminAuthzCheck && userAny == nil {
+		if config.ServerSettings.UnsafeDisableAdminAuth && userAny == nil {
 			next(ctx)
 			return
 		}
@@ -301,14 +301,14 @@ func adminMiddlewareAllowsAll(next fasthttp.RequestHandler) fasthttp.RequestHand
 func ipAddressMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 
-		if config.GetNumberOfProxies() > 0 {
+		if config.ServerSettings.ForwardingProxies > 0 {
 			log := logger.GetLogger()
 
 			xff := bytes.Join(ctx.Request.Header.PeekAll("X-Forwarded-For"), []byte(","))
 
 			if len(xff) == 0 {
 
-				log.Warn().Msgf("X-Forwarded-For header not found in request: %d %s", config.GetNumberOfProxies(), os.Getenv("GOIAM_PROXIES"))
+				log.Warn().Msgf("X-Forwarded-For header not found in request: %d %s", config.ServerSettings.ForwardingProxies, os.Getenv("GOIAM_PROXIES"))
 
 				ctx.Error("Server Error", fasthttp.StatusInternalServerError)
 				return
@@ -341,11 +341,11 @@ func parseXForwardedFor(addresses []string) (string, error) {
 	// As the x-Forwarded-For is defined as
 	// X-Forwarded-For: <client>, <proxy>, <proxy>
 	// then you have the number of trusted proxies between you and the client then one more to be the actual client
-	if len(addresses)-config.GetNumberOfProxies() < 0 {
+	if len(addresses)-config.ServerSettings.ForwardingProxies < 0 {
 
-		return "", fmt.Errorf("unable to determine remote_ip, number of proxies in chain %d, expected number of proxies %d", len(addresses), config.GetNumberOfProxies())
+		return "", fmt.Errorf("unable to determine remote_ip, number of proxies in chain %d, expected number of proxies %d", len(addresses), config.ServerSettings.ForwardingProxies)
 	}
 
-	return strings.TrimSpace(string(addresses[len(addresses)-config.GetNumberOfProxies()])), nil
+	return strings.TrimSpace(string(addresses[len(addresses)-config.ServerSettings.ForwardingProxies])), nil
 
 }

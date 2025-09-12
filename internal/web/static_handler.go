@@ -28,7 +28,7 @@ func StaticHandler(ctx *fasthttp.RequestCtx) {
 	filename := ctx.UserValue("filename").(string)
 
 	// Construct the file path
-	filePath := filepath.Join(config.ConfigPath, "tenants", tenant, realm, "static", filepath.Clean(filename))
+	filePath := filepath.Join(config.ServerSettings.RealmConfigurationFolder, "tenants", tenant, realm, "static", filepath.Clean(filename))
 
 	// Check if the file exists
 	if !fileExists(filePath) {

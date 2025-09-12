@@ -4,10 +4,11 @@
 
       {
         "name": "Goiam SQLite",
+        "cwd": "${workspaceFolder}",
         "type": "go",
         "request": "launch",
         "mode": "auto",
-        "program": "${workspaceFolder}/cmd/main.go",
+        "program": "${workspaceFolder}/cmd",
         "env": {
           "GOIAM_UNSAFE_DISABLE_ADMIN_AUTHZ_CHECK": "true"
         },
