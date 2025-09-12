@@ -8,6 +8,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 const (
@@ -17,12 +18,12 @@ const (
 
 // cachedSessionsService implements SessionsService with caching
 type cachedSessionsService struct {
-	sessionsService SessionsService
-	cache           CacheService
+	sessionsService services_interface.SessionsService
+	cache           services_interface.CacheService
 }
 
 // NewCachedSessionsService creates a new cached sessions service
-func NewCachedSessionsService(sessionsService SessionsService, cache CacheService) SessionsService {
+func NewCachedSessionsService(sessionsService services_interface.SessionsService, cache services_interface.CacheService) services_interface.SessionsService {
 	return &cachedSessionsService{
 		sessionsService: sessionsService,
 		cache:           cache,
@@ -30,7 +31,7 @@ func NewCachedSessionsService(sessionsService SessionsService, cache CacheServic
 }
 
 // SetTimeProvider sets a custom time provider for testing
-func (s *cachedSessionsService) SetTimeProvider(provider TimeProvider) {
+func (s *cachedSessionsService) SetTimeProvider(provider services_interface.TimeProvider) {
 	s.sessionsService.SetTimeProvider(provider)
 }
 
@@ -164,7 +165,7 @@ func (s *cachedSessionsService) LoadAndDeleteRefreshTokenSession(ctx context.Con
 // cachedAuthSessionDB implements AuthSessionDB with caching
 type cachedAuthSessionDB struct {
 	authSessionDB db.AuthSessionDB
-	cache         CacheService
+	cache         services_interface.CacheService
 }
 
 // getAuthSessionCacheKey returns a cache key for an auth session
@@ -257,7 +258,7 @@ func (c *cachedAuthSessionDB) DeleteExpiredAuthSessions(ctx context.Context, ten
 // cachedClientSessionDB implements ClientSessionDB with caching for auth code and access token sessions
 type cachedClientSessionDB struct {
 	clientSessionDB db.ClientSessionDB
-	cache           CacheService
+	cache           services_interface.CacheService
 }
 
 // getClientSessionCacheKey returns a cache key for a client session

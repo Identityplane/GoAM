@@ -7,32 +7,19 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
-
-type AuthzEntitlement struct {
-	Description string `json:"description"`
-	Resource    string `json:"resource"`
-	Action      string `json:"action"`
-	Effect      string `json:"effect"`
-}
-
-type AdminAuthzService interface {
-	GetEntitlements(user *model.User) []AuthzEntitlement
-	CheckAccess(user *model.User, resource, action string) (bool, string)
-	GetVisibleRealms(user *model.User) (map[string]*LoadedRealm, error)
-	CreateTenant(tenantSlug, tenantName string, user *model.User) error
-}
 
 type adminAuthzServiceImpl struct {
 }
 
-func NewAdminAuthzService() AdminAuthzService {
+func NewAdminAuthzService() services_interface.AdminAuthzService {
 	return &adminAuthzServiceImpl{}
 }
 
-func (s *adminAuthzServiceImpl) GetEntitlements(user *model.User) []AuthzEntitlement {
+func (s *adminAuthzServiceImpl) GetEntitlements(user *model.User) []services_interface.AuthzEntitlement {
 
-	entitlements := []AuthzEntitlement{}
+	entitlements := []services_interface.AuthzEntitlement{}
 
 	entitlementsAttrs, _, err := model.GetAttributes[model.EntitlementSetAttributeValue](user, model.AttributeTypeEntitlements)
 	if err != nil {
@@ -42,7 +29,7 @@ func (s *adminAuthzServiceImpl) GetEntitlements(user *model.User) []AuthzEntitle
 	for _, entitlementAttr := range entitlementsAttrs {
 		for _, entitlement := range entitlementAttr.Entitlements {
 
-			entitlements = append(entitlements, AuthzEntitlement{
+			entitlements = append(entitlements, services_interface.AuthzEntitlement{
 				Resource: entitlement.Resource,
 				Action:   entitlement.Action,
 				Effect:   string(entitlement.Effect),
@@ -53,7 +40,7 @@ func (s *adminAuthzServiceImpl) GetEntitlements(user *model.User) []AuthzEntitle
 	return entitlements
 }
 
-func (s *adminAuthzServiceImpl) GetVisibleRealms(user *model.User) (map[string]*LoadedRealm, error) {
+func (s *adminAuthzServiceImpl) GetVisibleRealms(user *model.User) (map[string]*services_interface.LoadedRealm, error) {
 
 	// Load all realms via realm service
 	services := GetServices()
@@ -63,7 +50,7 @@ func (s *adminAuthzServiceImpl) GetVisibleRealms(user *model.User) (map[string]*
 	}
 
 	// For each realm, check if the user has access to it and return only the realm with access
-	visibleRealms := make(map[string]*LoadedRealm)
+	visibleRealms := make(map[string]*services_interface.LoadedRealm)
 	for realmId, realm := range realms {
 
 		resource := fmt.Sprintf("%s/%s", realm.Config.Tenant, realm.Config.Realm)
@@ -77,7 +64,7 @@ func (s *adminAuthzServiceImpl) GetVisibleRealms(user *model.User) (map[string]*
 	return visibleRealms, nil
 }
 
-// CheckAccess checks if a user has access to a specific tenant, realm, and scope.
+// CheckAccess checks if a 	user has access to a specific tenant, realm, and scope.
 // Returns true if access is granted, false otherwise, and the matching entitlement string if access is granted.
 // If scope is empty, it checks if the user has any access to the specified tenant/realm.
 // Returns the result and the explanation for the result

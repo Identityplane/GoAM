@@ -9,35 +9,8 @@ import (
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
-
-// FlowService defines the business logic for flow operations
-type FlowService interface {
-
-	// GetFlow returns a flow by its ID
-	GetFlowById(tenant, realm, id string) (*model.Flow, bool)
-
-	// GetFlowByPath returns a flow by its path
-	GetFlowByPath(tenant, realm, path string) (*model.Flow, bool)
-
-	// ListFlows returns all flows
-	ListFlows(tenant, realm string) ([]model.Flow, error)
-
-	// ListAllFlows returns all flows for all realms
-	ListAllFlows() ([]model.Flow, error)
-
-	// CreateFlow creates a new flow
-	CreateFlow(tenant, realm string, flow model.Flow) error
-
-	// UpdateFlow updates an existing flow
-	UpdateFlow(tenant, realm string, flow model.Flow) error
-
-	// DeleteFlow deletes a flow by its ID
-	DeleteFlow(tenant, realm, id string) error
-
-	// ValidateFlowDefinition validates a YAML flow definition
-	ValidateFlowDefinition(content string) ([]FlowLintError, error)
-}
 
 const DEFAULT_FLOW_DEFINITION = `description: 'An empty flow'
 start: init
@@ -74,7 +47,7 @@ type flowServiceImpl struct {
 }
 
 // NewFlowService creates a new FlowService instance
-func NewFlowService(flowsDb db.FlowDB) FlowService {
+func NewFlowService(flowsDb db.FlowDB) services_interface.FlowService {
 	return &flowServiceImpl{
 		flowsDb: flowsDb,
 	}
@@ -217,21 +190,12 @@ func (s *flowServiceImpl) DeleteFlow(tenant, realm, id string) error {
 	return s.flowsDb.DeleteFlow(context.Background(), tenant, realm, id)
 }
 
-type FlowLintError struct {
-	StartLineNumber int    `json:"startLineNumber"`
-	StartColumn     int    `json:"startColumn"`
-	EndLineNumber   int    `json:"endLineNumber"`
-	EndColumn       int    `json:"endColumn"`
-	Message         string `json:"message"`
-	Severity        int    `json:"severity"`
-}
-
-func (s *flowServiceImpl) ValidateFlowDefinition(content string) ([]FlowLintError, error) {
+func (s *flowServiceImpl) ValidateFlowDefinition(content string) ([]services_interface.FlowLintError, error) {
 	// Try to parse the YAML content
 	flowDefinition, err := lib.LoadFlowDefinitonFromString(content)
 
 	if err != nil {
-		return []FlowLintError{{
+		return []services_interface.FlowLintError{{
 			StartLineNumber: 1,
 			StartColumn:     1,
 			EndLineNumber:   1,
@@ -244,7 +208,7 @@ func (s *flowServiceImpl) ValidateFlowDefinition(content string) ([]FlowLintErro
 	error := graph.ValidateFlowDefinition(flowDefinition)
 
 	if error != nil {
-		return []FlowLintError{{
+		return []services_interface.FlowLintError{{
 			StartLineNumber: 1,
 			StartColumn:     1,
 			EndLineNumber:   1,
@@ -254,5 +218,5 @@ func (s *flowServiceImpl) ValidateFlowDefinition(content string) ([]FlowLintErro
 		}}, nil
 	}
 
-	return []FlowLintError{}, nil
+	return []services_interface.FlowLintError{}, nil
 }

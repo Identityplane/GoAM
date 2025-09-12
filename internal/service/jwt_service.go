@@ -9,28 +9,10 @@ import (
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/lib/jwt_ec256"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 
 	"github.com/google/uuid"
 )
-
-// JWTService defines the business logic for JWT operations
-type JWTService interface {
-	// LoadPublicKeys returns the JWKS for a given tenant and realm
-	LoadPublicKeys(tenant, realm string) (string, error)
-
-	// SignJWT signs a JWT token with the key for the given tenant and realm
-	SignJWT(tenant, realm string, claims map[string]interface{}) (string, error)
-
-	// GenerateKey generates a new key for a tenant/realm
-	GenerateKey(tenant, realm string) error
-
-	// RotateKey generates a new key and disables the old one
-	RotateKey(tenant, realm string) error
-
-	// getActiveSigningKey returns an active signing key for the given tenant and realm
-	// This is an internal method that takes a context
-	getActiveSigningKey(ctx context.Context, tenant, realm string) (*model.SigningKey, error)
-}
 
 // jwtServiceImpl implements JWTService
 type jwtServiceImpl struct {
@@ -38,7 +20,7 @@ type jwtServiceImpl struct {
 }
 
 // NewJWTService creates a new JWTService instance
-func NewJWTService(signingKeyDB db.SigningKeyDB) JWTService {
+func NewJWTService(signingKeyDB db.SigningKeyDB) services_interface.JWTService {
 	return &jwtServiceImpl{
 		signingKeyDB: signingKeyDB,
 	}
@@ -129,7 +111,7 @@ func (s *jwtServiceImpl) LoadPublicKeys(tenant, realm string) (string, error) {
 }
 
 // getActiveSigningKey returns an active signing key for the given tenant and realm
-func (s *jwtServiceImpl) getActiveSigningKey(ctx context.Context, tenant, realm string) (*model.SigningKey, error) {
+func (s *jwtServiceImpl) GetActiveSigningKey(ctx context.Context, tenant, realm string) (*model.SigningKey, error) {
 	// Get an active key for this tenant/realm
 	keys, err := s.signingKeyDB.ListActiveSigningKeys(ctx, tenant, realm)
 	if err != nil {
@@ -151,7 +133,7 @@ func (s *jwtServiceImpl) SignJWT(tenant, realm string, claims map[string]interfa
 	}
 
 	// Get an active signing key
-	key, err := s.getActiveSigningKey(context.Background(), tenant, realm)
+	key, err := s.GetActiveSigningKey(context.Background(), tenant, realm)
 	if err != nil {
 		return "", err
 	}

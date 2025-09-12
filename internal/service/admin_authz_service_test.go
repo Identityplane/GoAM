@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 func TestGetEntitlements(t *testing.T) {
@@ -13,7 +14,7 @@ func TestGetEntitlements(t *testing.T) {
 	tests := []struct {
 		name        string
 		user        *model.User
-		want        []AuthzEntitlement
+		want        []services_interface.AuthzEntitlement
 		description string
 	}{
 		{
@@ -44,7 +45,7 @@ func TestGetEntitlements(t *testing.T) {
 					},
 				},
 			},
-			want: []AuthzEntitlement{
+			want: []services_interface.AuthzEntitlement{
 				{
 					Resource: "/acme/customers/**",
 					Action:   "GET",
@@ -95,7 +96,7 @@ func TestGetEntitlements(t *testing.T) {
 					},
 				},
 			},
-			want: []AuthzEntitlement{
+			want: []services_interface.AuthzEntitlement{
 				{
 					Resource: "/acme/customers/**",
 					Action:   "GET",
@@ -115,7 +116,7 @@ func TestGetEntitlements(t *testing.T) {
 				ID:             "test-user",
 				UserAttributes: []model.UserAttribute{},
 			},
-			want:        []AuthzEntitlement{},
+			want:        []services_interface.AuthzEntitlement{},
 			description: "should return empty slice for user with no entitlements",
 		},
 		{
@@ -131,7 +132,7 @@ func TestGetEntitlements(t *testing.T) {
 					},
 				},
 			},
-			want:        []AuthzEntitlement{},
+			want:        []services_interface.AuthzEntitlement{},
 			description: "should return empty slice when no entitlement attributes exist",
 		},
 	}
@@ -356,7 +357,7 @@ func TestCheckAccess(t *testing.T) {
 func TestCreateTenant(t *testing.T) {
 	// Note: This test only covers the validation logic since the actual creation requires services
 	// that are not available in unit tests. The validation logic is the important part to test.
-	
+
 	tests := []struct {
 		name        string
 		tenantSlug  string
@@ -364,45 +365,45 @@ func TestCreateTenant(t *testing.T) {
 		description string
 	}{
 		{
-			name:       "valid tenant creation",
-			tenantSlug: "valid-tenant",
-			tenantName: "Valid Tenant",
+			name:        "valid tenant creation",
+			tenantSlug:  "valid-tenant",
+			tenantName:  "Valid Tenant",
 			description: "should accept valid slug",
 		},
 		{
-			name:       "tenant slug too short",
-			tenantSlug: "ab",
-			tenantName: "Short Tenant",
+			name:        "tenant slug too short",
+			tenantSlug:  "ab",
+			tenantName:  "Short Tenant",
 			description: "should reject slug less than 3 characters",
 		},
 		{
-			name:       "tenant slug too long",
-			tenantSlug: "this-is-a-very-long-tenant-slug-that-exceeds-fifty-characters",
-			tenantName: "Long Tenant",
+			name:        "tenant slug too long",
+			tenantSlug:  "this-is-a-very-long-tenant-slug-that-exceeds-fifty-characters",
+			tenantName:  "Long Tenant",
 			description: "should reject slug more than 50 characters",
 		},
 		{
-			name:       "tenant slug with invalid characters",
-			tenantSlug: "invalid@tenant",
-			tenantName: "Invalid Tenant",
+			name:        "tenant slug with invalid characters",
+			tenantSlug:  "invalid@tenant",
+			tenantName:  "Invalid Tenant",
 			description: "should reject slug containing invalid characters",
 		},
 		{
-			name:       "tenant slug with uppercase letters",
-			tenantSlug: "InvalidTenant",
-			tenantName: "Invalid Tenant",
+			name:        "tenant slug with uppercase letters",
+			tenantSlug:  "InvalidTenant",
+			tenantName:  "Invalid Tenant",
 			description: "should reject slug containing uppercase letters",
 		},
 		{
-			name:       "tenant slug with spaces",
-			tenantSlug: "invalid tenant",
-			tenantName: "Invalid Tenant",
+			name:        "tenant slug with spaces",
+			tenantSlug:  "invalid tenant",
+			tenantName:  "Invalid Tenant",
 			description: "should reject slug containing spaces",
 		},
 		{
-			name:       "tenant slug with underscores",
-			tenantSlug: "invalid_tenant",
-			tenantName: "Invalid Tenant",
+			name:        "tenant slug with underscores",
+			tenantSlug:  "invalid_tenant",
+			tenantName:  "Invalid Tenant",
 			description: "should reject slug containing underscores",
 		},
 	}
@@ -418,7 +419,7 @@ func TestCreateTenant(t *testing.T) {
 
 			// Check length constraints
 			validLength := len(tt.tenantSlug) >= 3 && len(tt.tenantSlug) <= 50
-			
+
 			// The slug should be valid if it matches regex AND has valid length
 			expectedValid := matched && validLength
 

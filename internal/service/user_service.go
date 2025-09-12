@@ -5,28 +5,9 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 	"github.com/google/uuid"
 )
-
-// PaginationParams represents pagination parameters
-type PaginationParams struct {
-	Page     int `json:"page"`      // 1-based page number
-	PageSize int `json:"page_size"` // Number of items per page
-}
-
-// UserAdminService defines the business logic for user operations
-type UserAdminService interface {
-	// List users with pagination, returns usersn, total count and users
-	ListUsers(ctx context.Context, tenant, realm string, pagination PaginationParams) ([]model.User, int64, error)
-	GetUserByID(ctx context.Context, tenant, realm, userID string) (*model.User, error)
-	GetUserWithAttributesByID(ctx context.Context, tenant, realm, userID string) (*model.User, error)
-	UpdateUserByID(ctx context.Context, tenant, realm, userID string, updateUser model.User) (*model.User, error)
-	DeleteUserByID(ctx context.Context, tenant, realm, userID string) error
-	// Get user statistics
-	GetUserStats(ctx context.Context, tenant, realm string) (*model.UserStats, error)
-	// Create a new user
-	CreateUser(ctx context.Context, tenant, realm string, createUser model.User) (*model.User, error)
-}
 
 // userServiceImpl implements UserService
 type userServiceImpl struct {
@@ -35,14 +16,14 @@ type userServiceImpl struct {
 }
 
 // NewUserService creates a new UserService instance
-func NewUserService(userDB db.UserDB, attributesDB db.UserAttributeDB) UserAdminService {
+func NewUserService(userDB db.UserDB, attributesDB db.UserAttributeDB) services_interface.UserAdminService {
 	return &userServiceImpl{
 		userDB:       userDB,
 		attributesDB: attributesDB,
 	}
 }
 
-func (s *userServiceImpl) ListUsers(ctx context.Context, tenant, realm string, pagination PaginationParams) ([]model.User, int64, error) {
+func (s *userServiceImpl) ListUsers(ctx context.Context, tenant, realm string, pagination services_interface.PaginationParams) ([]model.User, int64, error) {
 	// Get total count first
 	total, err := s.userDB.CountUsers(ctx, tenant, realm)
 	if err != nil {

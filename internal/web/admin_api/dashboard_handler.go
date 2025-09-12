@@ -7,6 +7,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/valyala/fasthttp"
@@ -109,9 +110,9 @@ func HandleDashboard(ctx *fasthttp.RequestCtx) {
 }
 
 type SystemStats struct {
-	CacheMetrics service.CacheMetrics `json:"cache_metrics"`
-	MemoryUsage  MemoryUsage          `json:"memory_usage"`
-	GoMemory     GoMemoryStats        `json:"go_memory"`
+	CacheMetrics services_interface.CacheMetrics `json:"cache_metrics"`
+	MemoryUsage  MemoryUsage                     `json:"memory_usage"`
+	GoMemory     GoMemoryStats                   `json:"go_memory"`
 }
 
 type MemoryUsage struct {

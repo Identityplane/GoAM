@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/lib/oauth2"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 )
@@ -13,7 +13,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupRequest   func(*fasthttp.RequestCtx)
-		expectedResult *service.Oauth2ClientAuthentication
+		expectedResult *oauth2.Oauth2ClientAuthentication
 		description    string
 	}{
 		{
@@ -24,7 +24,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
 				ctx.Request.Header.Set("Authorization", "Basic "+encoded)
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "test_client",
 				ClientSecret: "test_secret",
 			},
@@ -35,7 +35,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 			setupRequest: func(ctx *fasthttp.RequestCtx) {
 				ctx.Request.Header.Set("Authorization", "Basic invalid-base64")
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "",
 				ClientSecret: "",
 			},
@@ -49,7 +49,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
 				ctx.Request.Header.Set("Authorization", "Basic "+encoded)
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "",
 				ClientSecret: "",
 			},
@@ -62,7 +62,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
 				ctx.Request.Header.Set("Authorization", "Basic "+encoded)
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "",
 				ClientSecret: "",
 			},
@@ -76,7 +76,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				ctx.Request.SetBodyString(formData)
 				ctx.Request.Header.SetContentType("application/x-www-form-urlencoded")
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "form_client",
 				ClientSecret: "form_secret",
 			},
@@ -90,7 +90,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				ctx.Request.SetBodyString(formData)
 				ctx.Request.Header.SetContentType("application/x-www-form-urlencoded")
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "",
 				ClientSecret: "",
 			},
@@ -103,7 +103,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				ctx.Request.SetBodyString("invalid%form%data")
 				ctx.Request.Header.SetContentType("application/x-www-form-urlencoded")
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "",
 				ClientSecret: "",
 			},
@@ -114,7 +114,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 			setupRequest: func(ctx *fasthttp.RequestCtx) {
 				// Don't set any authentication headers or body
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "",
 				ClientSecret: "",
 			},
@@ -128,7 +128,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
 				ctx.Request.Header.Set("Authorization", "Basic "+encoded)
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "client@domain.com",
 				ClientSecret: "secret@123",
 			},
@@ -142,7 +142,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				ctx.Request.SetBodyString(formData)
 				ctx.Request.Header.SetContentType("application/x-www-form-urlencoded")
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "client@domain.com",
 				ClientSecret: "secret@123",
 			},
@@ -156,7 +156,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
 				ctx.Request.Header.Set("Authorization", "Basic "+encoded)
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "client",
 				ClientSecret: "secret:extra",
 			},
@@ -173,7 +173,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				ctx.Request.SetBodyString(formData)
 				ctx.Request.Header.SetContentType("application/x-www-form-urlencoded")
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "fallback_client",
 				ClientSecret: "fallback_secret",
 			},
@@ -190,7 +190,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				ctx.Request.SetBodyString(formData)
 				ctx.Request.Header.SetContentType("application/x-www-form-urlencoded")
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "form_client",
 				ClientSecret: "form_secret",
 			},
@@ -204,7 +204,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
 				ctx.Request.Header.Set("Authorization", "Basic "+encoded)
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     " client_id ",
 				ClientSecret: " client_secret ",
 			},
@@ -218,7 +218,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				ctx.Request.SetBodyString(formData)
 				ctx.Request.Header.SetContentType("application/x-www-form-urlencoded")
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     " spaced_client ",
 				ClientSecret: " spaced_secret ",
 			},
@@ -236,7 +236,7 @@ func TestGetClientAuthenticationFromRequest(t *testing.T) {
 				ctx.Request.SetBodyString(formData)
 				ctx.Request.Header.SetContentType("application/x-www-form-urlencoded")
 			},
-			expectedResult: &service.Oauth2ClientAuthentication{
+			expectedResult: &oauth2.Oauth2ClientAuthentication{
 				ClientID:     "basic_client",
 				ClientSecret: "basic_secret",
 			},

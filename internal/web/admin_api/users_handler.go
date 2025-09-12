@@ -9,6 +9,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/webutils"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 
 	"github.com/valyala/fasthttp"
 )
@@ -76,7 +77,7 @@ func HandleListUsers(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Get users from service
-	users, total, err := service.GetServices().UserService.ListUsers(ctx, tenant, realm, service.PaginationParams{
+	users, total, err := service.GetServices().UserService.ListUsers(ctx, tenant, realm, services_interface.PaginationParams{
 		Page:     page,
 		PageSize: pageSize,
 	})

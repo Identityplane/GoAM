@@ -4,24 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 	"github.com/dgraph-io/ristretto/v2"
 )
-
-// CacheService defines the interface for cache operations
-// This is currently in memory only but can be extended to other cache backend such as Redis
-type CacheService interface {
-	// Cache stores a value in the cache with the specified TTL
-	Cache(key string, value interface{}, ttl time.Duration, cost int64) error
-
-	// Get retrieves a value from the cache by its key
-	Get(key string) (interface{}, bool)
-
-	// Invalidate removes a key from the cache
-	Invalidate(key string) error
-
-	// GetMetrics returns the metrics of the cache
-	GetMetrics() CacheMetrics
-}
 
 // cacheServiceImpl implements CacheService
 type cacheServiceImpl struct {
@@ -29,7 +14,7 @@ type cacheServiceImpl struct {
 }
 
 // NewCacheService creates a new CacheService instance
-func NewCacheService() (CacheService, error) {
+func NewCacheService() (services_interface.CacheService, error) {
 	// Configure Ristretto cache
 	config := &ristretto.Config[string, interface{}]{
 		NumCounters: 1e7,
@@ -69,21 +54,14 @@ func (s *cacheServiceImpl) Invalidate(key string) error {
 	return nil
 }
 
-type CacheMetrics struct {
-	Ratio     float64
-	Hits      uint64
-	Misses    uint64
-	KeysAdded uint64
-}
-
-func (s *cacheServiceImpl) GetMetrics() CacheMetrics {
+func (s *cacheServiceImpl) GetMetrics() services_interface.CacheMetrics {
 
 	ratio := s.cache.Metrics.Ratio()
 	hits := s.cache.Metrics.Hits()
 	misses := s.cache.Metrics.Misses()
 	keysAdded := s.cache.Metrics.KeysAdded()
 
-	return CacheMetrics{
+	return services_interface.CacheMetrics{
 		Ratio:     ratio,
 		Hits:      hits,
 		Misses:    misses,
