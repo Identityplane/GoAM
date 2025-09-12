@@ -1,0 +1,45 @@
+description: 'Simple login with a telegram account. Creates a new user if they dont exist. For the localhost to work GoAM must be called on http://127.0.0.1 (port 80)'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: passwordOrSocialLogin 
+      
+  passwordOrSocialLogin:
+    name: passwordOrSocialLogin
+    use: passwordOrSocialLogin
+    custom_config:
+      social1: telegram
+      disableSubmit: true
+      disableDivider: true
+    next:
+      social1: telegramLogin
+
+  telegramLogin:
+    name: telegramLogin
+    use: telegramLogin
+    custom_config:
+      telegram_botToken: "8252112456:AAHrnmKsfK0lpjHDPCngmfjdqVcIJkC008E" #Throwaway bit id with goam.network activcated as url
+      telegram_requestWriteAccess: "true"
+      telegram_createUser: "true"
+    next:
+      existing-user: successResult
+      new-user: successResult
+      failure: passwordOrSocialLogin
+
+  failureResult:
+    name: failureResult
+    use: failureResult
+    custom_config:
+      message: Failed to login.
+    next: {}
+    
+  successResult:
+    name: successResult
+    use: successResult
+    custom_config:
+      message: Login successful!
+    next: {}

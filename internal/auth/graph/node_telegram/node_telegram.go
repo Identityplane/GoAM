@@ -35,16 +35,16 @@ var TelegramLoginNode = &model.NodeDefinition{
 	OutputContext:        []string{},
 	PossibleResultStates: []string{"existing-user", "new-user", "failure"},
 	CustomConfigOptions: map[string]string{
-		"botToken":           "The bot token of the Telegram bot",
-		"requestWriteAccess": "Whether to request write access to the user's Telegram account",
-		"createUser":         "Whether to create a user if they don't exist",
+		"telegram_botToken":           "The bot token of the Telegram bot",
+		"telegram_requestWriteAccess": "Whether to request write access to the user's Telegram account",
+		"telegram_createUser":         "Whether to create a user if they don't exist",
 	},
 	Run: RunTelegramLoginNode,
 }
 
 func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
-	botToken := node.CustomConfig["botToken"]
+	botToken := node.CustomConfig["telegram_botToken"]
 
 	// Get the bot id from the bot token
 	botId := strings.Split(botToken, ":")[0]
@@ -88,7 +88,7 @@ func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphN
 		}
 
 		// If the create user option is enabled we create a new user if it doesn't exist
-		if node.CustomConfig["createUser"] == "true" && dbUser == nil {
+		if node.CustomConfig["telegram_createUser"] == "true" && dbUser == nil {
 			user := &model.User{
 				ID:     uuid.NewString(),
 				Status: "active",
@@ -148,7 +148,7 @@ func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphN
 	params.Set("origin", origin)
 	params.Set("return_to", state.LoginUri+"?callback=telegram")
 
-	if node.CustomConfig["requestWriteAccess"] == "true" {
+	if node.CustomConfig["telegram_requestWriteAccess"] == "true" {
 		params.Set("request_access", "write")
 	}
 

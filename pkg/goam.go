@@ -8,13 +8,13 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func Run(addr string) {
+func Run(settings *GoamServerSettings) {
 
 	// Init Flows
 	internal.Initialize()
 
 	// Start web adapter
-	startWebAdapter(addr)
+	startWebAdapter(settings)
 }
 
 func SetInfrastructureAsCodeMode(mode bool) {
@@ -26,14 +26,23 @@ func SetUnsafeDisableAdminAuthzCheck(mode bool) {
 }
 
 // startWebAdapter initializes and starts the web server
-func startWebAdapter(addr string) {
+func startWebAdapter(settings *GoamServerSettings) {
 
 	r := web.New()
 	log := logger.GetLogger()
 
-	log.Info().Msgf("server running on %s", addr)
+	if settings.ListenerHTTPS != "" {
+		if err := fasthttp.ListenAndServeTLS(settings.ListenerHTTPS, settings.TlsCertFile, settings.TlsKeyFile, web.TopLevelMiddleware(r.Handler)); err != nil {
+			log.Panic().Err(err).Msg("server error")
+		}
+		log.Info().Msgf("https server running on %s", settings.ListenerHTTPS)
+	}
 
-	if err := fasthttp.ListenAndServe(addr, web.TopLevelMiddleware(r.Handler)); err != nil {
-		log.Panic().Err(err).Msg("server error")
+	if settings.ListenerHttp != "" {
+		if err := fasthttp.ListenAndServe(settings.ListenerHttp, web.TopLevelMiddleware(r.Handler)); err != nil {
+			log.Panic().Err(err).Msg("server error")
+		}
+
+		log.Info().Msgf("http server running on %s", settings.ListenerHttp)
 	}
 }
