@@ -11,6 +11,9 @@ tls_key_file: ./certificates/goam.network.key
 # Disable admin auth for demo
 unsafe_disable_admin_auth: true
 
+db: goiam.db?_foreign_keys=on
+run_db_migrations: true
+
 # Node settings are propogated down to all nodes
 node_settings:
   somenode: foobar
