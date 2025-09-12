@@ -123,7 +123,6 @@ func (s *userServiceImpl) CreateUser(ctx context.Context, tenant, realm string, 
 	}
 	createUser.Tenant = tenant
 	createUser.Realm = realm
-	createUser.Status = "active" // Default status
 
 	// Create user in database
 	err = s.userDB.CreateUser(ctx, createUser)
@@ -133,4 +132,76 @@ func (s *userServiceImpl) CreateUser(ctx context.Context, tenant, realm string, 
 
 	// Return the created user (now with ID)
 	return &createUser, nil
+}
+
+func (s *userServiceImpl) CreateUserWithAttributes(ctx context.Context, tenant, realm string, user model.User) (*model.User, error) {
+
+	// No check if a user with this id already exists
+
+	// If the user has no id we set a new uuid
+	if user.ID == "" {
+		user.ID = uuid.NewString()
+	}
+
+	// If the user has no status we set it to active
+	if user.Status == "" {
+		user.Status = "active"
+	}
+
+	// Ensure realm and tenant are matching
+	user.Tenant = tenant
+	user.Realm = realm
+
+	// Create user in database with all attributes
+	err := s.attributesDB.CreateUserWithAttributes(ctx, &user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (s *userServiceImpl) UpdateUserWithAttributes(ctx context.Context, tenant, realm string, user model.User) (*model.User, error) {
+
+	// No check if a user with this id already exists
+
+	// Ensure realm and tenant are matching
+	user.Tenant = tenant
+	user.Realm = realm
+
+	// Update user in database with all attributes
+	err := s.attributesDB.UpdateUserWithAttributes(ctx, &user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (s *userServiceImpl) CreateOrUpdateUserWithAttributes(ctx context.Context, tenant, realm string, user model.User) (*model.User, error) {
+
+	// check if the user already exists
+	existing := false
+
+	// Ensure realm and tenant are matching
+	user.Tenant = tenant
+	user.Realm = realm
+
+	// If we have an id we check if the user is already existing
+	if user.ID != "" {
+		existing_user, err := s.userDB.GetUserByID(ctx, tenant, realm, user.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if existing_user != nil {
+			existing = true
+		}
+	}
+
+	if existing {
+		return s.UpdateUserWithAttributes(ctx, tenant, realm, user)
+	} else {
+		return s.CreateUserWithAttributes(ctx, tenant, realm, user)
+	}
 }

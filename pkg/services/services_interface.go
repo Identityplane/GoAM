@@ -38,6 +38,12 @@ type UserAdminService interface {
 	GetUserStats(ctx context.Context, tenant, realm string) (*model.UserStats, error)
 	// Create a new user
 	CreateUser(ctx context.Context, tenant, realm string, createUser model.User) (*model.User, error)
+	// Create a new user with attributes
+	CreateUserWithAttributes(ctx context.Context, tenant, realm string, user model.User) (*model.User, error)
+	// Update an existing user with attributes
+	UpdateUserWithAttributes(ctx context.Context, tenant, realm string, user model.User) (*model.User, error)
+	// Create or update a user with attributes (upsert)
+	CreateOrUpdateUserWithAttributes(ctx context.Context, tenant, realm string, user model.User) (*model.User, error)
 }
 
 // UserAttributeService defines the business logic for user attribute operations

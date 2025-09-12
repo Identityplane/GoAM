@@ -149,7 +149,7 @@ func TestGithubLoginAndCreateUserNodes(t *testing.T) {
 	assert.Len(t, session.User.UserAttributes, 1)
 	githubAttr := session.User.UserAttributes[0]
 	assert.Equal(t, model.AttributeTypeGitHub, githubAttr.Type)
-	assert.Equal(t, "12345", githubAttr.Index) // Should use GitHub User ID as index
+	assert.Equal(t, stringPtr("12345"), githubAttr.Index) // Should use GitHub User ID as index
 
 	// Verify the GitHub attribute value
 	githubValue, ok := githubAttr.Value.(model.GitHubAttributeValue)
@@ -254,7 +254,7 @@ func TestGithubCreateUserNode_WithValidGitHubContext(t *testing.T) {
 	assert.Len(t, session.User.UserAttributes, 1)
 	githubAttr := session.User.UserAttributes[0]
 	assert.Equal(t, model.AttributeTypeGitHub, githubAttr.Type)
-	assert.Equal(t, "12345", githubAttr.Index)
+	assert.Equal(t, stringPtr("12345"), githubAttr.Index)
 
 	// Verify the attribute value
 	githubValue, ok := githubAttr.Value.(model.GitHubAttributeValue)
