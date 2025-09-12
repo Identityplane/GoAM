@@ -102,7 +102,8 @@ func init() {
 		CallerWithSkipFrameCount(3).
 		Int("pid", os.Getpid()).
 		Logger()
-	globalLogger.Info().Msg("logger initialized")
+
+	globalLogger.Debug().Msg("logger initialized")
 }
 
 // GetLogger returns the global logger instance for direct zerolog usage
