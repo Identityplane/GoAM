@@ -1,0 +1,10 @@
+realm: secure
+realm_name: A example realm with https which is needed for the Telegram login
+
+flows:
+  telegram-login:
+    route: /telegram-login
+    active: yes
+    debug_allowed: yes
+    definition_location: telegram-login.yaml
+

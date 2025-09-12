@@ -6,7 +6,6 @@ import (
 	"github.com/Identityplane/GoAM/pkg"
 
 	// lint:ignore ST1019
-
 	"os"
 )
 
@@ -17,5 +16,9 @@ func main() {
 	log := logger.GetLogger()
 	log.Debug().Str("pwd", wd).Msg("starting goiam 0.0.1")
 
-	pkg.Run(":8080")
+	settings := pkg.NewGoamServerSettings().
+		WithListener(":8080").
+		WithTls(":443", "../certificates/goam.network.crt", "../certificates/goam.network.key")
+
+	pkg.Run(settings)
 }

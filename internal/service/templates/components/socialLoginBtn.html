@@ -1,0 +1,11 @@
+{{ define "socialLoginBtn" }}
+    {{ if eq . "github" }}
+        {{ template "loginWithGitHub" . }}
+    {{ else if eq . "google" }}
+        {{ template "loginWithGoogle" . }}
+    {{ else if eq . "telegram" }}
+        {{ template "loginWithTelegram" . }}
+    {{ else }}
+        <button type="submit" class="btn btn-social">{{ . }}</button>
+    {{ end }}
+{{ end }}
