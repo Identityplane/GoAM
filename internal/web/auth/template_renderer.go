@@ -6,11 +6,14 @@ import (
 	"fmt"
 
 	"github.com/Identityplane/GoAM/internal/lib"
+	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/valyala/fasthttp"
 )
+
+var log = logger.GetLogger()
 
 // Render is the single public entry point
 func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.AuthenticationSession, resultNode *model.GraphNode, prompts map[string]string, baseUrl string) {
@@ -102,6 +105,8 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	// Execute the template
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, "layout", view); err != nil {
+
+		log.Debug().Err(err).Msg("Render error: layout")
 		RenderError(ctx, "Render error: "+err.Error(), state, baseUrl)
 		return
 	}
@@ -155,7 +160,9 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.Authenticati
 	}
 
 	templatesService := service.GetServices().TemplatesService
-	tmpl, err := templatesService.GetErrorTemplate(ctx.UserValue("tenant").(string), ctx.UserValue("realm").(string), state.FlowId)
+	tenant := ctx.UserValue("tenant").(string)
+	realm := ctx.UserValue("realm").(string)
+	tmpl, err := templatesService.GetErrorTemplate(tenant, realm, state.FlowId)
 
 	if err != nil {
 
@@ -166,7 +173,8 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.Authenticati
 
 	// Execute the template
 	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "error", view); err != nil {
+	if err := tmpl.ExecuteTemplate(&buf, "layout", view); err != nil {
+		log.Debug().Err(err).Msg("Render error: error")
 		msg := "Cannot execute error template: " + err.Error()
 		SimpleErrorHtml(ctx, msg)
 		return
