@@ -51,7 +51,7 @@ func TestXForwardedForEnabled(t *testing.T) {
 	os.Setenv("GOIAM_PROXIES", "3")
 	defer func() {
 		os.Unsetenv("GOIAM_PROXIES")
-		config.ForwardingProxies = 0
+		config.ServerSettings.ForwardingProxies = 0
 	}()
 	e := SetupIntegrationTest(t, "")
 
@@ -74,7 +74,7 @@ func TestSingleProxyXForwardedFor(t *testing.T) {
 	os.Setenv("GOIAM_PROXIES", "1")
 	defer func() {
 		os.Unsetenv("GOIAM_PROXIES")
-		config.ForwardingProxies = 0
+		config.ServerSettings.ForwardingProxies = 0
 	}()
 	e := SetupIntegrationTest(t, "")
 
@@ -96,7 +96,7 @@ func TestMultipleXForwardedHeaders(t *testing.T) {
 	os.Setenv("GOIAM_PROXIES", "3")
 	defer func() {
 		os.Unsetenv("GOIAM_PROXIES")
-		config.ForwardingProxies = 0
+		config.ServerSettings.ForwardingProxies = 0
 	}()
 	e := SetupIntegrationTest(t, "")
 
@@ -119,7 +119,7 @@ func TestMaliciousXForwardedFor(t *testing.T) {
 	os.Setenv("GOIAM_PROXIES", "2")
 	defer func() {
 		os.Unsetenv("GOIAM_PROXIES")
-		config.ForwardingProxies = 0
+		config.ServerSettings.ForwardingProxies = 0
 	}()
 	e := SetupIntegrationTest(t, "")
 
