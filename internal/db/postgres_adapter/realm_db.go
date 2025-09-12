@@ -29,6 +29,12 @@ func NewPostgresRealmDB(db *pgxpool.Pool) (*PostgresRealmDB, error) {
 }
 
 func (p *PostgresRealmDB) CreateRealm(ctx context.Context, realm model.Realm) error {
+
+	// If realm settings are null we init a empty map
+	if realm.RealmSettings == nil {
+		realm.RealmSettings = make(map[string]string)
+	}
+
 	query := `
 		INSERT INTO realms (
 			tenant, realm, realm_name, base_url, realm_settings
@@ -69,6 +75,12 @@ func (p *PostgresRealmDB) GetRealm(ctx context.Context, tenant, realm string) (*
 }
 
 func (p *PostgresRealmDB) UpdateRealm(ctx context.Context, realm *model.Realm) error {
+
+	// If realm settings are null we init a empty map
+	if realm.RealmSettings == nil {
+		realm.RealmSettings = make(map[string]string)
+	}
+
 	query := `
 		UPDATE realms
 		SET realm_name = $1, base_url = $2, realm_settings = $3
