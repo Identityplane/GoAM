@@ -39,7 +39,7 @@ func TestOIDCPrompt_E2E(t *testing.T) {
 
 	// Create a user for the test
 	service.GetServices().UserService.CreateUser(context.Background(), "acme", "customers", model.User{
-		Username: "admin",
+		ID: "admin",
 	})
 
 	// Test Case 1: prompt=none with noprompt flow

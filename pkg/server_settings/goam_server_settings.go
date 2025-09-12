@@ -15,15 +15,17 @@ type GoamServerSettings struct {
 	TlsKeyFile    string `mapstructure:"tls_key_file"`
 	DBConnString  string `mapstructure:"db"`
 
-	NodeSettings             map[string]string `mapstructure:"node_settings"`
-	Banner                   string            `mapstructure:"banner"`
-	RealmConfigurationFolder string            `mapstructure:"realm_configuration_folder"`
-	NotFoundRedirectUrl      string            `mapstructure:"not_found_redirect_url"`
+	Banner                   string `mapstructure:"banner"`
+	RealmConfigurationFolder string `mapstructure:"realm_configuration_folder"`
+	NotFoundRedirectUrl      string `mapstructure:"not_found_redirect_url"`
 
 	UnsafeDisableAdminAuth   bool `mapstructure:"unsafe_disable_admin_auth"`
 	EnableRequestTiming      bool `mapstructure:"enable_request_timing"`
 	InfrastructureAsCodeMode bool `mapstructure:"infrastructure_as_code_mode"`
 	ForwardingProxies        int  `mapstructure:"forwarding_proxies"`
+
+	NodeSettings      map[string]string `mapstructure:"node_settings"`
+	ExtensionSettings map[string]string `mapstructure:"extension_settings"`
 }
 
 // ConfigDocumentation holds documentation for each configuration option
@@ -128,6 +130,13 @@ func GetConfigDocumentation() []ConfigDocumentation {
 			Examples:    []string{"0", "1", "2"},
 			EnvVar:      "GOAM_FORWARDING_PROXIES",
 		},
+		{
+			Field:       "extension_settings",
+			Description: "Settings for extensions as key-value pairs",
+			Default:     "",
+			Examples:    []string{},
+			EnvVar:      "GOAM_EXTENSION_SETTINGS_<KEY>",
+		},
 	}
 }
 
@@ -167,6 +176,7 @@ func InitWithViper() (*GoamServerSettings, error) {
 func NewGoamServerSettings() *GoamServerSettings {
 
 	return &GoamServerSettings{
-		NodeSettings: make(map[string]string),
+		NodeSettings:      make(map[string]string),
+		ExtensionSettings: make(map[string]string),
 	}
 }

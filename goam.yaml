@@ -10,3 +10,11 @@ tls_key_file: ./certificates/goam.network.key
 
 # Disable admin auth for demo
 unsafe_disable_admin_auth: true
+
+# Node settings are propogated down to all nodes
+node_settings:
+  somenode: foobar
+
+# Extension can be used by extensions
+extension_settings:
+  somesetting: foobar
