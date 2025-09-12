@@ -66,7 +66,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 			}
 		}
 		// If realm exists, update it if in infrastructure as code mode
-		if exists && config.InfrastrcutureAsCodeMode {
+		if exists && config.ServerSettings.InfrastructureAsCodeMode {
 			log.Debug().Str("realm", realm.Realm).Msg("updating realm")
 			err := realmService.UpdateRealm(&model.Realm{
 				Realm:     realm.Realm,
@@ -93,7 +93,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 			}
 
 			// Update flow if in infrastructure as code mode
-			if exists && config.InfrastrcutureAsCodeMode {
+			if exists && config.ServerSettings.InfrastructureAsCodeMode {
 				log.Debug().Str("flow_id", flow.Id).Msg("updating flow")
 				err := flowService.UpdateFlow(realm.Tenant, realm.Realm, *flow)
 				if err != nil {
@@ -116,7 +116,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 			}
 
 			// Update application if in infrastructure as code mode
-			if exists && config.InfrastrcutureAsCodeMode {
+			if exists && config.ServerSettings.InfrastructureAsCodeMode {
 				log.Debug().Str("client_id", application.ClientId).Msg("updating application")
 				err := applicationService.UpdateApplication(realm.Tenant, realm.Realm, *application)
 				if err != nil {

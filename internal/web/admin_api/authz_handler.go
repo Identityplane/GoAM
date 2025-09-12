@@ -109,7 +109,7 @@ func HandleListRealms(ctx *fasthttp.RequestCtx) {
 
 	if userAny == nil {
 
-		if config.UnsafeDisableAdminAuthzCheck {
+		if config.ServerSettings.UnsafeDisableAdminAuth {
 			// if we explicitly disable the authz check we show all realms
 			visibleRealms, err = services.RealmService.GetAllRealms()
 		} else {
