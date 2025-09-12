@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/internal/lib/oauth2"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -197,7 +198,7 @@ func adminAuthNMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler 
 			tenant := "internal"
 			realm := "internal"
 
-			tokenIntrospectionRequest := &service.TokenIntrospectionRequest{
+			tokenIntrospectionRequest := &oauth2.TokenIntrospectionRequest{
 				Token: token,
 			}
 

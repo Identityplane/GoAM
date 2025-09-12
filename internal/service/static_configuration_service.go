@@ -10,6 +10,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 
 	"gopkg.in/yaml.v3"
 )
@@ -24,23 +25,19 @@ type realmYaml struct {
 	Flows        map[string]*model.Flow        `yaml:"flows"`
 }
 
-type StaticConfigurationService interface {
-	LoadConfigurationFromFiles(configRoot string) error
-}
-
 type staticConfigurationServiceImpl struct {
 }
 
-func NewStaticConfigurationService() StaticConfigurationService {
+func NewStaticConfigurationService() services_interface.StaticConfigurationService {
 	return &staticConfigurationServiceImpl{}
 }
 
 func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot string) error {
 	log := logger.GetLogger()
 
-	var realmService RealmService = GetServices().RealmService
-	var flowService FlowService = GetServices().FlowService
-	var applicationService ApplicationService = GetServices().ApplicationService
+	var realmService services_interface.RealmService = GetServices().RealmService
+	var flowService services_interface.FlowService = GetServices().FlowService
+	var applicationService services_interface.ApplicationService = GetServices().ApplicationService
 
 	// Load realms from config directory
 	realmsFromConfigDir, err := loadRealmsFromConfigDir(configRoot)

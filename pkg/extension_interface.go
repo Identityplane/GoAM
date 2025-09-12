@@ -3,8 +3,10 @@ package pkg
 import (
 	"github.com/Identityplane/GoAM/internal/auth/graph"
 	"github.com/Identityplane/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/pkg/server_settings"
+	service_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 var serverStartCallbacks []func(settings *server_settings.GoamServerSettings) error
@@ -29,4 +31,9 @@ func GetServerConfig() *server_settings.GoamServerSettings {
 // The callbacks are executed in order of registration
 func OnServerStart(f func(settings *server_settings.GoamServerSettings) error) {
 	serverStartCallbacks = append(serverStartCallbacks, f)
+}
+
+// GetServices returns the collection of services to access GoAM internal apis directly
+func GetServices() (*service_interface.Services, error) {
+	return service.GetServices(), nil
 }

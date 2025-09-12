@@ -4,7 +4,7 @@ banner: "GOAM 0.0.1 with yaml config"
 listener_http: :8080
 
 # HTTPS configuration
-listener_https: :443
+listener_https: ":8443"
 tls_cert_file: ./certificates/goam.network.crt
 tls_key_file: ./certificates/goam.network.key
 

@@ -15,7 +15,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/web/auth"
 	"github.com/Identityplane/GoAM/internal/web/webutils"
 	"github.com/Identityplane/GoAM/pkg/model"
-
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 	"github.com/valyala/fasthttp"
 )
 
@@ -158,7 +158,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 
 // This functions starts the graph execution and peeks if there is a prompt
 // This is needed for the OIDC prompt parameter to check if the user is prompted or not
-func peekGraphExecutionForPromptParameter(session *model.AuthenticationSession, flow *model.Flow, loadedRealm *service.LoadedRealm) (*model.AuthenticationSession, *oauth2.OAuth2Error) {
+func peekGraphExecutionForPromptParameter(session *model.AuthenticationSession, flow *model.Flow, loadedRealm *services_interface.LoadedRealm) (*model.AuthenticationSession, *oauth2.OAuth2Error) {
 
 	// Check if service registry is initialized
 	registry := loadedRealm.Repositories
@@ -266,7 +266,7 @@ func HandleTokenEndpoint(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 
-	tokenRequest := &service.Oauth2TokenRequest{}
+	tokenRequest := &oauth2.Oauth2TokenRequest{}
 
 	// parse request parameter from application/x-www-form-urlencoded
 	body := ctx.PostBody()
@@ -313,9 +313,9 @@ func HandleTokenEndpoint(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody(jsonData)
 }
 
-func getClientAuthenticationFromRequest(ctx *fasthttp.RequestCtx) service.Oauth2ClientAuthentication {
+func getClientAuthenticationFromRequest(ctx *fasthttp.RequestCtx) oauth2.Oauth2ClientAuthentication {
 
-	clientAuthentication := service.Oauth2ClientAuthentication{}
+	clientAuthentication := oauth2.Oauth2ClientAuthentication{}
 
 	// If we have an Authorization header with Basic we use it
 	authorization := string(ctx.Request.Header.Peek("Authorization"))

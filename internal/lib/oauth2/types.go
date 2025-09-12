@@ -46,3 +46,52 @@ func NewOAuth2Error(errorCode string, errorDescription string) *OAuth2Error {
 	}
 	return &errorResponse
 }
+
+// Oauth2TokenRequest represents an OAuth2 token request
+type Oauth2TokenRequest struct {
+	Code         string `json:"code"`
+	CodeVerifier string `json:"code_verifier"`
+	ClientID     string `json:"client_id"`
+	GrantType    string `json:"grant_type"`
+	RefreshToken string `json:"refresh_token"`
+	RedirectURI  string `json:"redirect_uri"`
+	Scope        string `json:"scope"` // Only used for the client credentials grant
+}
+
+// Oauth2ClientAuthentication represents OAuth2 client authentication
+type Oauth2ClientAuthentication struct {
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+}
+
+// Oauth2TokenResponse represents an OAuth2 token response
+type Oauth2TokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	IDToken      string `json:"id_token,omitempty"`
+	ExpiresIn    int    `json:"expires_in"`
+	Scope        string `json:"scope,omitempty"`
+	TokenType    string `json:"token_type,omitempty"`
+}
+
+// TokenIntrospectionRequest represents the request to the introspection endpoint
+type TokenIntrospectionRequest struct {
+	Token         string `json:"token"`
+	TokenTypeHint string `json:"token_type_hint,omitempty"`
+}
+
+// TokenIntrospectionResponse represents the response from the introspection endpoint
+type TokenIntrospectionResponse struct {
+	Active    bool   `json:"active"`
+	Scope     string `json:"scope,omitempty"`
+	ClientID  string `json:"client_id,omitempty"`
+	Username  string `json:"username,omitempty"`
+	TokenType string `json:"token_type,omitempty"`
+	Exp       int64  `json:"exp,omitempty"`
+	Iat       int64  `json:"iat,omitempty"`
+	Nbf       int64  `json:"nbf,omitempty"`
+	Sub       string `json:"sub,omitempty"`
+	Aud       string `json:"aud,omitempty"`
+	Iss       string `json:"iss,omitempty"`
+	Jti       string `json:"jti,omitempty"`
+}

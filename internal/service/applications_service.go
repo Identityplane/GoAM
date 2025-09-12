@@ -8,36 +8,9 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/pkg/model"
-
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 	"github.com/google/uuid"
 )
-
-// ApplicationService defines the business logic for application operations
-type ApplicationService interface {
-	// GetApplication returns an application by its ID
-	GetApplication(tenant, realm, clientId string) (*model.Application, bool)
-
-	// ListApplications returns all applications for a tenant and realm
-	ListApplications(tenant, realm string) ([]model.Application, error)
-
-	// ListAllApplications returns all applications for all realms
-	ListAllApplications() ([]model.Application, error)
-
-	// CreateApplication creates a new application
-	CreateApplication(tenant, realm string, app model.Application) error
-
-	// UpdateApplication updates an existing application
-	UpdateApplication(tenant, realm string, app model.Application) error
-
-	// DeleteApplication deletes an application by its ID
-	DeleteApplication(tenant, realm, clientId string) error
-
-	// RegenerateClientSecret generates a new client secret for an application
-	RegenerateClientSecret(tenant, realm, clientId string) (string, error)
-
-	// VerifyClientSecret verifies if a client secret matches the stored hash
-	VerifyClientSecret(tenant, realm, clientId, clientSecret string) (bool, error)
-}
 
 // applicationServiceImpl implements ApplicationService
 type applicationServiceImpl struct {
@@ -45,7 +18,7 @@ type applicationServiceImpl struct {
 }
 
 // NewApplicationService creates a new ApplicationService instance
-func NewApplicationService(appsDb db.ApplicationDB) ApplicationService {
+func NewApplicationService(appsDb db.ApplicationDB) services_interface.ApplicationService {
 	return &applicationServiceImpl{
 		appsDb: appsDb,
 	}

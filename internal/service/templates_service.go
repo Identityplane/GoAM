@@ -11,6 +11,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 // ViewData is passed to all templates for dynamic rendering
@@ -37,22 +38,10 @@ type ViewData struct {
 	CspNonce      string
 }
 
-// Responseible for returning the right templates for a given realm
-// this should be very fast as it is called for every request
-type TemplatesService interface {
-	GetTemplates(tenant, realm, flowId, nodeName string) (*template.Template, error)
-	GetErrorTemplate(tenant, realm, flowId string) (*template.Template, error)
-	CreateTemplateOverride(tenant, realm, flowId, nodeName, templateString string) error
-	RemoveTemplateOverride(tenant, realm, flowId, nodeName string) error
-	ListTemplateOverrides() map[string]bool
-	LoadTemplateOverridesFromPath(tenant, realm, templatesPath string) error
-	LoadTemplateOverridesFromFS(tenant, realm string, templatesFS fs.FS, templatesPath string) error
-}
-
 type templatesService struct {
 }
 
-func NewTemplatesService() TemplatesService {
+func NewTemplatesService() services_interface.TemplatesService {
 
 	service := &templatesService{}
 

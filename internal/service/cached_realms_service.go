@@ -6,6 +6,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 const (
@@ -15,12 +16,12 @@ const (
 
 // cachedRealmService implements RealmService with caching
 type cachedRealmService struct {
-	realmService RealmService
-	cache        CacheService
+	realmService services_interface.RealmService
+	cache        services_interface.CacheService
 }
 
 // NewCachedRealmService creates a new cached realm service
-func NewCachedRealmService(realmService RealmService, cache CacheService) RealmService {
+func NewCachedRealmService(realmService services_interface.RealmService, cache services_interface.CacheService) services_interface.RealmService {
 	return &cachedRealmService{
 		realmService: realmService,
 		cache:        cache,
@@ -32,11 +33,11 @@ func (s *cachedRealmService) getCacheKey(tenant, realm string) string {
 	return fmt.Sprintf("/%s/%s/realm", tenant, realm)
 }
 
-func (s *cachedRealmService) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
+func (s *cachedRealmService) GetRealm(tenant, realm string) (*services_interface.LoadedRealm, bool) {
 	// Try to get from cache first
 	cacheKey := s.getCacheKey(tenant, realm)
 	if cached, found := s.cache.Get(cacheKey); found && cached != nil {
-		if loadedRealm, ok := cached.(*LoadedRealm); ok {
+		if loadedRealm, ok := cached.(*services_interface.LoadedRealm); ok {
 			return loadedRealm, true
 		}
 	}
@@ -53,7 +54,7 @@ func (s *cachedRealmService) GetRealm(tenant, realm string) (*LoadedRealm, bool)
 	return loadedRealm, found
 }
 
-func (s *cachedRealmService) GetAllRealms() (map[string]*LoadedRealm, error) {
+func (s *cachedRealmService) GetAllRealms() (map[string]*services_interface.LoadedRealm, error) {
 	// Direct call to service without caching for admin operations
 	return s.realmService.GetAllRealms()
 }

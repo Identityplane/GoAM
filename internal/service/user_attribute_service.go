@@ -6,21 +6,9 @@ import (
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
-)
 
-// UserAttributeService defines the business logic for user attribute operations
-type UserAttributeService interface {
-	// List all attributes for a user
-	ListUserAttributes(ctx context.Context, tenant, realm, userID string) ([]model.UserAttribute, error)
-	// Get a specific attribute by ID
-	GetUserAttributeByID(ctx context.Context, tenant, realm, attributeID string) (*model.UserAttribute, error)
-	// Create a new attribute for a user
-	CreateUserAttribute(ctx context.Context, attribute model.UserAttribute) (*model.UserAttribute, error)
-	// Update an existing attribute
-	UpdateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error
-	// Delete a specific attribute
-	DeleteUserAttribute(ctx context.Context, tenant, realm, attributeID string) error
-}
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
+)
 
 // userAttributeServiceImpl implements UserAttributeService
 type userAttributeServiceImpl struct {
@@ -29,7 +17,7 @@ type userAttributeServiceImpl struct {
 }
 
 // NewUserAttributeService creates a new UserAttributeService instance
-func NewUserAttributeService(userAttributeDB db.UserAttributeDB, userDB db.UserDB) UserAttributeService {
+func NewUserAttributeService(userAttributeDB db.UserAttributeDB, userDB db.UserDB) services_interface.UserAttributeService {
 	return &userAttributeServiceImpl{
 		userAttributeDB: userAttributeDB,
 		userDB:          userDB,

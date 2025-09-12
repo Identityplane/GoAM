@@ -3,6 +3,7 @@ package oauth2
 import (
 	"encoding/json"
 
+	"github.com/Identityplane/GoAM/internal/lib/oauth2"
 	"github.com/Identityplane/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
@@ -37,7 +38,7 @@ func HandleTokenIntrospection(ctx *fasthttp.RequestCtx) {
 	realm := ctx.UserValue("realm").(string)
 
 	// Currently the token_type_hint is not implemented
-	tokenIntrospectionRequest := &service.TokenIntrospectionRequest{
+	tokenIntrospectionRequest := &oauth2.TokenIntrospectionRequest{
 		Token: token,
 	}
 

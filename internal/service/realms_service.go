@@ -9,43 +9,21 @@ import (
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services_interface "github.com/Identityplane/GoAM/pkg/services"
 
 	"github.com/pkg/errors"
 )
-
-// RealmService defines the business logic for realm operations
-type RealmService interface {
-	// GetRealm returns a loaded realm configuration by its composite ID
-	GetRealm(tenant, realm string) (*LoadedRealm, bool)
-	// GetAllRealms returns a map of all loaded realms with realmId as index
-	GetAllRealms() (map[string]*LoadedRealm, error)
-	// CreateRealm creates a new realm
-	CreateRealm(realm *model.Realm) error
-	// UpdateRealm updates an existing realm
-	UpdateRealm(realm *model.Realm) error
-	// DeleteRealm deletes a realm
-	DeleteRealm(tenant, realm string) error
-	// Is Tenant Name Available
-	IsTenantNameAvailable(tenantName string) (bool, error)
-}
 
 // Intermediate used for deserialization
 type flowRealmYaml struct {
 	Name string `yaml:"name"`
 }
 
-// LoadedRealm wraps a RealmConfig with metadata for tracking its source.
-type LoadedRealm struct {
-	Config       *model.Realm        // parsed realm config
-	RealmID      string              // composite ID like "acme/customers"
-	Repositories *model.Repositories // services for this realm
-}
-
-func NewLoadedRealm(realmConfig *model.Realm, repos model.Repositories) *LoadedRealm {
+func NewLoadedRealm(realmConfig *model.Realm, repos model.Repositories) *services_interface.LoadedRealm {
 
 	realmId := realmConfig.Tenant + "/" + realmConfig.Realm
 
-	return &LoadedRealm{
+	return &services_interface.LoadedRealm{
 		Config:       realmConfig,
 		RealmID:      realmId,
 		Repositories: &repos,
@@ -60,7 +38,7 @@ type realmServiceImpl struct {
 }
 
 // NewRealmService creates a new RealmService instance
-func NewRealmService(realmDb db.RealmDB, userDb db.UserDB, userAttributeDb db.UserAttributeDB) RealmService {
+func NewRealmService(realmDb db.RealmDB, userDb db.UserDB, userAttributeDb db.UserAttributeDB) services_interface.RealmService {
 	return &realmServiceImpl{
 		realmDb:         realmDb,
 		userDb:          userDb,
@@ -68,7 +46,7 @@ func NewRealmService(realmDb db.RealmDB, userDb db.UserDB, userAttributeDb db.Us
 	}
 }
 
-func (s *realmServiceImpl) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
+func (s *realmServiceImpl) GetRealm(tenant, realm string) (*services_interface.LoadedRealm, bool) {
 	log := logger.GetLogger()
 
 	// Use the database to get the realm config
@@ -96,7 +74,7 @@ func (s *realmServiceImpl) GetRealm(tenant, realm string) (*LoadedRealm, bool) {
 	return loadedRealm, true
 }
 
-func (s *realmServiceImpl) GetAllRealms() (map[string]*LoadedRealm, error) {
+func (s *realmServiceImpl) GetAllRealms() (map[string]*services_interface.LoadedRealm, error) {
 
 	realmConfigs, err := s.realmDb.ListAllRealms(context.Background())
 
@@ -104,7 +82,7 @@ func (s *realmServiceImpl) GetAllRealms() (map[string]*LoadedRealm, error) {
 		return nil, errors.Errorf("cannot load all realms")
 	}
 
-	loadedRealms := make(map[string]*LoadedRealm)
+	loadedRealms := make(map[string]*services_interface.LoadedRealm)
 
 	for _, realmConfig := range realmConfigs {
 
