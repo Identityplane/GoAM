@@ -56,9 +56,12 @@ func initDatabase() *service.DatabaseConnections {
 		}
 
 		// Run migrations
-		err = postgres_adapter.RunMigrations(postgresdb)
-		if err != nil {
-			log.Panic().Err(err).Msg("failed to run postgres migrations")
+		if config.ServerSettings.RunDBMigrations {
+
+			err = postgres_adapter.RunMigrations(postgresdb)
+			if err != nil {
+				log.Panic().Err(err).Msg("failed to run postgres migrations")
+			}
 		}
 
 		// Init user db
@@ -117,10 +120,12 @@ func initDatabase() *service.DatabaseConnections {
 			log.Panic().Err(err).Msg("failed to initialize sqlite database")
 		}
 
-		// Migrate database, currently we only do this for sqlite
-		err = sqlite_adapter.RunMigrations(sqliteDB)
-		if err != nil {
-			log.Panic().Err(err).Msg("failed to migrate sqlite database")
+		// Migrate database if enabled
+		if config.ServerSettings.RunDBMigrations {
+			err = sqlite_adapter.RunMigrations(sqliteDB)
+			if err != nil {
+				log.Panic().Err(err).Msg("failed to migrate sqlite database")
+			}
 		}
 
 		// init user db
