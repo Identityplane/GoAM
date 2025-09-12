@@ -26,6 +26,8 @@ type GoamServerSettings struct {
 
 	NodeSettings      map[string]string `mapstructure:"node_settings"`
 	ExtensionSettings map[string]string `mapstructure:"extension_settings"`
+
+	RunDBMigrations bool `mapstructure:"run_db_migrations"`
 }
 
 // ConfigDocumentation holds documentation for each configuration option
@@ -136,6 +138,13 @@ func GetConfigDocumentation() []ConfigDocumentation {
 			Default:     "",
 			Examples:    []string{},
 			EnvVar:      "GOAM_EXTENSION_SETTINGS_<KEY>",
+		},
+		{
+			Field:       "run_db_migrations",
+			Description: "If true, the database migrations will be run during startup",
+			Default:     "false",
+			Examples:    []string{"true", "false"},
+			EnvVar:      "GOAM_RUN_DB_MIGRATIONS",
 		},
 	}
 }
