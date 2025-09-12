@@ -10,6 +10,8 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+var log = logger.GetLogger()
+
 func Run(settings *server_settings.GoamServerSettings) {
 
 	// Init Flows
@@ -22,8 +24,15 @@ func Run(settings *server_settings.GoamServerSettings) {
 // startWebAdapter initializes and starts the web server
 func startWebAdapter(settings *server_settings.GoamServerSettings) {
 
+	// Call all server start callbacks
+	for _, callback := range serverStartCallbacks {
+		if err := callback(settings); err != nil {
+			log.Panic().Err(err).Msg("server start callback error")
+		}
+	}
+
+	// Start the server
 	r := web.New()
-	log := logger.GetLogger()
 	var wg sync.WaitGroup
 
 	if settings.ListenerHTTPS != "" {
