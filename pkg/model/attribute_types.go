@@ -16,6 +16,7 @@ const (
 	AttributeTypePhone        = "identityplane:phone"
 	AttributeTypePasskey      = "identityplane:passkey"
 	AttributeTypeEntitlements = "identityplane:entitlements"
+	AttributeTypeYubico       = "identityplane:yubico"
 )
 
 // TOTPAttributeValue is the attribute value for TOTP
@@ -148,3 +149,15 @@ const (
 	EffectTypeAllow EffectType = "allow"
 	EffectTypeDeny  EffectType = "deny"
 )
+
+type YubicoAttributeValue struct {
+
+	// @description The public id for the yubikey
+	PublicID string `json:"public_id" example:"vvcijgklnrbf"`
+
+	// @description Whether the yubikey is locked
+	Locked bool `json:"locked" example:"false"`
+
+	// @description The number of failed attempts
+	FailedAttempts int `json:"failed_attempts" example:"0"`
+}
