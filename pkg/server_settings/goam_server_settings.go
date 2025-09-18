@@ -26,6 +26,7 @@ type GoamServerSettings struct {
 
 	NodeSettings      map[string]string `mapstructure:"node_settings"`
 	ExtensionSettings map[string]string `mapstructure:"extension_settings"`
+	BaseUrlOverwrite  map[string]string `mapstructure:"realm_base_url_overwrite"`
 
 	RunDBMigrations bool `mapstructure:"run_db_migrations"`
 }
@@ -146,6 +147,13 @@ func GetConfigDocumentation() []ConfigDocumentation {
 			Examples:    []string{"true", "false"},
 			EnvVar:      "GOAM_RUN_DB_MIGRATIONS",
 		},
+		{
+			Field:       "realm_base_url_overwrite",
+			Description: "If set for a realm, the base url will be overwriten (if not set in the realm config). This is useful for settings different realm urls for different environements like dev and prod",
+			Default:     "false",
+			Examples:    []string{"example.com/overwrite/"},
+			EnvVar:      "GOAM_REALM_BASE_URL_OVERWRITE_<TENANT/REALM>",
+		},
 	}
 }
 
@@ -158,6 +166,7 @@ func InitWithViper() (*GoamServerSettings, error) {
 
 	// Viper Environment variables
 	viper.SetEnvPrefix("GOAM")
+	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
 
@@ -177,7 +186,10 @@ func InitWithViper() (*GoamServerSettings, error) {
 
 	// Load from viper (this will be populated by cobra flags, env vars, config files)
 	settings := NewGoamServerSettings()
-	viper.Unmarshal(settings)
+	err := viper.Unmarshal(&settings)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling config: %w", err)
+	}
 
 	return settings, nil
 }

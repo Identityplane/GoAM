@@ -75,6 +75,7 @@ func initConfig() {
 		cobra.CheckErr(err)
 
 		// Search config in home directory with name ".cobra" (without extension).
+		viper.SetConfigType("env")
 		viper.AddConfigPath(home)
 		viper.AddConfigPath(wd)
 		viper.SetConfigType("yaml")
