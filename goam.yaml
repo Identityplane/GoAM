@@ -1,7 +1,7 @@
 banner: "GOAM 0.0.1 with yaml config"
 
 # Http configuration
-listener_http: :8080
+listener_http: :8081
 
 # HTTPS configuration
 listener_https: ":8443"
@@ -19,5 +19,8 @@ node_settings:
   somenode: foobar
 
 # Extension can be used by extensions
-extension_settings:
-  somesetting: foobar
+#extension_settings:
+#  somesetting: foobar
+
+realm_base_url_overwrite:
+  acme_secure: https://supersecure.acme.com/foobar

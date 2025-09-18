@@ -10,7 +10,8 @@
         "mode": "auto",
         "program": "${workspaceFolder}/cmd",
         "env": {
-          "GOIAM_UNSAFE_DISABLE_ADMIN_AUTHZ_CHECK": "true"
+          "GOAM_BANNER": "GOAM via env seting",
+          "GOIAM_UNSAFE_DISABLE_ADMIN_AUTHZ_CHECK": "true",
         },
         "args": [],
         "showLog": true

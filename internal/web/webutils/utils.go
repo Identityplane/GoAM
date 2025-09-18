@@ -4,11 +4,18 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/valyala/fasthttp"
 )
 
 // We we dont know the base url we use this to get the full url in the cases we need to assemble urls
 func GetFallbackUrl(ctx *fasthttp.RequestCtx, tenant, realm string) string {
+
+	// If we have a server settings that is overwriting the base url we use that one
+	overwrite := config.ServerSettings.BaseUrlOverwrite[fmt.Sprintf("%s_%s", tenant, realm)]
+	if overwrite != "" {
+		return overwrite
+	}
 
 	requestUrl := GetUrlOfRequest(ctx)
 	return fmt.Sprintf("%s/%s/%s", requestUrl, tenant, realm)
@@ -42,8 +49,8 @@ func GetUrlOfRequest(ctx *fasthttp.RequestCtx) string {
 
 	protocol := "https"
 
-	// If the host as a port we assume http
-	if hasPort {
+	// If the host as a port we assume http unless the port is 433 or 8433
+	if hasPort && hostParts[1] != "443" && hostParts[1] != "8443" {
 		protocol = "http"
 	}
 
