@@ -60,10 +60,8 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Check if debug is in the query parameters
-	debug := ctx.QueryArgs().Has("debug")
-
-	// TODO check if debug is allowed
+	// Check if debug is in the query parameters and enable it if debug is allowed
+	debug := flow.DebugAllowed && ctx.QueryArgs().Has("debug")
 
 	// Create a new or load the authentication session
 	session, err := GetOrCreateAuthenticationSesssion(ctx, tenant, realm, loadedRealm.Config.BaseUrl, flow, debug)
@@ -73,12 +71,18 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// If the base url is empty we use the fallback url
+	baseUrl := loadedRealm.Config.BaseUrl
+	if baseUrl == "" {
+		baseUrl = webutils.GetFallbackUrl(ctx, tenant, realm)
+	}
+
 	// Process the auth request
 	newSession, err := ProcessAuthRequest(ctx, flow, *session)
 
 	// If there is an error we render the error, otherwiese the ProcessAuthRequest will render the result
 	if err != nil {
-		RenderError(ctx, err.Error(), newSession, loadedRealm.Config.BaseUrl)
+		RenderError(ctx, err.Error(), newSession, baseUrl)
 		return
 	}
 
@@ -101,12 +105,6 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	// Render the result
 	currentNode := flow.Definition.Nodes[newSession.Current]
-
-	// If the base url is empty we use the fallback url
-	baseUrl := loadedRealm.Config.BaseUrl
-	if baseUrl == "" {
-		baseUrl = webutils.GetFallbackUrl(ctx, tenant, realm)
-	}
 
 	Render(ctx, flow.Definition, newSession, currentNode, newSession.Prompts, baseUrl)
 }

@@ -37,6 +37,16 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: passkey_discovery_or_password.yaml
+  error:
+    route: /error
+    active: yes
+    debug_allowed: yes
+    definition_location: error.yaml
+  error2:
+    route: /error2
+    active: yes
+    debug_allowed: yes
+    definition_location: error2.yaml
 
 applications:
   customers-app:

@@ -1,0 +1,9 @@
+description: 'This flow is used to test the error template'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: notexisting 

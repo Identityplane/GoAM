@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_system"
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
@@ -144,6 +145,11 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.Authenticati
 		scriptPath = baseUrl + "/static/style.js"
 	}
 
+	// Instance an error node
+	errorNode := &model.GraphNode{
+		Use: node_system.ErrorNode.Name,
+	}
+
 	// Create the view data
 	view := &service.ViewData{
 		Title:      state.Current,
@@ -157,6 +163,7 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.Authenticati
 		Tenant:     ctx.UserValue("tenant").(string),
 		Realm:      ctx.UserValue("realm").(string),
 		CspNonce:   cspNonce,
+		Node:       errorNode,
 	}
 
 	templatesService := service.GetServices().TemplatesService
