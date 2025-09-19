@@ -1,13 +1,10 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg"
 	"github.com/Identityplane/GoAM/pkg/server_settings"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var cfgFile string
@@ -27,7 +24,7 @@ Configuration can be provided via:
 
 	Run: func(cmd *cobra.Command, args []string) {
 
-		initConfig()
+		initConfigSource()
 
 		// Printout current working dir
 		log := logger.GetLogger()
@@ -52,54 +49,21 @@ func init() {
 If not specified, looks for 'config.yaml' in current directory, 
 $HOME/.goam/, or /etc/goam/`)
 
-	for _, doc := range server_settings.GetConfigDocumentation() {
-		rootCmd.PersistentFlags().String(doc.Field, doc.Default, doc.Description)
-		viper.BindPFlag(doc.Field, rootCmd.PersistentFlags().Lookup(doc.Field))
+	err := server_settings.BindCobraFlags(rootCmd)
+	if err != nil {
+		log.Panic().Err(err).Msg("failed to bind flags")
 	}
-
 }
 
-func initConfig() {
-
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Panic().Err(err).Msg("failed to get working directory")
-	}
+func initConfigSource() {
 
 	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		// If there is a config file via command line argument we only use this one
+		server_settings.SetConfigFile(cfgFile)
+
 	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".cobra" (without extension).
-		viper.SetConfigType("env")
-		viper.AddConfigPath(home)
-		viper.AddConfigPath(wd)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("goam.yaml")
-	}
-
-	viper.AutomaticEnv()
-
-	err = viper.ReadInConfig()
-
-	if err == nil {
-		log.Debug().Str("config_file", viper.ConfigFileUsed()).Msg("using config file")
-	}
-
-	if err != nil {
-
-		// Check if the file exists
-		_, readFileErr := os.Stat(cfgFile)
-		if os.IsNotExist(readFileErr) {
-			log.Debug().Str("config_file", cfgFile).Msg("config file does not exist")
-		} else {
-			log.Panic().Str("config_file", cfgFile).Err(err).Msg("error reading config file")
-		}
-
+		// If there is no config file set via the command line we use the following path to look for a config file
+		server_settings.SetDefaultSources()
 	}
 }
 

@@ -15,12 +15,9 @@ db: goiam.db?_foreign_keys=on
 run_db_migrations: true
 
 # Node settings are propogated down to all nodes
-node_settings:
-  somenode: foobar
+#node_settings:
+#  somenode: foobar
 
 # Extension can be used by extensions
 #extension_settings:
 #  somesetting: foobar
-
-realm_base_url_overwrite:
-  acme_secure: https://supersecure.acme.com/foobar
