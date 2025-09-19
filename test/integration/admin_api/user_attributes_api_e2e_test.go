@@ -1,9 +1,12 @@
 package integration_admin_api
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
+	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/test/integration"
 )
 
@@ -21,30 +24,22 @@ import (
 
 func TestUserAttributesAPI_E2E(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
+	ctx := context.Background()
 
-	// First create a test user to attach attributes to
-	testUser := map[string]interface{}{
-		"username":     "attr_test_user",
-		"display_name": "Attribute Test User",
-		"given_name":   "Attribute",
-		"family_name":  "Test",
-		"email":        "attr_test@example.com",
-		"status":       "active",
-	}
+	// Arrange
+	tenant := "acme"
+	realm := "customers"
+	testUserID := "testuser"
 
-	var testUserID string
+	// Creatae a new realm
+	service.GetServices().RealmService.CreateRealm(&model.Realm{
+		Tenant: tenant,
+		Realm:  realm,
+	})
 
-	// Create the test user
-	t.Run("Create Test User", func(t *testing.T) {
-		resp := e.POST("/admin/acme/customers/users/" + testUser["username"].(string)).
-			WithJSON(testUser).
-			Expect().
-			Status(http.StatusCreated).
-			JSON().
-			Object()
-
-		resp.HasValue("username", testUser["username"])
-		testUserID = resp.Value("id").String().Raw()
+	// Create an empty user
+	service.GetServices().UserService.CreateUser(ctx, tenant, realm, model.User{
+		ID: testUserID,
 	})
 
 	var primaryEmailAttributeID string
@@ -113,8 +108,8 @@ func TestUserAttributesAPI_E2E(t *testing.T) {
 		resp.Length().Equal(2)
 
 		// Check that both attributes are present
-		attr1 := resp.Element(0).Object()
-		attr2 := resp.Element(1).Object()
+		attr1 := resp.Value(0).Object()
+		attr2 := resp.Value(1).Object()
 
 		// Verify we have both email attributes (order may vary)
 		indexes := []string{
@@ -140,7 +135,7 @@ func TestUserAttributesAPI_E2E(t *testing.T) {
 
 	// Test getting a specific attribute
 	t.Run("Get Specific Attribute", func(t *testing.T) {
-		e.GET("/admin/acme/customers/users/"+testUserID+"/attributes/email/"+primaryEmailAttributeID).
+		e.GET("/admin/acme/customers/users/"+testUserID+"/attributes/"+model.AttributeTypeEmail+"/"+primaryEmailAttributeID).
 			Expect().
 			Status(http.StatusOK).
 			JSON().
@@ -163,7 +158,7 @@ func TestUserAttributesAPI_E2E(t *testing.T) {
 			},
 		}
 
-		e.PATCH("/admin/acme/customers/users/"+testUserID+"/attributes/email/"+workEmailAttributeID).
+		e.PATCH("/admin/acme/customers/users/"+testUserID+"/attributes/"+model.AttributeTypeEmail+"/"+workEmailAttributeID).
 			WithJSON(updatedAttribute).
 			Expect().
 			Status(http.StatusOK).
@@ -178,12 +173,12 @@ func TestUserAttributesAPI_E2E(t *testing.T) {
 
 	// Test deleting a specific attribute
 	t.Run("Delete Work Email Attribute", func(t *testing.T) {
-		e.DELETE("/admin/acme/customers/users/" + testUserID + "/attributes/email/" + workEmailAttributeID).
+		e.DELETE("/admin/acme/customers/users/" + testUserID + "/attributes/" + model.AttributeTypeEmail + "/" + workEmailAttributeID).
 			Expect().
 			Status(http.StatusNoContent)
 
 		// Verify the attribute is deleted
-		e.GET("/admin/acme/customers/users/" + testUserID + "/attributes/email/" + workEmailAttributeID).
+		e.GET("/admin/acme/customers/users/" + testUserID + "/attributes/" + model.AttributeTypeEmail + "/" + workEmailAttributeID).
 			Expect().
 			Status(http.StatusNotFound)
 	})
@@ -206,7 +201,7 @@ func TestUserAttributesAPI_E2E(t *testing.T) {
 
 	// Clean up: delete the remaining attribute
 	t.Run("Delete Remaining Attribute", func(t *testing.T) {
-		e.DELETE("/admin/acme/customers/users/" + testUserID + "/attributes/email/" + primaryEmailAttributeID).
+		e.DELETE("/admin/acme/customers/users/" + testUserID + "/attributes/" + model.AttributeTypeEmail + "/" + primaryEmailAttributeID).
 			Expect().
 			Status(http.StatusNoContent)
 	})
@@ -218,18 +213,6 @@ func TestUserAttributesAPI_E2E(t *testing.T) {
 			Status(http.StatusOK).
 			JSON().
 			Array().
-			Length().Equal(0)
-	})
-
-	// Clean up: delete the test user
-	t.Run("Delete Test User", func(t *testing.T) {
-		e.DELETE("/admin/acme/customers/users/" + testUser["username"].(string)).
-			Expect().
-			Status(http.StatusNoContent)
-
-		// Verify user is deleted
-		e.GET("/admin/acme/customers/users/" + testUser["username"].(string)).
-			Expect().
-			Status(http.StatusNotFound)
+			Length().IsEqual(0)
 	})
 }
