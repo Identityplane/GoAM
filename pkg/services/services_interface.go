@@ -83,7 +83,7 @@ type FlowService interface {
 	GetFlowById(tenant, realm, id string) (*model.Flow, bool)
 
 	// GetFlowByPath returns a flow by its path
-	GetFlowByPath(tenant, realm, path string) (*model.Flow, bool)
+	GetFlowForExecution(path string, loadedRealm *LoadedRealm) (*model.Flow, bool)
 
 	// ListFlows returns all flows
 	ListFlows(tenant, realm string) ([]model.Flow, error)

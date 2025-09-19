@@ -110,8 +110,15 @@ func HandleFlowGraphSVG(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
+	if !ok {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		ctx.SetBodyString("realm not found")
+		return
+	}
+
 	// Look up the flow in the registry
-	flow, ok := service.GetServices().FlowService.GetFlowByPath(tenant, realm, flowPath)
+	flow, ok := service.GetServices().FlowService.GetFlowForExecution(flowPath, loadedRealm)
 
 	if !ok {
 		// Return 404 if flow is not found

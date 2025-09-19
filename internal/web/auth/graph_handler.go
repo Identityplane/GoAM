@@ -45,18 +45,18 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	realm := ctx.UserValue("realm").(string)
 	flowPath := ctx.UserValue("path").(string)
 
-	// Load the flow
-	flow, ok := service.GetServices().FlowService.GetFlowByPath(tenant, realm, flowPath)
-	if !ok {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		ctx.SetBodyString("flow not found")
-		return
-	}
-
 	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		ctx.SetBodyString("realm not found")
+		return
+	}
+
+	// Load the flow
+	flow, ok := service.GetServices().FlowService.GetFlowForExecution(flowPath, loadedRealm)
+	if !ok {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		ctx.SetBodyString("flow not found")
 		return
 	}
 

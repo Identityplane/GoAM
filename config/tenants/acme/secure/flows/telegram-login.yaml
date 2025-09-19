@@ -22,7 +22,6 @@ nodes:
     name: telegramLogin
     use: telegramLogin
     custom_config:
-      telegram_botToken: "8252112456:AAHrnmKsfK0lpjHDPCngmfjdqVcIJkC008E" #Throwaway bit id with goam.network activcated as url
       telegram_requestWriteAccess: "true"
       telegram_createUser: "true"
     next:

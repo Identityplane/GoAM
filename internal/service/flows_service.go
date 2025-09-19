@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
+	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -72,7 +73,11 @@ func (s *flowServiceImpl) GetFlowById(tenant, realm, id string) (*model.Flow, bo
 	return flow, true
 }
 
-func (s *flowServiceImpl) GetFlowByPath(tenant, realm, path string) (*model.Flow, bool) {
+func (s *flowServiceImpl) GetFlowForExecution(path string, loadedRealm *services_interface.LoadedRealm) (*model.Flow, bool) {
+
+	tenant := loadedRealm.Config.Tenant
+	realm := loadedRealm.Config.Realm
+
 	flow, err := s.flowsDb.GetFlowByRoute(context.Background(), tenant, realm, path)
 	if err != nil || flow == nil {
 		return nil, false
@@ -87,6 +92,9 @@ func (s *flowServiceImpl) GetFlowByPath(tenant, realm, path string) (*model.Flow
 			return nil, false
 		}
 	}
+
+	// Overwrite node settings from realm and server overwrites
+	overwriteNodeSettings(flow.Definition, loadedRealm)
 
 	return flow, true
 }
@@ -219,4 +227,42 @@ func (s *flowServiceImpl) ValidateFlowDefinition(content string) ([]services_int
 	}
 
 	return []services_interface.FlowLintError{}, nil
+}
+
+func overwriteNodeSettings(flow *model.FlowDefinition, loadedRealm *services_interface.LoadedRealm) {
+
+	// go over each configuration option for each node
+	for _, node := range flow.Nodes {
+
+		// Load the node definiton to get the configuration options
+		definiton := graph.GetNodeDefinitionByName(node.Use)
+
+		// Go over each configuration option
+		for configOption, _ := range definiton.CustomConfigOptions {
+
+			// Set the configuration option based on the available settings
+			node.CustomConfig[configOption] = getConfigurationOption(loadedRealm, definiton, configOption, node)
+		}
+	}
+}
+
+func getConfigurationOption(loadedRealm *services_interface.LoadedRealm, nodeDefiniton *model.NodeDefinition, configOption string, node *model.GraphNode) string {
+
+	// If a customer configuration is set for the node we use if with highest priority
+	if node.CustomConfig[configOption] != "" {
+		return node.CustomConfig[configOption]
+	}
+
+	// If a realm configuration is set we use it
+	if loadedRealm.Config.RealmSettings[configOption] != "" {
+		return loadedRealm.Config.RealmSettings[configOption]
+	}
+
+	// If we have a server setting we use it
+	if config.ServerSettings.NodeSettings[configOption] != "" {
+		return config.ServerSettings.NodeSettings[configOption]
+	}
+
+	// If we have no setting we return an empty string
+	return ""
 }

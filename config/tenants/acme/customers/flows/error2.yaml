@@ -12,7 +12,7 @@ nodes:
     name: telegramLogin
     use: telegramLogin
     custom_config:
-      telegram_botToken:  #No bit token will result in an error
+      telegram_bottoken:  "invalid" #Empty bot token will result in an execution error
     next:
       existing-user: successResult
       new-user: successResult
