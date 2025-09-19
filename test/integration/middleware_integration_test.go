@@ -1,11 +1,11 @@
 package integration
 
 import (
-	"os"
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/web"
+	"github.com/spf13/viper"
 )
 
 func TestNotFoundRedirectNoUrl(t *testing.T) {
@@ -21,8 +21,8 @@ func TestNotFoundRedirectNoUrl(t *testing.T) {
 
 func TestNotFoundRedirectWithUrl(t *testing.T) {
 
-	os.Setenv("GOIAM_NOT_FOUND_REDIRECT_URL", "https://example.com/")
-	defer os.Unsetenv("GOIAM_NOT_FOUND_REDIRECT_URL")
+	viper.Set("not_found_redirect_url", "https://example.com/")
+	defer viper.Set("not_found_redirect_url", "")
 	e := SetupIntegrationTest(t, "")
 
 	// Recreate router with new config
@@ -48,10 +48,9 @@ func TestXForwardedForDisabled(t *testing.T) {
 
 func TestXForwardedForEnabled(t *testing.T) {
 
-	os.Setenv("GOIAM_PROXIES", "3")
+	viper.Set("forwarding_proxies", 3)
 	defer func() {
-		os.Unsetenv("GOIAM_PROXIES")
-		config.ServerSettings.ForwardingProxies = 0
+		viper.Set("forwarding_proxies", 0)
 	}()
 	e := SetupIntegrationTest(t, "")
 
@@ -71,9 +70,9 @@ func TestXForwardedForEnabled(t *testing.T) {
 
 func TestSingleProxyXForwardedFor(t *testing.T) {
 
-	os.Setenv("GOIAM_PROXIES", "1")
+	viper.Set("forwarding_proxies", 1)
 	defer func() {
-		os.Unsetenv("GOIAM_PROXIES")
+		viper.Set("forwarding_proxies", 0)
 		config.ServerSettings.ForwardingProxies = 0
 	}()
 	e := SetupIntegrationTest(t, "")
@@ -93,9 +92,9 @@ func TestSingleProxyXForwardedFor(t *testing.T) {
 
 func TestMultipleXForwardedHeaders(t *testing.T) {
 
-	os.Setenv("GOIAM_PROXIES", "3")
+	viper.Set("forwarding_proxies", 3)
 	defer func() {
-		os.Unsetenv("GOIAM_PROXIES")
+		viper.Set("forwarding_proxies", 0)
 		config.ServerSettings.ForwardingProxies = 0
 	}()
 	e := SetupIntegrationTest(t, "")
@@ -116,9 +115,9 @@ func TestMultipleXForwardedHeaders(t *testing.T) {
 
 func TestMaliciousXForwardedFor(t *testing.T) {
 
-	os.Setenv("GOIAM_PROXIES", "2")
+	viper.Set("forwarding_proxies", 2)
 	defer func() {
-		os.Unsetenv("GOIAM_PROXIES")
+		viper.Set("forwarding_proxies", 0)
 		config.ServerSettings.ForwardingProxies = 0
 	}()
 	e := SetupIntegrationTest(t, "")
@@ -138,8 +137,8 @@ func TestMaliciousXForwardedFor(t *testing.T) {
 }
 
 func TestServerTiming(t *testing.T) {
-	os.Setenv("GOIAM_ENABLE_REQUEST_TIMING", "true")
-	defer os.Unsetenv("GOIAM_ENABLE_REQUEST_TIMING")
+	viper.Set("enable_request_timing", true)
+	defer viper.Set("enable_request_timing", false)
 	e := SetupIntegrationTest(t, "")
 
 	// Recreate router with new config

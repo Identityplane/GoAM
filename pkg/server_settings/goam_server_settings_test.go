@@ -9,7 +9,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestServerSettings_InitWithViper(t *testing.T) {
+func TestServerSettings_Init(t *testing.T) {
+
+	// Part 1 without config file
+
+	t.Run("Default settings if no config file or env is present", func(t *testing.T) {
+
+		// Act
+		settings, err := InitWithViper()
+		assert.NoError(t, err)
+
+		// Assert
+		assert.Equal(t, "GoAM", settings.Banner)
+	})
+
+	t.Run("Env if no config file is present", func(t *testing.T) {
+
+		// Arrange
+		os.Setenv("GOAM_BANNER", "test-from-env-2")
+		defer os.Unsetenv("GOAM_BANNER")
+
+		// Act
+		settings, err := InitWithViper()
+		assert.NoError(t, err)
+
+		// Assert
+		assert.Equal(t, "test-from-env-2", settings.Banner)
+	})
+
+	// Part 2, set config file
 
 	config_file := "test_settings.yaml"
 	working_dir, err := os.Getwd()
@@ -45,30 +73,6 @@ func TestServerSettings_InitWithViper(t *testing.T) {
 
 		// Assert
 		assert.Equal(t, "test-from-env", settings.Banner)
-	})
-
-	t.Run("Default settings if no config file or env is present", func(t *testing.T) {
-
-		// Act
-		settings, err := InitWithViper()
-		assert.NoError(t, err)
-
-		// Assert
-		assert.Equal(t, "GoAM", settings.Banner)
-	})
-
-	t.Run("Env if no config file is present", func(t *testing.T) {
-
-		// Arrange
-		os.Setenv("GOAM_BANNER", "test-from-env-2")
-		defer os.Unsetenv("GOAM_BANNER")
-
-		// Act
-		settings, err := InitWithViper()
-		assert.NoError(t, err)
-
-		// Assert
-		assert.Equal(t, "test-from-env-2", settings.Banner)
 	})
 
 	t.Run("Read settings from mapstructure", func(t *testing.T) {
