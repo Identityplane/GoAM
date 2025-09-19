@@ -108,7 +108,7 @@ func getOutdatedTestTelegramCredentials() (string, string) {
 
 // runTelegramLoginNodeWithTime is a test version that accepts a custom time
 func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories, currentTime time.Time) (*model.NodeResult, error) {
-	botToken := node.CustomConfig["botToken"]
+	botToken := node.CustomConfig["telegram_bottoken"]
 
 	// Get the bot id from the bot token
 	botId := strings.Split(botToken, ":")[0]
@@ -151,7 +151,7 @@ func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *mode
 		}
 
 		// If the create user option is enabled we create a new user if it doesn't exist
-		if node.CustomConfig["createUser"] == "true" && dbUser == nil {
+		if node.CustomConfig["telegram_create_user"] == "true" && dbUser == nil {
 			user := &model.User{
 				ID:     uuid.NewString(),
 				Status: "active",
@@ -211,7 +211,7 @@ func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *mode
 	params.Set("origin", origin)
 	params.Set("return_to", state.LoginUri+"?callback=telegram")
 
-	if node.CustomConfig["requestWriteAccess"] == "true" {
+	if node.CustomConfig["telegram_request_write_access"] == "true" {
 		params.Set("request_access", "write")
 	}
 
@@ -335,7 +335,7 @@ func TestRunTelegramLoginNodeExistingUser(t *testing.T) {
 	// Create node and state
 	node := &model.GraphNode{
 		CustomConfig: map[string]string{
-			"botToken": tgToken,
+			"telegram_bottoken": tgToken,
 		},
 	}
 
@@ -391,8 +391,8 @@ func TestRunTelegramLoginNodeNewUser(t *testing.T) {
 	// Create node and state
 	node := &model.GraphNode{
 		CustomConfig: map[string]string{
-			"botToken":   tgToken,
-			"createUser": "true",
+			"telegram_bottoken":    tgToken,
+			"telegram_create_user": "true",
 		},
 	}
 
@@ -446,8 +446,8 @@ func TestRunTelegramLoginNodeNoCreateUser(t *testing.T) {
 	// Create node and state
 	node := &model.GraphNode{
 		CustomConfig: map[string]string{
-			"botToken":   tgToken,
-			"createUser": "false", // Don't create user
+			"telegram_bottoken":    tgToken,
+			"telegram_create_user": "false", // Don't create user
 		},
 	}
 
@@ -495,7 +495,7 @@ func TestRunTelegramLoginNodeRedirect(t *testing.T) {
 	// Create node and state
 	node := &model.GraphNode{
 		CustomConfig: map[string]string{
-			"botToken": "1234567890:TestBotTokenForTestingPurposesOnly",
+			"telegram_bottoken": "1234567890:TestBotTokenForTestingPurposesOnly",
 		},
 	}
 
