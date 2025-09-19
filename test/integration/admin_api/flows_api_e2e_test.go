@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/test/integration"
 
 	"github.com/stretchr/testify/assert"
@@ -34,6 +36,11 @@ func TestFlowAPI_E2E(t *testing.T) {
 		"tenant":        tenant,
 		"debug_allowed": true,
 	}
+
+	service.GetServices().RealmService.CreateRealm(&model.Realm{
+		Tenant: tenant,
+		Realm:  realm,
+	})
 
 	// Test creating a flow
 	t.Run("Create Flow", func(t *testing.T) {
