@@ -236,11 +236,18 @@ func overwriteNodeSettings(flow *model.FlowDefinition, loadedRealm *services_int
 
 		// Load the node definiton to get the configuration options
 		definiton := graph.GetNodeDefinitionByName(node.Use)
+		if definiton == nil || definiton.CustomConfigOptions == nil {
+			continue
+		}
 
 		// Go over each configuration option
 		for configOption, _ := range definiton.CustomConfigOptions {
 
 			// Set the configuration option based on the available settings
+			if node.CustomConfig == nil {
+				node.CustomConfig = make(map[string]string)
+			}
+
 			node.CustomConfig[configOption] = getConfigurationOption(loadedRealm, definiton, configOption, node)
 		}
 	}
