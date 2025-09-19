@@ -99,10 +99,10 @@ func HandleGetFlow(ctx *fasthttp.RequestCtx) {
 	// Load the realm
 	loadedRealm, found := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !found {
-		ctx.SetStatusCode(http.StatusInternalServerError)
+		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetContentType("application/json")
 		_ = json.NewEncoder(ctx).Encode(map[string]string{
-			"error": "Failed to load realm",
+			"error": "Realm not found",
 		})
 		return
 	}
@@ -169,6 +169,19 @@ func HandleCreateFlow(ctx *fasthttp.RequestCtx) {
 	flow.Realm = realm
 	flow.Id = flowId
 
+	// Check if the realm exists
+	// Load the realm
+	_, found := service.GetServices().RealmService.GetRealm(tenant, realm)
+	if !found {
+		ctx.SetStatusCode(http.StatusNotFound)
+		ctx.SetContentType("application/json")
+		_ = json.NewEncoder(ctx).Encode(map[string]string{
+			"error": "Realm not found",
+		})
+		return
+	}
+
+	// Create the flow
 	if err := service.GetServices().FlowService.CreateFlow(tenant, realm, flow); err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetContentType("application/json")
