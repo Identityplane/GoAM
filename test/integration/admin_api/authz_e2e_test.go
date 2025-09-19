@@ -109,11 +109,11 @@ func TestAdminAuthzE2E(t *testing.T) {
 		entitlements := resp.Value("entitlements").Array()
 		entitlements.Length().IsEqual(1)
 
-		entitlement := entitlements.Element(0).Object()
-		entitlement.Value("tenant").String().IsEqual("test-tenant")
-		entitlement.Value("realm").String().IsEqual("*")
-		entitlement.Value("scopes").Array().Length().IsEqual(1)
-		entitlement.Value("scopes").Array().Element(0).String().IsEqual("*")
+		entitlement := entitlements.Value(0).Object()
+		entitlement.Value("resource").String().IsEqual("test-tenant/**")
+		entitlement.Value("action").String().IsEqual("*")
+		entitlement.Value("effect").String().IsEqual("allow")
+		//entitlement.Value("description").String().IsEqual("Creator of tenant 'test-tenant'")
 	})
 
 	t.Run("Check List Realms After Tenant Creation", func(t *testing.T) {
