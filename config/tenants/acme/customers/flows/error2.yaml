@@ -1,0 +1,19 @@
+description: 'This flow is used to test the error template'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: telegramLogin 
+
+  telegramLogin:
+    name: telegramLogin
+    use: telegramLogin
+    custom_config:
+      telegram_botToken:  #No bit token will result in an error
+    next:
+      existing-user: successResult
+      new-user: successResult
+      failure: successResult

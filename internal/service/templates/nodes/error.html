@@ -1,6 +1,6 @@
 {{ define "content" }}
 <h2>{{or (index .CustomConfig "title") "Error"}}</h2>
-<p class="form-subtitle">{{or (index .CustomConfig "message") "An error occurred"}}</p>
+<p class="form-subtitle">{{or (index .CustomConfig "message") "Sorry an error occurred"}}</p>
 
 {{ if .Debug }}
 <div class="error" style="color: red; font-weight: bold;">
