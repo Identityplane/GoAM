@@ -10,6 +10,7 @@
         "mode": "auto",
         "program": "${workspaceFolder}/cmd",
         "env": {
+          "GOAM_INFRASTRUCTURE_AS_CODE_MODE": "true"
         },
         "args": [],
         "showLog": true
