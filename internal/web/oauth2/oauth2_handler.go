@@ -106,6 +106,13 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Load the flow for execution
+	flow, ok = service.GetServices().FlowService.GetFlowForExecution(flow.Route, loadedRealm)
+	if !ok {
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Cannot load flow for execution: "+flowId, oauth2request, redirectUri)
+		return
+	}
+
 	// Validate and process the authorization request
 	oauth2error := service.GetServices().OAuth2Service.ValidateOAuth2AuthorizationRequest(oauth2request, tenant, realm, application, flowId)
 	if oauth2error != nil {

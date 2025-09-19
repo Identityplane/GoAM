@@ -64,8 +64,11 @@ func (s *cachedFlowService) GetFlowById(tenant, realm, id string) (*model.Flow, 
 	return flow, true
 }
 
-func (s *cachedFlowService) GetFlowByPath(tenant, realm, path string) (*model.Flow, bool) {
+func (s *cachedFlowService) GetFlowForExecution(path string, loadedRealm *services_interface.LoadedRealm) (*model.Flow, bool) {
 	log := logger.GetLogger()
+	tenant := loadedRealm.Config.Tenant
+	realm := loadedRealm.Config.Realm
+
 	// Try to get from cache first
 	cacheKey := s.getFlowByPathCacheKey(tenant, realm, path)
 	if cached, exists := s.cache.Get(cacheKey); exists {
@@ -75,7 +78,7 @@ func (s *cachedFlowService) GetFlowByPath(tenant, realm, path string) (*model.Fl
 	}
 
 	// If not in cache, get from service
-	flow, exists := s.flowService.GetFlowByPath(tenant, realm, path)
+	flow, exists := s.flowService.GetFlowForExecution(path, loadedRealm)
 	if !exists {
 		return nil, false
 	}
