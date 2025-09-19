@@ -33,6 +33,11 @@ type UserJson struct {
 	Url string `json:"url"`
 }
 
+type UserWithAttributesJson struct {
+	UserJson
+	UserAttributes []model.UserAttribute `json:"user_attributes"`
+}
+
 // @Summary List users
 // @Description Get a paginated list of users
 // @Tags Users
@@ -178,8 +183,16 @@ func HandleGetUser(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Get the result value
+	var result any
+	if includeAttributes {
+		result = UserToUserWithAttributesJson(ctx, user)
+	} else {
+		result = UserToUserJson(ctx, user)
+	}
+
 	// Marshal response to JSON with pretty printing
-	jsonData, err := json.MarshalIndent(user, "", "  ")
+	jsonData, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to marshal response: " + err.Error())
@@ -409,5 +422,12 @@ func UserToUserJson(ctx *fasthttp.RequestCtx, user *model.User) UserJson {
 	return UserJson{
 		User: *user,
 		Url:  fmt.Sprintf("%s/%s/%s/users/%s?include_attributes=true", adminBaseUrl, user.Tenant, user.Realm, user.ID),
+	}
+}
+
+func UserToUserWithAttributesJson(ctx *fasthttp.RequestCtx, user *model.User) UserWithAttributesJson {
+	return UserWithAttributesJson{
+		UserJson:       UserToUserJson(ctx, user),
+		UserAttributes: user.UserAttributes,
 	}
 }
