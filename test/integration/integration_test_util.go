@@ -13,6 +13,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/web"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/pkg/server_settings"
+	"github.com/spf13/viper"
 
 	"github.com/fasthttp/router"
 	"github.com/gavv/httpexpect/v2"
@@ -35,8 +36,12 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	pwd, _ := os.Getwd()
 	fmt.Println("Current working directory:", pwd)
 
+	// Set config file to default goam.yaml file
 	projectRoot := findProjectRoot("README.md")
+	configFile := filepath.Join(projectRoot, "goam.yaml")
+	viper.SetConfigFile(configFile)
 
+	// Load server settings
 	serverSettings, err := server_settings.InitWithViper()
 	if err != nil {
 		t.Fatalf("failed to initialize server settings: %v", err)
