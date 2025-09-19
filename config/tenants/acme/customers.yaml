@@ -32,6 +32,11 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: username-password-passkey-upgrade-login.yaml
+  passkey_discovery_or_password:
+    route: /passkey-discovery-or-password
+    active: yes
+    debug_allowed: yes
+    definition_location: passkey_discovery_or_password.yaml
 
 applications:
   customers-app:
