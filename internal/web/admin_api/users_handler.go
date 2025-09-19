@@ -239,6 +239,11 @@ func HandleCreateUser(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Take the id in the url if the id is not set in the body
+	if createUser.ID == "" {
+		createUser.ID = id
+	}
+
 	// Check if id matched the path parameter
 	if createUser.ID != id {
 		ctx.SetStatusCode(http.StatusBadRequest)
