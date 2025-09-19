@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+var log = logger.GetLogger()
 
 // GoamServerSettings holds the configuration for the GoAM server
 type GoamServerSettings struct {
@@ -35,7 +39,7 @@ type GoamServerSettings struct {
 type ConfigDocumentation struct {
 	Field       string
 	Description string
-	Default     string
+	Default     any
 	Examples    []string
 	EnvVar      string
 }
@@ -73,7 +77,7 @@ func GetConfigDocumentation() []ConfigDocumentation {
 		{
 			Field:       "node_settings",
 			Description: "Settings for nodes as key-value pairs",
-			Default:     "",
+			Default:     []string{},
 			Examples:    []string{},
 			EnvVar:      "GOAM_NODE_SETTINGS_<KEY>",
 		},
@@ -136,7 +140,7 @@ func GetConfigDocumentation() []ConfigDocumentation {
 		{
 			Field:       "extension_settings",
 			Description: "Settings for extensions as key-value pairs",
-			Default:     "",
+			Default:     []string{},
 			Examples:    []string{},
 			EnvVar:      "GOAM_EXTENSION_SETTINGS_<KEY>",
 		},
@@ -150,38 +154,59 @@ func GetConfigDocumentation() []ConfigDocumentation {
 		{
 			Field:       "realm_base_url_overwrite",
 			Description: "If set for a realm, the base url will be overwriten (if not set in the realm config). This is useful for settings different realm urls for different environements like dev and prod",
-			Default:     "false",
+			Default:     []string{},
 			Examples:    []string{"example.com/overwrite/"},
 			EnvVar:      "GOAM_REALM_BASE_URL_OVERWRITE_<TENANT/REALM>",
 		},
 	}
 }
 
+func SetConfigFile(cfgFile string) {
+
+	viper.SetConfigType("yaml")
+	viper.SetConfigFile(cfgFile)
+}
+
+func SetDefaultSources() {
+
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")          // current working directory
+	viper.AddConfigPath("/etc/goam/") // standard linux config directory
+	viper.SetConfigName("goam.yaml")
+}
+
+func BindCobraFlags(cmd *cobra.Command) error {
+
+	for _, doc := range GetConfigDocumentation() {
+		cmd.PersistentFlags().String(doc.Field, doc.GetDefaultAsString(), doc.Description)
+
+		err := viper.BindPFlag(doc.Field, cmd.PersistentFlags().Lookup(doc.Field))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func InitWithViper() (*GoamServerSettings, error) {
+
+	// We always use env variables with the GOAM prefix that take precedence over the config file
+	viper.SetEnvPrefix("GOAM")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
 
 	// Viper default values
 	for _, doc := range GetConfigDocumentation() {
 		viper.SetDefault(doc.Field, doc.Default)
 	}
 
-	// Viper Environment variables
-	viper.SetEnvPrefix("GOAM")
-	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-	viper.AutomaticEnv()
-
-	// Config file support
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("$HOME/.goam")
-	viper.AddConfigPath("/etc/goam/")
+	usedConfigFile := viper.ConfigFileUsed()
 
 	// Read config file (ignore if not found)
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return nil, fmt.Errorf("error reading config file: %w", err)
-		}
+	if err := viper.ReadInConfig(); err != nil && usedConfigFile != "" {
+
+		return nil, fmt.Errorf("error reading config file: %w", err)
 	}
 
 	// Load from viper (this will be populated by cobra flags, env vars, config files)
@@ -191,6 +216,9 @@ func InitWithViper() (*GoamServerSettings, error) {
 		return nil, fmt.Errorf("error unmarshalling config: %w", err)
 	}
 
+	// For debugging log all environement variables dirrectly from the os
+	log.Trace().Interface("settings", settings).Msg("settings")
+
 	return settings, nil
 }
 
@@ -199,5 +227,10 @@ func NewGoamServerSettings() *GoamServerSettings {
 	return &GoamServerSettings{
 		NodeSettings:      make(map[string]string),
 		ExtensionSettings: make(map[string]string),
+		BaseUrlOverwrite:  make(map[string]string),
 	}
+}
+
+func (s *ConfigDocumentation) GetDefaultAsString() string {
+	return fmt.Sprintf("%v", s.Default)
 }
