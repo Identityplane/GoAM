@@ -1,0 +1,4 @@
+banner: test-from-file
+
+extension_settings:
+  test_setting: test-from-file
