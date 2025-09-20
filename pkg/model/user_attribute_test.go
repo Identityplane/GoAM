@@ -36,17 +36,14 @@ func TestUserAttributeWithSocialValue(t *testing.T) {
 	}
 
 	// Verify the decoded values match the original
-	if decodedAttr.UserID != userAttr.UserID {
-		t.Errorf("Expected UserID '%s', got '%s'", userAttr.UserID, decodedAttr.UserID)
-	}
-	if decodedAttr.Tenant != userAttr.Tenant {
-		t.Errorf("Expected Tenant '%s', got '%s'", userAttr.Tenant, decodedAttr.Tenant)
-	}
-	if decodedAttr.Realm != userAttr.Realm {
-		t.Errorf("Expected Realm '%s', got '%s'", userAttr.Realm, decodedAttr.Realm)
-	}
-	if decodedAttr.Index != userAttr.Index {
-		t.Errorf("Expected Index '%s', got '%s'", userAttr.Index, decodedAttr.Index)
+	// Note: UserID, Tenant, and Realm are excluded from JSON (json:"-") so they won't be unmarshaled
+	// We'll skip testing these fields since they're not part of the JSON representation
+
+	// Test Index pointer values (not the pointers themselves)
+	if (decodedAttr.Index == nil) != (userAttr.Index == nil) {
+		t.Errorf("Expected Index nil status to match")
+	} else if decodedAttr.Index != nil && userAttr.Index != nil && *decodedAttr.Index != *userAttr.Index {
+		t.Errorf("Expected Index '%s', got '%s'", *userAttr.Index, *decodedAttr.Index)
 	}
 	if decodedAttr.Type != userAttr.Type {
 		t.Errorf("Expected Type '%s', got '%s'", userAttr.Type, decodedAttr.Type)
