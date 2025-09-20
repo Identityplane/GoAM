@@ -47,6 +47,11 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: error2.yaml
+  github-login:
+    route: /github-login
+    active: yes
+    debug_allowed: yes
+    definition_location: github-login.yaml
 
 applications:
   customers-app:

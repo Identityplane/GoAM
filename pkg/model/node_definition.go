@@ -35,6 +35,10 @@ type UserRepository interface {
 	CreateUserAttribute(ctx context.Context, attribute *UserAttribute) error
 	UpdateUserAttribute(ctx context.Context, attribute *UserAttribute) error
 	DeleteUserAttribute(ctx context.Context, attributeID string) error
+
+	// Creates a new user model based on the context value
+	// This initializes the user according to the realm requirements with id, and state
+	NewUserModel(state *AuthenticationSession) (*User, error)
 }
 
 type EmailSender interface {

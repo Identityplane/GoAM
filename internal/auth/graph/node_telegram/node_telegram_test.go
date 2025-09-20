@@ -151,7 +151,7 @@ func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *mode
 		}
 
 		// If the create user option is enabled we create a new user if it doesn't exist
-		if node.CustomConfig["telegram_create_user"] == "true" && dbUser == nil {
+		if node.CustomConfig["telegram_create_user"] == "true" {
 			user := &model.User{
 				ID:     uuid.NewString(),
 				Status: "active",
