@@ -17,7 +17,8 @@ run_db_migrations: true
 # Node settings are propogated down to all nodes, realm 
 node_settings:
   telegram_bottoken: "8252112456:AAHrnmKsfK0lpjHDPCngmfjdqVcIJkC008E" #Throwaway bit id with goam.network activcated as url
-
+  github-client-id: "Iv23lidAagmbOGOBZqY8"
+  github-client-secret: "3b7ec03596fdd77021bf99a32698244af16f13bb"
 # Extension can be used by extensions
 #extension_settings:
 #  somesetting: foobar

@@ -9,6 +9,7 @@ import (
 
 // Represents a ongoing execution of a flow
 type AuthenticationSession struct {
+	RealmObject
 	RunID                    string            `json:"run_id"`            // Unique identifier for the flow execution
 	SessionIdHash            string            `json:"session_id_hash"`   // Hash of the session id
 	FlowId                   string            `json:"flow_id"`           // Id of the flow

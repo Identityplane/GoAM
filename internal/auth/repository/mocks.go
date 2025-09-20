@@ -6,12 +6,18 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/db/sqlite_adapter"
 	"github.com/Identityplane/GoAM/pkg/model"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 )
 
 // MockUserRepository implements UserRepository for testing (pure mock)
 type MockUserRepository struct {
 	mock.Mock
+}
+
+func (m *MockUserRepository) NewUserModel(state *model.AuthenticationSession) (*model.User, error) {
+	m.Called(state)
+	return nil, nil
 }
 
 func (m *MockUserRepository) GetByID(ctx context.Context, id string) (*model.User, error) {
@@ -146,7 +152,15 @@ func NewTestRepositories(tenant, realm string) (*model.Repositories, error) {
 
 // NewMockUserRepository creates a new mock user repository
 func NewMockUserRepository() *MockUserRepository {
-	return new(MockUserRepository)
+
+	mockUserRepo := new(MockUserRepository)
+	mockUserRepo.On("NewUserModel").Return(&model.User{
+		ID:     uuid.NewString(),
+		Tenant: "acme",
+		Realm:  "customers",
+		Status: "active",
+	}, nil)
+	return mockUserRepo
 }
 
 // NewMockEmailSender creates a new mock email sender

@@ -74,8 +74,7 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	node_telegram.TelegramLoginNode.Name: node_telegram.TelegramLoginNode,
 
 	// GitHub
-	node_github.GithubLoginNode.Name:      node_github.GithubLoginNode,
-	node_github.GithubCreateUserNode.Name: node_github.GithubCreateUserNode,
+	node_github.GithubLoginNode.Name: node_github.GithubLoginNode,
 }
 
 func GetNodeDefinitionByName(name string) *model.NodeDefinition {
