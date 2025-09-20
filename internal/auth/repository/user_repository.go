@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -24,6 +25,18 @@ func NewUserRepository(tenant, realm string, db db.UserDB, attributesDB db.UserA
 	repo := &UserRepositoryImpl{tenant: tenant, realm: realm, db: db, attributesDB: attributesDB}
 
 	return repo
+}
+
+func (r *UserRepositoryImpl) NewUserModel(state *model.AuthenticationSession) (*model.User, error) {
+
+	return &model.User{
+		ID:        uuid.NewString(),
+		Tenant:    r.tenant,
+		Realm:     r.realm,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Status:    "active",
+	}, nil
 }
 
 func (r *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {

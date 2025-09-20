@@ -1,0 +1,44 @@
+description: 'Simple login with a github account. Creates a new user if they dont exist.'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: passwordOrSocialLogin 
+      
+  passwordOrSocialLogin:
+    name: passwordOrSocialLogin
+    use: passwordOrSocialLogin
+    custom_config:
+      social1: github
+      disableSubmit: true
+      disableDivider: true
+    next:
+      social1: githubLogin
+
+  githubLogin:
+    name: githubLogin
+    use: githubLogin
+    custom_config:
+      github-scope: "user:email read:user public_repo"
+      github-create-user-if-not-exists: "true"
+    next:
+      existing-user: successResult
+      new-user: successResult
+      failure: passwordOrSocialLogin
+
+  failureResult:
+    name: failureResult
+    use: failureResult
+    custom_config:
+      message: Failed to login.
+    next: {}
+    
+  successResult:
+    name: successResult
+    use: successResult
+    custom_config:
+      message: Login successful!
+    next: {}

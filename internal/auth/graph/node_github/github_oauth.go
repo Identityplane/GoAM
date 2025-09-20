@@ -2,26 +2,11 @@ package node_github
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/Identityplane/GoAM/pkg/model"
 )
-
-var GithubCreateUserNode = &model.NodeDefinition{
-	Name:                 "githubCreateUser",
-	PrettyName:           "Create GitHub User",
-	Description:          "Creates a new user account using information from GitHub OAuth authentication",
-	Category:             "User Management",
-	Type:                 model.NodeTypeLogic,
-	RequiredContext:      []string{"github"},
-	PossibleResultStates: []string{"created"},
-	OutputContext:        []string{"user"},
-	Run:                  RunGithubCreateUserNode,
-}
 
 const (
 	githubProvider = "github"
@@ -32,43 +17,6 @@ var (
 	githubTokenURL = "https://github.com/login/oauth/access_token"
 	githubUserURL  = "https://api.github.com/user"
 )
-
-func RunGithubCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
-
-	// We we have no github attribute in the context we return an error
-	if state.Context["github"] == "" {
-		return model.NewNodeResultWithError(fmt.Errorf("github is required in state context"))
-	}
-
-	// Parse the github attribute
-	githubAttribute := model.GitHubAttributeValue{}
-	err := json.Unmarshal([]byte(state.Context["github"]), &githubAttribute)
-	if err != nil {
-		return model.NewNodeResultWithError(fmt.Errorf("failed to parse github attribute: %w", err))
-	}
-
-	// Creata a new user in the context if it does not exist
-	if state.User == nil {
-		state.User = &model.User{
-			Status: "active",
-		}
-	}
-
-	// Append the github attribute to the user with the user id as the index
-	state.User.AddAttribute(&model.UserAttribute{
-		Index: &githubAttribute.GitHubUserID,
-		Type:  model.AttributeTypeGitHub,
-		Value: githubAttribute,
-	})
-
-	// Save the user
-	err = services.UserRepo.CreateOrUpdate(context.Background(), state.User)
-	if err != nil {
-		return model.NewNodeResultWithError(fmt.Errorf("failed to save user: %w", err))
-	}
-
-	return model.NewNodeResultWithCondition("created")
-}
 
 type GitHubUser struct {
 	Login             string `json:"login"`

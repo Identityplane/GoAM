@@ -2,12 +2,19 @@ package node_github
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+)
+
+const (
+	CONFIG_GITHUB_CLIENT_ID          = "github-client-id"
+	CONFIG_GITHUB_CLIENT_SECRET      = "github-client-secret"
+	CONFIG_GITHUB_SCOPE              = "github-scope"
+	CONFIG_CREATE_USER_IF_NOT_EXISTS = "github-create-user-if-not-exists"
 )
 
 var GithubLoginNode = &model.NodeDefinition{
@@ -21,24 +28,24 @@ var GithubLoginNode = &model.NodeDefinition{
 	OutputContext:        []string{"github-username", "github-access-token", "github-refresh-token", "github-token-type", "github-scope", "github-user-id", "github-avatar-url", "github-email"},
 	PossibleResultStates: []string{"existing-user", "new-user", "failure"},
 	CustomConfigOptions: map[string]string{
-		"github-client-id":          "The client id of the Github app",
-		"github-client-secret":      "The client secret of the Github app",
-		"github-scope":              "The list of scopes to request from Github, comma separated",
-		"create-user-if-not-exists": "If 'true' then create a new user if the user does not exist",
+		CONFIG_GITHUB_CLIENT_ID:          "The client id of the Github app",
+		CONFIG_GITHUB_CLIENT_SECRET:      "The client secret of the Github app",
+		CONFIG_GITHUB_SCOPE:              "The list of scopes to request from Github, comma separated",
+		CONFIG_CREATE_USER_IF_NOT_EXISTS: "If 'true' then create a new user if the user does not exist",
 	},
 	Run: RunGithubLoginNode,
 }
 
 func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
-	githubClientID := node.CustomConfig["github-client-id"]
-	githubClientSecret := node.CustomConfig["github-client-secret"]
-	githubScope := node.CustomConfig["github-scope"]
+	githubClientID := node.CustomConfig[CONFIG_GITHUB_CLIENT_ID]
+	githubClientSecret := node.CustomConfig[CONFIG_GITHUB_CLIENT_SECRET]
+	githubScope := node.CustomConfig[CONFIG_GITHUB_SCOPE]
 
 	if githubClientID == "" || githubClientSecret == "" || githubScope == "" {
 
 		// This is a hard error as the node is misconfigured
-		return model.NewNodeResultWithError(fmt.Errorf("github-client-id, github-client-secret and github-scope are required"))
+		return model.NewNodeResultWithError(fmt.Errorf(CONFIG_GITHUB_CLIENT_ID + ", " + CONFIG_GITHUB_CLIENT_SECRET + " and " + CONFIG_GITHUB_SCOPE + " are required"))
 	}
 
 	code := input["code"]
@@ -94,22 +101,42 @@ func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNod
 		GitHubScope:        githubResponse.Scope,
 	}
 
-	// Store the github attribute in the context
-	githubAttributeJSON, _ := json.Marshal(githubAttributeValue)
-	state.Context["github"] = string(githubAttributeJSON)
-
-	// Check if the user exists in the database
+	// Check if the user exists in the database by checking the github user id
 	user, err := services.UserRepo.GetByAttributeIndex(context.Background(), model.AttributeTypeGitHub, fmt.Sprintf("%d", githubData.ID))
 	if err != nil {
 		return model.NewNodeResultWithError(err)
 	}
 
-	// If the user does not exist we return with new user state
-	if user == nil {
-		return model.NewNodeResultWithCondition("new-user")
+	if user != nil {
+
+		// Store the user in the state and finish
+		// (TODO user is not updated wiht new github info)
+		state.User = user
+		return model.NewNodeResultWithCondition("existing-user")
 	}
 
-	// Store the user in the state and finish
-	state.User = user
-	return model.NewNodeResultWithCondition("existing-user")
+	// If we reach here we have a new user that is not linked yet
+	if state.User == nil {
+		state.User, err = services.UserRepo.NewUserModel(state)
+		if err != nil {
+			return model.NewNodeResultWithError(err)
+		}
+	}
+
+	// Add the github attribute to the user
+	state.User.AddAttribute(&model.UserAttribute{
+		Index: lib.StringPtr(fmt.Sprintf("%d", githubData.ID)),
+		Type:  model.AttributeTypeGitHub,
+		Value: githubAttributeValue,
+	})
+
+	// If the create user option is enabled we create the user
+	if node.CustomConfig[CONFIG_CREATE_USER_IF_NOT_EXISTS] == "true" {
+		err := services.UserRepo.Create(context.Background(), state.User)
+		if err != nil {
+			return model.NewNodeResultWithError(err)
+		}
+	}
+
+	return model.NewNodeResultWithCondition("new-user")
 }
