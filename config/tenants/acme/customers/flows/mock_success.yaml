@@ -1,0 +1,34 @@
+description: 'Implements a mock flow with no interaction that directly leads to a signed-in in user'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: setVariable 
+      
+  setVariable:
+    name: setVariable
+    use: setVariable
+    custom_config:
+      key: user_id
+      value: testuser
+    next:
+      done: createUser
+
+  createUser:
+    name: createUser
+    use: createUser
+    custom_config:
+      skipSaveUser: "true"
+    next:
+      success: successResult
+      existing: successResult
+    
+  successResult:
+    name: successResult
+    use: successResult
+    custom_config:
+      message: Mock login successful!
+    next: {}

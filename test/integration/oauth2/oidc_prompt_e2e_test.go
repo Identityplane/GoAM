@@ -33,7 +33,7 @@ func TestOIDCPrompt_E2E(t *testing.T) {
 
 	// Flow names
 	const (
-		flowNoPrompt = "noprompt"
+		flowNoPrompt = "mock_success"
 		flowPrompt   = "login_or_register"
 	)
 
@@ -63,6 +63,7 @@ func TestOIDCPrompt_E2E(t *testing.T) {
 			t.Fatalf("Failed to parse redirect URL: %v", err)
 		}
 
+		assertNoOauthError(t, redirectURL)
 		code := redirectURL.Query().Get("code")
 		if code == "" {
 			t.Fatal("Expected authorization code but got none")
@@ -150,4 +151,11 @@ func TestOIDCPrompt_E2E(t *testing.T) {
 			t.Fatalf("Expected redirect to login page but got: %s", location)
 		}
 	})
+}
+
+func assertNoOauthError(t *testing.T, redirectURL *url.URL) {
+	error := redirectURL.Query().Get("error")
+	if error != "" {
+		t.Fatalf("received an Oauth error but exptected none '%s'", error)
+	}
 }

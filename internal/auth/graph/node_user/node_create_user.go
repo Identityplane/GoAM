@@ -21,6 +21,7 @@ var CreateUserNode = &model.NodeDefinition{
 	CustomConfigOptions: map[string]string{
 		"checkUsernameUnique": "If set to 'true' the username will be checked for uniqueness. In that case username must be present in the context or user object.",
 		"checkEmailUnique":    "If set to 'true' the email will be checked for uniqueness. In that case email must be present in the context or user object.",
+		"skipSaveUser":        "If set to 'true' the user will not be saved to the database after creation and only the context will be updated",
 	},
 	OutputContext:        []string{"user_id"},
 	PossibleResultStates: []string{"success", "existing"},
@@ -131,8 +132,10 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 		state.User.AddAttribute(passwordAttribute)
 	}
 
-	if err := services.UserRepo.Create(ctx, state.User); err != nil {
-		return model.NewNodeResultWithError(fmt.Errorf("failed to create user: %w", err))
+	if node.CustomConfig["skipSaveUser"] != "true" {
+		if err := services.UserRepo.Create(ctx, state.User); err != nil {
+			return model.NewNodeResultWithError(fmt.Errorf("failed to create user: %w", err))
+		}
 	}
 
 	return model.NewNodeResultWithCondition("success")

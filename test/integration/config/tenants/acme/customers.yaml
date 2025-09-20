@@ -25,6 +25,14 @@ flows:
     route: /noprompt
     active: yes
     definition_location: test_noprompt.yaml
+  mock_success:
+    route: /mock-success
+    active: yes
+    definition_location: mock_success.yaml
+  mock_failure:
+    route: /mock-failure
+    active: yes
+    definition_location: mock_failure.yaml
 
 applications:
   management-ui:
@@ -45,7 +53,8 @@ applications:
       - http://localhost:3000
     allowed_authentication_flows:
       - login_or_register
-      - noprompt
+      - mock_success
+      - mock_failure
     access_token_lifetime: 600
     refresh_token_lifetime: 3600
     id_token_lifetime: 600
@@ -69,7 +78,8 @@ applications:
       - http://localhost:3000
     allowed_authentication_flows:
       - login_or_register
-      - noprompt
+      - mock_success
+      - mock_failure
     access_token_lifetime: 600
     refresh_token_lifetime: 3600
     id_token_lifetime: 600
