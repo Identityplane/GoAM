@@ -154,7 +154,7 @@ func NewTestRepositories(tenant, realm string) (*model.Repositories, error) {
 func NewMockUserRepository() *MockUserRepository {
 
 	mockUserRepo := new(MockUserRepository)
-	mockUserRepo.On("NewUserModel").Return(&model.User{
+	mockUserRepo.On("NewUserModel").Maybe().Return(&model.User{
 		ID:     uuid.NewString(),
 		Tenant: "acme",
 		Realm:  "customers",

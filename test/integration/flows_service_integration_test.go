@@ -20,6 +20,8 @@ func TestFlowService_Integration(t *testing.T) {
 		"unlock_account",
 		"login_or_register",
 		"noprompt",
+		"mock_success",
+		"mock_failure",
 	}
 
 	for _, flowId := range expectedFlows {

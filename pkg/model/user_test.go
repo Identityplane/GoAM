@@ -90,11 +90,11 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 		// Test GetAttributesByType
 		emailAttrs := user.GetAttributesByType("email")
 		assert.Len(t, emailAttrs, 1)
-		assert.Equal(t, "primary@example.com", emailAttrs[0].Index)
+		assert.Equal(t, stringPtr("primary@example.com"), emailAttrs[0].Index)
 
 		phoneAttrs := user.GetAttributesByType("phone")
 		assert.Len(t, phoneAttrs, 1)
-		assert.Equal(t, "+1234567890", phoneAttrs[0].Index)
+		assert.Equal(t, stringPtr("+1234567890"), phoneAttrs[0].Index)
 
 		// Test GetAttribute with single attributes (should work)
 		emailAttr, _, err := GetAttribute[EmailAttributeValue](user, "email")
@@ -149,8 +149,8 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 		// Test GetAttributesByType returns multiple attributes
 		emailAttrs := user.GetAttributesByType("email")
 		assert.Len(t, emailAttrs, 2)
-		assert.Equal(t, "primary@example.com", emailAttrs[0].Index)
-		assert.Equal(t, "work@example.com", emailAttrs[1].Index)
+		assert.Equal(t, stringPtr("primary@example.com"), emailAttrs[0].Index)
+		assert.Equal(t, stringPtr("work@example.com"), emailAttrs[1].Index)
 
 		// Test GetAttribute with multiple attributes of same type (should return error)
 		emailAttr, _, err := GetAttribute[EmailAttributeValue](user, "email")
@@ -194,7 +194,7 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 		// Test GetAttributesByType
 		emailAttrs := user.GetAttributesByType("email")
 		assert.Len(t, emailAttrs, 1)
-		assert.Equal(t, "primary@example.com", emailAttrs[0].Index)
+		assert.Equal(t, stringPtr("primary@example.com"), emailAttrs[0].Index)
 
 		// Test GetAttribute with map[string]interface{} value (should work via JSON conversion)
 		emailAttr, _, err := GetAttribute[EmailAttributeValue](user, "email")
@@ -244,11 +244,11 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 		// Test various attribute types
 		socialAttrs := user.GetAttributesByType("social")
 		assert.Len(t, socialAttrs, 1)
-		assert.Equal(t, "google", socialAttrs[0].Index)
+		assert.Equal(t, stringPtr("google"), socialAttrs[0].Index)
 
 		totpAttrs := user.GetAttributesByType("totp")
 		assert.Len(t, totpAttrs, 1)
-		assert.Equal(t, "secret123", totpAttrs[0].Index)
+		assert.Equal(t, stringPtr("secret123"), totpAttrs[0].Index)
 
 		// Test GetAttribute with different types
 		socialAttr, _, err := GetAttribute[SocialAttributeValue](user, "social")
@@ -310,9 +310,9 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 		// Test GetAttributesByType returns multiple attributes
 		emailAttrs := user.GetAttributesByType("email")
 		assert.Len(t, emailAttrs, 3)
-		assert.Equal(t, "primary@example.com", emailAttrs[0].Index)
-		assert.Equal(t, "work@example.com", emailAttrs[1].Index)
-		assert.Equal(t, "personal@example.com", emailAttrs[2].Index)
+		assert.Equal(t, stringPtr("primary@example.com"), emailAttrs[0].Index)
+		assert.Equal(t, stringPtr("work@example.com"), emailAttrs[1].Index)
+		assert.Equal(t, stringPtr("personal@example.com"), emailAttrs[2].Index)
 
 		// Test GetAttributes with multiple attributes of same type (should work)
 		emailValues, _, err := GetAttributes[EmailAttributeValue](user, "email")
