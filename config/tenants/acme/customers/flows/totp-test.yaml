@@ -30,7 +30,7 @@ nodes:
     next:
       success: authSuccess
       failure: verifyTOTP
-      no_totp: authFailure
+      not_found: authFailure
       locked: authFailure
   authSuccess:
     name: successResult
