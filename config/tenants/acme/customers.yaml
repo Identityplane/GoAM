@@ -52,6 +52,16 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: github-login.yaml
+  mock_success:
+    route: /mock-success
+    active: yes
+    debug_allowed: yes
+    definition_location: mock_success.yaml
+  mock_failure:
+    route: /mock-failure
+    active: yes
+    debug_allowed: yes
+    definition_location: mock_failure.yaml
 
 applications:
   customers-app:

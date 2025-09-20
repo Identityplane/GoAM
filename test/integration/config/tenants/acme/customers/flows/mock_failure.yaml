@@ -1,0 +1,16 @@
+description: 'Implements a mock flow with no interaction that directly leads to a signed-in in user'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: failureResult 
+      
+  failureResult:
+    name: failureResult
+    use: failureResult
+    custom_config:
+      message: Mock failure!
+    next: {}
