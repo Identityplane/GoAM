@@ -1,6 +1,7 @@
 package node_totp
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -61,6 +62,9 @@ func TestTOTPCreateAndVerifyFlow(t *testing.T) {
 		},
 	}
 
+	// Create a new empty user in the database
+	userRepo.Create(context.Background(), testUser)
+
 	// Act 1: Run CreateTOTP Node -> Expect TOTP prompt with secret and QR code
 	result, err := RunTOTPCreateNode(session, createNode, map[string]string{}, services)
 	assert.NoError(t, err)
@@ -88,7 +92,7 @@ func TestTOTPCreateAndVerifyFlow(t *testing.T) {
 	}, services)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "success", result.Condition)
+	assert.Equal(t, model.ResultStateSuccess, result.Condition)
 	assert.Empty(t, result.Prompts)
 
 	// Verify that the TOTP attribute was added to the user
@@ -127,7 +131,7 @@ func TestTOTPCreateAndVerifyFlow(t *testing.T) {
 	}, services)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "failure", result.Condition)
+	assert.Equal(t, model.ResultStateFail, result.Condition)
 
 	// Verify that failed attempts counter was incremented
 	totpValue, _, err = model.GetAttribute[model.TOTPAttributeValue](testUser, model.AttributeTypeTOTP)
@@ -143,7 +147,7 @@ func TestTOTPCreateAndVerifyFlow(t *testing.T) {
 	}, services)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "failure", result.Condition)
+	assert.Equal(t, model.ResultStateFail, result.Condition)
 
 	// Verify counter increased again
 	totpValue, _, err = model.GetAttribute[model.TOTPAttributeValue](testUser, model.AttributeTypeTOTP)
@@ -162,7 +166,7 @@ func TestTOTPCreateAndVerifyFlow(t *testing.T) {
 	}, services)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "success", result.Condition)
+	assert.Equal(t, model.ResultStateSuccess, result.Condition)
 
 	// Verify that failed attempts counter was reset
 	totpValue, _, err = model.GetAttribute[model.TOTPAttributeValue](testUser, model.AttributeTypeTOTP)
@@ -232,7 +236,7 @@ func TestTOTPVerifyNodeWithNoTOTPAttribute(t *testing.T) {
 	result, err := RunTOTPVerifyNode(session, verifyNode, map[string]string{}, services)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "no_totp", result.Condition)
+	assert.Equal(t, model.ResultStateNotFound, result.Condition)
 }
 
 func TestTOTPCreateNodeWithInvalidVerification(t *testing.T) {
@@ -277,14 +281,19 @@ func TestTOTPVerifyNodeMaxFailedAttempts(t *testing.T) {
 	// Test that TOTP gets locked after max failed attempts
 	testUser := &model.User{
 		ID:        uuid.NewString(),
+		Tenant:    "acme",
+		Realm:     "customers",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
 	// Add TOTP attribute to user with a proper Index
 	totpAttribute := &model.UserAttribute{
-		ID:   uuid.NewString(),
-		Type: model.AttributeTypeTOTP,
+		ID:     uuid.NewString(),
+		UserID: testUser.ID,
+		Tenant: "acme",
+		Realm:  "customers",
+		Type:   model.AttributeTypeTOTP,
 		Value: model.TOTPAttributeValue{
 			SecretKey:      "TESTSECRET123",
 			Locked:         false,
@@ -326,6 +335,9 @@ func TestTOTPVerifyNodeMaxFailedAttempts(t *testing.T) {
 		UserRepo: userRepo,
 	}
 
+	// Create user with attributes in the database
+	userRepo.Create(context.Background(), testUser)
+
 	// Try 3 invalid codes to reach max failed attempts
 	for i := 0; i < 3; i++ {
 		result, err := RunTOTPVerifyNode(session, verifyNode, map[string]string{
@@ -333,7 +345,7 @@ func TestTOTPVerifyNodeMaxFailedAttempts(t *testing.T) {
 		}, services)
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Equal(t, "failure", result.Condition)
+		assert.Equal(t, model.ResultStateFail, result.Condition)
 	}
 
 	// Verify that TOTP is now locked
