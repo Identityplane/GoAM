@@ -8,14 +8,14 @@ import (
 
 func TestLogger_GetLogger(t *testing.T) {
 	// Test that GetLogger returns a valid logger
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	// Just test that we can call methods on it
 	log.Info().Msg("test message")
 }
 
 func TestLogger_Logging(t *testing.T) {
 	// Test that logging works without crashing
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	// Test different log levels
 	log.Debug().Msg("debug message")
@@ -35,7 +35,7 @@ func TestLogger_Logging(t *testing.T) {
 func TestLogger_SetLogLevel(t *testing.T) {
 	// Test that SetLogLevel works
 	logger.SetLogLevel("debug")
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	// Test that debug logging works
 	log.Debug().Msg("debug test")

@@ -1,16 +1,17 @@
-package nodeyubico
+package node_yubico
 
 import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
+	"errors"
 	"strings"
 	"testing"
 )
 
 func TestVerifyYubicoOtp_StatusOK_ValidHmac(t *testing.T) {
 	verifier := &YubicoVerifier{
-		apiUrl:    "https://api.yubico.com/wsapi/2.0/verify",
+		apiUrl:    DEFAULT_YUBICO_API_URL,
 		clientId:  "12345",
 		apiKey:    "dGVzdC1hcGkta2V5",
 		yubicoApi: &mockYubicoAPI{},
@@ -19,9 +20,12 @@ func TestVerifyYubicoOtp_StatusOK_ValidHmac(t *testing.T) {
 	// Test with a valid OTP
 	otp := "cccccckdvvulgjvtkjdhtlrbjjctggdihuevikehtlil"
 
-	publicId, err := verifier.VerifyYubicoOtp(otp)
+	publicId, ok, err := verifier.VerifyYubicoOtp(otp)
 	if err != nil {
-		t.Fatalf("VerifyYubicoOtp failed: %v", err)
+		t.Fatalf("VerifyYubicoOtp failed with internal error: %v", err)
+	}
+	if !ok {
+		t.Fatal("Expected verification to succeed, but it failed")
 	}
 
 	expectedPublicId := otp[:12]
@@ -32,7 +36,7 @@ func TestVerifyYubicoOtp_StatusOK_ValidHmac(t *testing.T) {
 
 func TestVerifyYubicoOtp_StatusOK_InvalidHmac(t *testing.T) {
 	verifier := &YubicoVerifier{
-		apiUrl:    "https://api.yubico.com/wsapi/2.0/verify",
+		apiUrl:    DEFAULT_YUBICO_API_URL,
 		clientId:  "12345",
 		apiKey:    "dGVzdC1hcGkta2V5",
 		yubicoApi: &mockYubicoAPIWithInvalidHmac{},
@@ -40,20 +44,18 @@ func TestVerifyYubicoOtp_StatusOK_InvalidHmac(t *testing.T) {
 
 	otp := "cccccckdvvulgjvtkjdhtlrbjjctggdihuevikehtlil"
 
-	_, err := verifier.VerifyYubicoOtp(otp)
-	if err == nil {
-		t.Fatal("Expected HMAC verification to fail, but it succeeded")
+	_, ok, err := verifier.VerifyYubicoOtp(otp)
+	if err != nil {
+		t.Fatalf("Expected no internal error, got: %v", err)
 	}
-
-	expectedErrorPrefix := "HMAC signature verification failed"
-	if !strings.Contains(err.Error(), expectedErrorPrefix) {
-		t.Errorf("Expected error to contain '%s', got '%s'", expectedErrorPrefix, err.Error())
+	if ok {
+		t.Fatal("Expected HMAC verification to fail, but it succeeded")
 	}
 }
 
 func TestVerifyYubicoOtp_StatusReplayedOtp(t *testing.T) {
 	verifier := &YubicoVerifier{
-		apiUrl:    "https://api.yubico.com/wsapi/2.0/verify",
+		apiUrl:    DEFAULT_YUBICO_API_URL,
 		clientId:  "12345",
 		apiKey:    "dGVzdC1hcGkta2V5",
 		yubicoApi: &mockYubicoAPIWithReplayedOtp{},
@@ -61,14 +63,94 @@ func TestVerifyYubicoOtp_StatusReplayedOtp(t *testing.T) {
 
 	otp := "cccccckdvvulgjvtkjdhtlrbjjctggdihuevikehtlil"
 
-	_, err := verifier.VerifyYubicoOtp(otp)
-	if err == nil {
+	_, ok, err := verifier.VerifyYubicoOtp(otp)
+	if err != nil {
+		t.Fatalf("Expected no internal error, got: %v", err)
+	}
+	if ok {
 		t.Fatal("Expected verification to fail due to replayed OTP, but it succeeded")
 	}
+}
 
-	expectedError := "yubikey verification failed: REPLAYED_OTP"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+func TestVerifyYubicoOtp_InternalError(t *testing.T) {
+	verifier := &YubicoVerifier{
+		apiUrl:    DEFAULT_YUBICO_API_URL,
+		clientId:  "12345",
+		apiKey:    "dGVzdC1hcGkta2V5",
+		yubicoApi: &mockYubicoAPIWithInternalError{},
+	}
+
+	otp := "cccccckdvvulgjvtkjdhtlrbjjctggdihuevikehtlil"
+
+	_, ok, err := verifier.VerifyYubicoOtp(otp)
+	if err == nil {
+		t.Fatal("Expected internal error, but got none")
+	}
+	if ok {
+		t.Fatal("Expected verification to fail due to internal error")
+	}
+
+	expectedError := "HTTP request failed"
+	if !strings.Contains(err.Error(), expectedError) {
+		t.Errorf("Expected error to contain '%s', got '%s'", expectedError, err.Error())
+	}
+}
+
+func TestVerifyYubicoOtp_InvalidOtpFormat(t *testing.T) {
+	verifier := &YubicoVerifier{
+		apiUrl:    DEFAULT_YUBICO_API_URL,
+		clientId:  "12345",
+		apiKey:    "dGVzdC1hcGkta2V5",
+		yubicoApi: &mockYubicoAPI{},
+	}
+
+	// Test with an OTP that's too short
+	otp := "short"
+
+	_, ok, err := verifier.VerifyYubicoOtp(otp)
+	if err != nil {
+		t.Fatalf("Expected no internal error, got: %v", err)
+	}
+	if ok {
+		t.Fatal("Expected verification to fail due to invalid OTP format")
+	}
+}
+
+func TestVerifyYubicoOtp_Otpmismatch(t *testing.T) {
+	verifier := &YubicoVerifier{
+		apiUrl:    DEFAULT_YUBICO_API_URL,
+		clientId:  "12345",
+		apiKey:    "dGVzdC1hcGkta2V5",
+		yubicoApi: &mockYubicoAPIWithOtpMismatch{},
+	}
+
+	otp := "cccccckdvvulgjvtkjdhtlrbjjctggdihuevikehtlil"
+
+	_, ok, err := verifier.VerifyYubicoOtp(otp)
+	if err != nil {
+		t.Fatalf("Expected no internal error, got: %v", err)
+	}
+	if ok {
+		t.Fatal("Expected verification to fail due to OTP mismatch")
+	}
+}
+
+func TestVerifyYubicoOtp_NonceMismatch(t *testing.T) {
+	verifier := &YubicoVerifier{
+		apiUrl:    DEFAULT_YUBICO_API_URL,
+		clientId:  "12345",
+		apiKey:    "dGVzdC1hcGkta2V5",
+		yubicoApi: &mockYubicoAPIWithNonceMismatch{},
+	}
+
+	otp := "cccccckdvvulgjvtkjdhtlrbjjctggdihuevikehtlil"
+
+	_, ok, err := verifier.VerifyYubicoOtp(otp)
+	if err != nil {
+		t.Fatalf("Expected no internal error, got: %v", err)
+	}
+	if ok {
+		t.Fatal("Expected verification to fail due to nonce mismatch")
 	}
 }
 
@@ -118,5 +200,34 @@ func (m *mockYubicoAPIWithReplayedOtp) Verify(id, otp, nonce string) (YubicoApiR
 		OTP:    otp,
 		Nonce:  nonce,
 		Status: "REPLAYED_OTP",
+	}, nil
+}
+
+// Mock implementation for testing internal errors
+type mockYubicoAPIWithInternalError struct{}
+
+func (m *mockYubicoAPIWithInternalError) Verify(id, otp, nonce string) (YubicoApiResponse, error) {
+	return YubicoApiResponse{}, errors.New("HTTP request failed")
+}
+
+// Mock implementation for testing OTP mismatch
+type mockYubicoAPIWithOtpMismatch struct{}
+
+func (m *mockYubicoAPIWithOtpMismatch) Verify(id, otp, nonce string) (YubicoApiResponse, error) {
+	return YubicoApiResponse{
+		OTP:    "different-otp",
+		Nonce:  nonce,
+		Status: "OK",
+	}, nil
+}
+
+// Mock implementation for testing nonce mismatch
+type mockYubicoAPIWithNonceMismatch struct{}
+
+func (m *mockYubicoAPIWithNonceMismatch) Verify(id, otp, nonce string) (YubicoApiResponse, error) {
+	return YubicoApiResponse{
+		OTP:    otp,
+		Nonce:  "different-nonce",
+		Status: "OK",
 	}, nil
 }

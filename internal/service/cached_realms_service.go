@@ -47,7 +47,7 @@ func (s *cachedRealmService) GetRealm(tenant, realm string) (*services_interface
 	if found {
 		// Cache the realm
 		if err := s.cache.Cache(cacheKey, loadedRealm, realmCacheTTL, 1); err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Info().Err(err).Msg("failed to cache realm")
 		}
 	}

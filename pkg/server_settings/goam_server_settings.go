@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var log = logger.GetLogger()
+var log = logger.GetGoamLogger()
 
 // GoamServerSettings holds the configuration for the GoAM server
 type GoamServerSettings struct {

@@ -40,7 +40,7 @@ func (s *cachedFlowService) getFlowByPathCacheKey(tenant, realm, path string) st
 }
 
 func (s *cachedFlowService) GetFlowById(tenant, realm, id string) (*model.Flow, bool) {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	// Try to get from cache first
 	cacheKey := s.getFlowByIdCacheKey(tenant, realm, id)
 	if cached, exists := s.cache.Get(cacheKey); exists {
@@ -65,7 +65,7 @@ func (s *cachedFlowService) GetFlowById(tenant, realm, id string) (*model.Flow, 
 }
 
 func (s *cachedFlowService) GetFlowForExecution(path string, loadedRealm *services_interface.LoadedRealm) (*model.Flow, bool) {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	tenant := loadedRealm.Config.Tenant
 	realm := loadedRealm.Config.Realm
 

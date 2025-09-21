@@ -61,7 +61,7 @@ func (s *cachedJWTService) LoadPublicKeys(tenant, realm string) (string, error) 
 	err = s.cache.Cache(cacheKey, jwks, jwksCacheTTL, 1)
 	if err != nil {
 		// Log error but continue - caching is not critical
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Info().Err(err).Msg("failed to cache jwks")
 	}
 
@@ -128,7 +128,7 @@ func (s *cachedJWTService) GetActiveSigningKey(ctx context.Context, tenant, real
 	err = s.cache.Cache(cacheKey, key, signingKeyCacheTTL, 1)
 	if err != nil {
 		// Log error but continue - caching is not critical
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Info().Err(err).Msg("failed to cache signing key")
 	}
 

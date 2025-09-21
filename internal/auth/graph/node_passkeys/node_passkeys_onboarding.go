@@ -204,7 +204,7 @@ func processPasskeyOnboarding(state *model.AuthenticationSession, node *model.Gr
 		}
 	}
 
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	log.Info().Str("credential_id", string(cred.ID)).Msg("successfully registered credential")
 	return "success", nil
 }

@@ -8,7 +8,7 @@ import (
 )
 
 var cfgFile string
-var log = logger.GetLogger()
+var log = logger.GetGoamLogger()
 
 var rootCmd = &cobra.Command{
 	Use:   "goam",
@@ -27,7 +27,7 @@ Configuration can be provided via:
 		initConfigSource()
 
 		// Printout current working dir
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 
 		// Load settings from all sources
 		settings, err := server_settings.InitWithViper()

@@ -25,7 +25,7 @@ type DB struct {
 }
 
 func Init(cfg Config) (*pgxpool.Pool, error) {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	poolConfig, err := pgxpool.ParseConfig(cfg.DSN)
 	if err != nil {
@@ -119,7 +119,7 @@ var migrationsFS embed.FS
 
 // Uses embed fs to load migrations and run them over the database connection in order
 func RunMigrations(db *pgxpool.Pool) error {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	// Open migrations folder
 	migrations, err := migrationsFS.ReadDir("migrations")

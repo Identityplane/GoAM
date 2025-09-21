@@ -3,12 +3,9 @@ package node_user
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
-
-	"github.com/google/uuid"
 )
 
 var CreateUserNode = &model.NodeDefinition{
@@ -55,10 +52,10 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 
 	// Create a user if we dont already have one in the context
 	if state.User == nil {
-		state.User = &model.User{
-			ID:        uuid.NewString(),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+		var err error
+		state.User, err = services.UserRepo.NewUserModel(state)
+		if err != nil {
+			return model.NewNodeResultWithError(fmt.Errorf("failed to create user: %w", err))
 		}
 	}
 

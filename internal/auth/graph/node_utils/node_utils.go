@@ -7,6 +7,10 @@ import (
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
+var (
+	ErrorNoUserIdentifierInContext = errors.New("no user identifier in context")
+)
+
 // GetAccountNameFromContext returns the display name of the user from the context
 // This name is ised in various context where we need to display the id to the user
 func GetAccountNameFromContext(state *model.AuthenticationSession) string {
@@ -94,7 +98,7 @@ func LoadUserFromContext(state *model.AuthenticationSession, services *model.Rep
 	}
 
 	// If we cannot find the user we return an error that we have no user identifier in the context
-	return nil, errors.New("no user identifier in context")
+	return nil, ErrorNoUserIdentifierInContext
 }
 
 // Same as LoadUserFromContext but returns nil if no user is found
@@ -102,7 +106,7 @@ func TryLoadUserFromContext(state *model.AuthenticationSession, services *model.
 
 	user, err := LoadUserFromContext(state, services)
 
-	if err != nil && err != errors.New("no user identifier in context") {
+	if err != nil && err != ErrorNoUserIdentifierInContext {
 		return nil, err
 	}
 

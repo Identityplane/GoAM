@@ -10,6 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
+var log = logger.GetGoamLogger()
+
 const MAX_HISTORY_SIZE = 100
 
 type Engine struct {
@@ -100,13 +102,19 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 		return state, fmt.Errorf("unsupported node type: %s", def.Type)
 	}
 
+	userid := ""
+	if state.User != nil {
+		userid = state.User.ID
+	}
+
 	// Return error if present
 	if err != nil {
-		log := logger.GetLogger()
+
 		log.Debug().
 			Err(err).
 			Str("node_id", node.Name).
 			Str("node_type", string(def.Type)).
+			Str("user_id", userid).
 			Msg("error processing node")
 		return state, err
 	}
@@ -123,13 +131,11 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 		// turn the nodeResult.Prompts into a strong for logging
 		promptsString, err := json.Marshal(nodeResult.Prompts)
 		if err != nil {
-			log := logger.GetLogger()
 			log.Debug().Err(err).Msg("error marshalling prompts")
 			return nil, err
 		}
 
 		// log the node name, type and prompts
-		log := logger.GetLogger()
 		log.Debug().
 			Str("node", node.Name).
 			Str("node_type", string(def.Type)).
@@ -165,7 +171,11 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 		// lookup transition in graph
 		if nextNodeName, ok := node.Next[condition]; ok {
 			state.Current = nextNodeName
+
+			log.Debug().Str("node_name", node.Name).Str("condition", condition).Str("flow_id", state.FlowId).Msg("node transition")
 		} else {
+
+			log.Debug().Str("node_name", node.Name).Str("condition", condition).Str("flow_id", state.FlowId).Msg("node transition")
 
 			// If we have no next node defined we search for an failureResult node
 			// TODO we should log that

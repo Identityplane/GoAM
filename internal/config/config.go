@@ -26,7 +26,7 @@ func GetDbDriverName() string {
 
 func InitConfiguration(settings *server_settings.GoamServerSettings) {
 
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	ServerSettings = settings
 

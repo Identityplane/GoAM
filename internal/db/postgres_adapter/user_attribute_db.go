@@ -27,7 +27,7 @@ func NewPostgresUserAttributeDB(db *pgxpool.Pool) (*PostgresUserAttributeDB, err
 		SELECT 1 FROM user_attributes LIMIT 1
 	`)
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Debug().Err(err).Msg("warning: failed to check if user_attributes table exists")
 	}
 
