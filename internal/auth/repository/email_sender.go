@@ -16,7 +16,7 @@ func NewDefaultEmailSender() model.EmailSender {
 }
 
 func (s *DefaultEmailSender) SendEmail(subject, body, recipientEmail, smtpServer, smtpPort, smtpUsername, smtpPassword, smtpSenderEmail string) error {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	// Create a channel to receive the error
 	errChan := make(chan error, 1)

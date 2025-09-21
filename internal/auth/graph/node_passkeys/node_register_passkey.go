@@ -122,7 +122,7 @@ func ProcessPasskeyRegistration(state *model.AuthenticationSession, node *model.
 	services.UserRepo.CreateOrUpdate(ctx, user)
 
 	// Log the successful registration
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	log.Info().Str("credential_id", string(cred.ID)).Msg("successfully registered credential")
 	return "success", nil
 }

@@ -186,7 +186,7 @@ func generateOTP() string {
 
 // sendEmailOTP sends an email with the OTP to the email address
 func sendEmailOTP(email string, otp string, node *model.GraphNode, services *model.Repositories) error {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	// As a mock we just log the OTP for now
 	log.Info().Str("email", email).Str("otp", otp).Msg("otp sent")

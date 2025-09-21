@@ -21,7 +21,7 @@ func NewPostgresRealmDB(db *pgxpool.Pool) (*PostgresRealmDB, error) {
 		SELECT 1 FROM realms LIMIT 1
 	`)
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Debug().Err(err).Msg("warning: failed to check if realms table exists")
 	}
 

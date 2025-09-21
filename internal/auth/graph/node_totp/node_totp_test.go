@@ -131,7 +131,7 @@ func TestTOTPCreateAndVerifyFlow(t *testing.T) {
 	}, services)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, model.ResultStateFail, result.Condition)
+	assert.Equal(t, model.ResultStateFailure, result.Condition)
 
 	// Verify that failed attempts counter was incremented
 	totpValue, _, err = model.GetAttribute[model.TOTPAttributeValue](testUser, model.AttributeTypeTOTP)
@@ -147,7 +147,7 @@ func TestTOTPCreateAndVerifyFlow(t *testing.T) {
 	}, services)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, model.ResultStateFail, result.Condition)
+	assert.Equal(t, model.ResultStateFailure, result.Condition)
 
 	// Verify counter increased again
 	totpValue, _, err = model.GetAttribute[model.TOTPAttributeValue](testUser, model.AttributeTypeTOTP)
@@ -345,7 +345,7 @@ func TestTOTPVerifyNodeMaxFailedAttempts(t *testing.T) {
 		}, services)
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Equal(t, model.ResultStateFail, result.Condition)
+		assert.Equal(t, model.ResultStateFailure, result.Condition)
 	}
 
 	// Verify that TOTP is now locked

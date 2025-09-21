@@ -19,6 +19,17 @@ const (
 	AttributeTypeYubico       = "identityplane:yubico"
 )
 
+// CredentialAttributeValue is the attribute value for credentials such as password otp etc
+// Credentials can be lockled and we track the number of failed attempts
+type CredentialAttributeValue struct {
+
+	// @description Whether the credential is locked
+	Locked bool `json:"locked" example:"false"`
+
+	// @description The number of failed attempts
+	FailedAttempts int `json:"failed_attempts" example:"0"`
+}
+
 // TOTPAttributeValue is the attribute value for TOTP
 // @description TOTP information
 type TOTPAttributeValue struct {
@@ -155,9 +166,5 @@ type YubicoAttributeValue struct {
 	// @description The public id for the yubikey
 	PublicID string `json:"public_id" example:"vvcijgklnrbf"`
 
-	// @description Whether the yubikey is locked
-	Locked bool `json:"locked" example:"false"`
-
-	// @description The number of failed attempts
-	FailedAttempts int `json:"failed_attempts" example:"0"`
+	CredentialAttributeValue
 }

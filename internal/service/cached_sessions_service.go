@@ -47,7 +47,7 @@ func (s *cachedSessionsService) CreateOrUpdateAuthenticationSession(ctx context.
 		// Cache the session
 		cacheKey := fmt.Sprintf("auth_session:%s:%s:%s", tenant, realm, session.SessionIdHash)
 		if err := s.cache.Cache(cacheKey, &session, sessionCacheTTL, 1); err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Error().Err(err).Msg("failed to cache auth session")
 		}
 	}
@@ -74,7 +74,7 @@ func (s *cachedSessionsService) GetAuthenticationSession(ctx context.Context, te
 	if found {
 		// Cache the session
 		if err := s.cache.Cache(cacheKey, session, sessionCacheTTL, 1); err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Error().Err(err).Msg("failed to cache auth session")
 		}
 	}
@@ -88,7 +88,7 @@ func (s *cachedSessionsService) DeleteAuthenticationSession(ctx context.Context,
 		// Remove from cache
 		cacheKey := fmt.Sprintf("auth_session:%s:%s:%s", tenant, realm, sessionIDHash)
 		if err := s.cache.Invalidate(cacheKey); err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Error().Err(err).Msg("failed to remove auth session from cache")
 		}
 	}
@@ -102,7 +102,7 @@ func (s *cachedSessionsService) CreateAuthCodeSession(ctx context.Context, tenan
 		// Cache the session
 		cacheKey := fmt.Sprintf("auth_code_session:%s:%s:%s", tenant, realm, session.ClientSessionID)
 		if err := s.cache.Cache(cacheKey, session, sessionCacheTTL, 1); err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Error().Err(err).Msg("failed to cache auth code session")
 		}
 	}
@@ -116,7 +116,7 @@ func (s *cachedSessionsService) CreateAccessTokenSession(ctx context.Context, te
 		// Cache the session
 		cacheKey := fmt.Sprintf("access_token_session:%s:%s:%s", tenant, realm, session.ClientSessionID)
 		if err := s.cache.Cache(cacheKey, session, sessionCacheTTL, 1); err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Error().Err(err).Msg("failed to cache access token session")
 		}
 	}
@@ -143,7 +143,7 @@ func (s *cachedSessionsService) GetClientSessionByAccessToken(ctx context.Contex
 	if err == nil && session != nil {
 		// Cache the session
 		if err := s.cache.Cache(cacheKey, session, sessionCacheTTL, 1); err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Error().Err(err).Msg("failed to cache access token session")
 		}
 	}
@@ -185,7 +185,7 @@ func (c *cachedAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, ses
 	err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 	if err != nil {
 		// Log error but continue - caching is not critical
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Error().Err(err).Msg("failed to cache auth session")
 	}
 
@@ -219,7 +219,7 @@ func (c *cachedAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant, 
 	err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 	if err != nil {
 		// Log error but continue - caching is not critical
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Error().Err(err).Msg("failed to cache auth session")
 	}
 
@@ -278,7 +278,7 @@ func (c *cachedClientSessionDB) CreateClientSession(ctx context.Context, tenant,
 		cacheKey := c.getClientSessionCacheKey(tenant, realm, session.AuthCodeHash, "auth-code")
 		err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 		if err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Info().Err(err).Msg("failed to cache auth code session")
 		}
 	}
@@ -286,7 +286,7 @@ func (c *cachedClientSessionDB) CreateClientSession(ctx context.Context, tenant,
 		cacheKey := c.getClientSessionCacheKey(tenant, realm, session.AccessTokenHash, "access-token")
 		err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 		if err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Info().Err(err).Msg("failed to cache access token session")
 		}
 	}
@@ -320,7 +320,7 @@ func (c *cachedClientSessionDB) GetClientSessionByAccessToken(ctx context.Contex
 	// Cache the result
 	err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Info().Err(err).Msg("failed to cache access token session")
 	}
 
@@ -348,7 +348,7 @@ func (c *cachedClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, 
 	// Cache the result
 	err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Info().Err(err).Msg("failed to cache auth code session")
 	}
 

@@ -47,7 +47,7 @@ func (s *cachedApplicationService) GetApplication(tenant, realm, id string) (*mo
 	if found {
 		// Cache the application
 		if err := s.cache.Cache(cacheKey, app, applicationCacheTTL, 1); err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Info().Err(err).Msg("failed to cache application")
 		}
 	}

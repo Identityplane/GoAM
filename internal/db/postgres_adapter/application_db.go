@@ -82,7 +82,7 @@ func (p *PostgresApplicationDB) CreateApplication(ctx context.Context, app model
 }
 
 func (p *PostgresApplicationDB) GetApplication(ctx context.Context, tenant, realm, id string) (*model.Application, error) {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	log.Debug().
 		Str("id", id).

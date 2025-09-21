@@ -10,7 +10,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var log = logger.GetLogger()
+var log = logger.GetGoamLogger()
 
 func Run(settings *server_settings.GoamServerSettings) {
 

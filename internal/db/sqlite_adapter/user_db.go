@@ -25,7 +25,7 @@ func NewUserDB(db *sql.DB) (*SQLiteUserDB, error) {
 		SELECT 1 FROM users LIMIT 1
 	`)
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Debug().Err(err).Msg("warning: failed to check if users table exists")
 	}
 

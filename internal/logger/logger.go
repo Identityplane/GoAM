@@ -106,8 +106,8 @@ func init() {
 	globalLogger.Debug().Msg("logger initialized")
 }
 
-// GetLogger returns the global logger instance for direct zerolog usage
-func GetLogger() zerolog.Logger {
+// GetGoamLogger returns the global logger instance for direct zerolog usage
+func GetGoamLogger() zerolog.Logger {
 	return globalLogger
 }
 
