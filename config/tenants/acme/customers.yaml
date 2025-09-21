@@ -62,6 +62,16 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: mock_failure.yaml
+  username-password-yubikey:
+    route: /username-password-yubikey
+    active: yes
+    debug_allowed: yes
+    definition_location: username-password-yubikey.yaml
+  yubikey-only:
+    route: /yubikey-only
+    active: yes
+    debug_allowed: yes
+    definition_location: yubikey-only.yaml
 
 applications:
   customers-app:

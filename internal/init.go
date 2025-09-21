@@ -30,7 +30,7 @@ func Initialize(serverSettings *server_settings.GoamServerSettings) {
 	config.InitConfiguration(serverSettings)
 
 	// Print config path
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	log.Debug().Str("config_path", config.ServerSettings.RealmConfigurationFolder).Msg("using config path")
 
 	// Step 1: Initialize database connections
@@ -45,7 +45,7 @@ func Initialize(serverSettings *server_settings.GoamServerSettings) {
 func initDatabase() *service.DatabaseConnections {
 	connections := &service.DatabaseConnections{}
 	var err error
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	if strings.HasPrefix(config.ServerSettings.DBConnString, "postgres://") {
 
@@ -192,7 +192,7 @@ func initDatabase() *service.DatabaseConnections {
 
 // initPostgresDB initializes a PostgreSQL database connection
 func initPostgresDB() (*pgxpool.Pool, error) {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	log.Debug().Msg("initializing postgres database")
 	db, err := postgres_adapter.Init(postgres_adapter.Config{
 		Driver: "postgres",
@@ -207,7 +207,7 @@ func initPostgresDB() (*pgxpool.Pool, error) {
 
 // initSQLiteDB initializes a SQLite database connection
 func initSQLiteDB() (*sql.DB, error) {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	log.Debug().Msg("initializing sqlite database")
 	db, err := sqlite_adapter.Init(sqlite_adapter.Config{
 		Driver: "sqlite",
@@ -228,10 +228,10 @@ func initServices(dbConnections *service.DatabaseConnections) {
 	// Use the static configuration service to load the realm configurations
 	err := services.StaticConfigurationService.LoadConfigurationFromFiles(config.ServerSettings.RealmConfigurationFolder)
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Panic().Err(err).Msg("failed to load static configuration")
 	}
 
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	log.Debug().Msg("initialized services and realms")
 }

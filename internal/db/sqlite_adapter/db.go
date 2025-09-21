@@ -16,7 +16,7 @@ type Config struct {
 	DSN    string
 }
 
-var log = logger.GetLogger()
+var log = logger.GetGoamLogger()
 
 func Init(cfg Config) (*sql.DB, error) {
 	var err error

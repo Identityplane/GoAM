@@ -1,4 +1,4 @@
-package nodeyubico
+package node_yubico
 
 import (
 	"testing"
@@ -19,7 +19,7 @@ func TestYubicoOfficialTestVector(t *testing.T) {
 		"nonce": "jrFwbaYFhn0HoxZIsd9LQ6w2ceU",
 	}
 
-	httpClient := &YubicoHttpClient{
+	httpClient := &yubicoHttpClient{
 		apiKey: apiKey,
 	}
 

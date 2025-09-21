@@ -59,7 +59,7 @@ func RunPasskeyVerifyNode(state *model.AuthenticationSession, node *model.GraphN
 }
 
 func ProcessPasskeyLogin(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (string, error) {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	// Load session from context
 	sessionJSON := state.Context["passkeysSession"]

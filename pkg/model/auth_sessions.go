@@ -46,7 +46,7 @@ func (s *AuthenticationSession) GetLatestHistory() string {
 
 // GetLogger returns a zerolog logger with contextual information from the session
 func (s *AuthenticationSession) GetLogger() zerolog.Logger {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	// Add session context to the logger
 	event := log.With().

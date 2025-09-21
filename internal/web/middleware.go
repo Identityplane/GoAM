@@ -23,7 +23,7 @@ import (
 // top level middleware, called before the router
 func TopLevelMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 
 		// here we can handle request before the router
 		next(ctx)
@@ -58,7 +58,7 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		// Get ip address from request
 		userIP, ok := ctx.UserValue("remote_ip").(string)
 		if !ok {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Warn().Msg("user ip address not set in request")
 		}
 
@@ -73,7 +73,7 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		}
 
 		// Log response details
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Info().
 			Str("trace_id", traceID).
 			Int("status", ctx.Response.StatusCode()).
@@ -303,7 +303,7 @@ func ipAddressMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 
 		if config.ServerSettings.ForwardingProxies > 0 {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 
 			xff := bytes.Join(ctx.Request.Header.PeekAll("X-Forwarded-For"), []byte(","))
 

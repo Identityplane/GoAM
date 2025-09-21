@@ -88,7 +88,7 @@ func (s *sessionsService) GetAuthenticationSessionByID(ctx context.Context, tena
 func (s *sessionsService) GetAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) (*model.AuthenticationSession, bool) {
 	persistentSession, err := s.authSessionDB.GetAuthSessionByHash(ctx, tenant, realm, sessionIDHash)
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Error().Err(err).Msg("failed to get auth session")
 		return nil, false
 	}
@@ -101,7 +101,7 @@ func (s *sessionsService) GetAuthenticationSession(ctx context.Context, tenant, 
 		// Delete expired session
 		err := s.authSessionDB.DeleteAuthSession(ctx, tenant, realm, sessionIDHash)
 		if err != nil {
-			log := logger.GetLogger()
+			log := logger.GetGoamLogger()
 			log.Error().Err(err).Msg("failed to delete expired session")
 		}
 		return nil, false
@@ -109,7 +109,7 @@ func (s *sessionsService) GetAuthenticationSession(ctx context.Context, tenant, 
 
 	session, err := persistentSession.ToAuthenticationSession()
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Error().Err(err).Msg("failed to convert persistent session to auth session")
 		return nil, false
 	}

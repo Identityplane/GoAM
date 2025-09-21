@@ -79,7 +79,7 @@ var (
 	// The templates that are overwritten - store the template strings
 	overwriteTemplates map[string]string
 
-	log = logger.GetLogger()
+	log = logger.GetGoamLogger()
 )
 
 // CreateTemplateOverride creates a template override for a given node

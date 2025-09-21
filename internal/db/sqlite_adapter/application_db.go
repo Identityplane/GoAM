@@ -92,7 +92,7 @@ func (s *SQLiteApplicationDB) CreateApplication(ctx context.Context, app model.A
 }
 
 func (s *SQLiteApplicationDB) GetApplication(ctx context.Context, tenant, realm, id string) (*model.Application, error) {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	log.Debug().
 		Str("id", id).

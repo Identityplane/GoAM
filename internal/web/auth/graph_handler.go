@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
-	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/webutils"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -140,7 +139,6 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 	// Run the flow engine with the current state and input
 	newSession, err := graph.Run(flow.Definition, &session, input, registry)
 	if err != nil {
-		log := logger.GetLogger()
 		log.Debug().Err(err).Msg("flow resulted in error")
 		return newSession, err
 	}
@@ -155,7 +153,6 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 }
 
 func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, bool) {
-	log := logger.GetLogger()
 
 	// Try load the session cookie from the request
 	cookie := string(ctx.Request.Header.Cookie(sessionCookieName))
@@ -196,7 +193,6 @@ func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, tenant, realm, 
 }
 
 func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm, baseUrl string, flow *model.Flow, debug bool) (*model.AuthenticationSession, error) {
-	log := logger.GetLogger()
 
 	// If the base url is empty we use the fallback url
 	if baseUrl == "" {
@@ -245,7 +241,7 @@ func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *model.FlowDefinit
 	}
 
 	body := string(ctx.PostBody())
-	log := logger.GetLogger()
+
 	log.Debug().Str("body", string(body)).Msg("response body")
 
 	// Check the definiton to see which inputs are allowed

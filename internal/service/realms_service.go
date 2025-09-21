@@ -47,7 +47,7 @@ func NewRealmService(realmDb db.RealmDB, userDb db.UserDB, userAttributeDb db.Us
 }
 
 func (s *realmServiceImpl) GetRealm(tenant, realm string) (*services_interface.LoadedRealm, bool) {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	// Use the database to get the realm config
 	realmConfig, err := s.realmDb.GetRealm(context.Background(), tenant, realm)

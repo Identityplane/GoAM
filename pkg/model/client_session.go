@@ -57,7 +57,7 @@ type ClientSession struct {
 
 // GetLogger returns a zerolog logger with contextual information from the client session
 func (s *ClientSession) GetLogger() zerolog.Logger {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	// Add client session context to the logger
 	event := log.With().

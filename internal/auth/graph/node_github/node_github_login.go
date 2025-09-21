@@ -70,14 +70,14 @@ func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNod
 	// Get the access token from Github
 	githubResponse, err := getGithubAccessToken(code, githubClientID, githubClientSecret)
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Debug().Err(err).Msg("failed to get github access token")
 		return model.NewNodeResultWithCondition("failure")
 	}
 
 	// If the access token is not set we return with failure state
 	if githubResponse.AccessToken == "" {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Debug().Err(err).Msg("failed to get github access token")
 		return model.NewNodeResultWithCondition("failure")
 	}
@@ -85,7 +85,7 @@ func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNod
 	// Get the user data from Github
 	githubData, err := getGithubData(githubResponse.AccessToken)
 	if err != nil {
-		log := logger.GetLogger()
+		log := logger.GetGoamLogger()
 		log.Debug().Err(err).Msg("failed to get github user data")
 		return model.NewNodeResultWithCondition("failure")
 	}

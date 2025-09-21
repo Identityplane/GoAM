@@ -20,7 +20,7 @@ var TOTPVerifyNode = &model.NodeDefinition{
 		"totpVerification": "string",
 	},
 	OutputContext:        []string{""},
-	PossibleResultStates: []string{model.ResultStateSuccess, model.ResultStateFail, model.ResultStateLocked, model.ResultStateNotFound},
+	PossibleResultStates: []string{model.ResultStateSuccess, model.ResultStateFailure, model.ResultStateLocked, model.ResultStateNotFound},
 	CustomConfigOptions: map[string]string{
 		"max_failed_attempts": "Maximum number of failed attempts before locking the user (default: 10)",
 	},
@@ -102,7 +102,7 @@ func RunTOTPVerifyNode(state *model.AuthenticationSession, node *model.GraphNode
 
 		errorMessage := "Invalid Code"
 		state.Error = &errorMessage
-		return model.NewNodeResultWithCondition(model.ResultStateFail)
+		return model.NewNodeResultWithCondition(model.ResultStateFailure)
 	} else {
 		// Reset the failed attempts
 		totpValue.FailedAttempts = 0

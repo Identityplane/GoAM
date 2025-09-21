@@ -14,7 +14,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var log = logger.GetLogger()
+var log = logger.GetGoamLogger()
 
 // Render is the single public entry point
 func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.AuthenticationSession, resultNode *model.GraphNode, prompts map[string]string, baseUrl string) {

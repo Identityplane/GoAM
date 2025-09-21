@@ -1,0 +1,39 @@
+description: 'Login with username and password and optional upgrade to TOTP. Afterwards enforce TOTP.'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: verifyYubikeyOtp 
+
+  verifyYubikeyOtp:
+    name: verifyYubikeyOtp
+    use: verifyYubikeyOtp
+    custom_config:
+      title: Login or Register
+      message: Please enter your Yubikey OTP code
+      label: Yubikey OTP Code
+      button_text: Validate
+      yubikey-checkunique: "true"
+      yubikey-createuserifnotfound: "true"
+    next:
+      success: successResult
+      failure: verifyYubikeyOtp
+      locked: failureResult
+      new_user: successResult
+
+  failureResult:
+    name: failureResult
+    use: failureResult
+    custom_config:
+      message: Failed to login.
+    next: {}
+    
+  successResult:
+    name: successResult
+    use: successResult
+    custom_config:
+      message: Login successful!
+    next: {}

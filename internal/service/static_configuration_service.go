@@ -33,7 +33,7 @@ func NewStaticConfigurationService() services_interface.StaticConfigurationServi
 }
 
 func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot string) error {
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 
 	var realmService services_interface.RealmService = GetServices().RealmService
 	var flowService services_interface.FlowService = GetServices().FlowService
@@ -143,7 +143,7 @@ func loadRealmsFromConfigDir(configRoot string) ([]realmYaml, error) {
 	var newRealms []realmYaml
 
 	tenantsPath := filepath.Join(configRoot, "tenants")
-	log := logger.GetLogger()
+	log := logger.GetGoamLogger()
 	log.Debug().Str("tenants_path", tenantsPath).Msg("walking config dir")
 
 	// We need this to calculate the depth of the current path

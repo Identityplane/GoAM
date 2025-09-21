@@ -13,6 +13,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_totp"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_user"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_username"
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_yubico"
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
@@ -66,6 +67,11 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	node_totp.TOTPCreateNode.Name: node_totp.TOTPCreateNode,
 	node_totp.TOTPVerifyNode.Name: node_totp.TOTPVerifyNode,
 	node_totp.HasTOTPNode.Name:    node_totp.HasTOTPNode,
+
+	// Yubico
+	node_yubico.YubicoCreateNode.Name: node_yubico.YubicoCreateNode,
+	node_yubico.YubicoVerifyNode.Name: node_yubico.YubicoVerifyNode,
+	node_yubico.HasYubicoNode.Name:    node_yubico.HasYubicoNode,
 
 	// Captcha
 	node_captcha.HcaptchaNode.Name: node_captcha.HcaptchaNode,
