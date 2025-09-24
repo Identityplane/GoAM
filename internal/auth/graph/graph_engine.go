@@ -72,6 +72,9 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 		return state, fmt.Errorf("node '%s' not found in flow", state.Current)
 	}
 
+	// Update the current node type
+	state.CurrentType = node.Use
+
 	// Load node definition from node name
 	def := GetNodeDefinitionByName(node.Use)
 	if def == nil {
@@ -188,6 +191,7 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 					// Overwrite the current node with the failureResult node
 					state.Error = &[]string{"Invalid node transition"}[0]
 					state.Current = nodeName
+					state.CurrentType = model.NODE_ERROR
 					foundFailureResult = true
 					break
 				}

@@ -3,7 +3,7 @@ package node_system
 import "github.com/Identityplane/GoAM/pkg/model"
 
 var ErrorNode = &model.NodeDefinition{
-	Name:                 "error",
+	Name:                 model.NODE_ERROR,
 	PrettyName:           "Error",
 	Description:          "Terminal node that indicates an error during flow execution",
 	Category:             "System",

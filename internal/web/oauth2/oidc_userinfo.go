@@ -29,8 +29,15 @@ func HandleUserinfoEndpoint(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Load the user of the session
+	user, err := service.GetServices().UserService.GetUserWithAttributesByID(ctx, tenant, realm, session.UserID)
+	if err != nil || user == nil {
+		returnBearerTokenError(ctx, oauth2.ErrorInvalidRequest, "The Access Token is invalid")
+		return
+	}
+
 	// Get the user claims
-	claims, err := service.GetServices().OAuth2Service.GetUserClaims(session)
+	claims, err := service.GetServices().OAuth2Service.GetUserClaims(*user, session.Scope)
 	if err != nil {
 		returnBearerTokenError(ctx, oauth2.ErrorInvalidRequest, "The Access Token is invalid")
 		return

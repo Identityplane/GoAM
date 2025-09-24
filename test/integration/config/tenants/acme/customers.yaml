@@ -33,6 +33,10 @@ flows:
     route: /mock-failure
     active: yes
     definition_location: mock_failure.yaml
+  username-password-register:
+    route: /username-password-register
+    active: yes
+    definition_location: username-password-register.yaml
 
 applications:
   management-ui:
@@ -84,3 +88,18 @@ applications:
     refresh_token_lifetime: 3600
     id_token_lifetime: 600
     access_token_type: session
+
+  customers-app:
+    client_id: customers-app
+    client_secret: customers-app-secret
+    allowed_grants:
+      - simple-body
+      - simple-cookie
+      - refresh_token
+    redirect_uris:
+      - http://localhost:3000
+    allowed_authentication_flows:
+      - "*"
+    access_token_lifetime: 3600
+    refresh_token_lifetime: 31536000
+    id_token_lifetime: 3600

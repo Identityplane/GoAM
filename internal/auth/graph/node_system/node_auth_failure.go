@@ -3,7 +3,7 @@ package node_system
 import "github.com/Identityplane/GoAM/pkg/model"
 
 var FailureResultNode = &model.NodeDefinition{
-	Name:                 "failureResult",
+	Name:                 model.NODE_FAILURE_RESULT,
 	PrettyName:           "Authentication Failure",
 	Description:          "Terminal node that indicates failed authentication",
 	Category:             "Results",
