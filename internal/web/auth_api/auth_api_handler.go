@@ -7,6 +7,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph"
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/web/webutils"
 	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/valyala/fasthttp"
@@ -16,7 +17,6 @@ import (
 
 // FlowRequest represents a JSON API request for flow processing
 type FlowRequest struct {
-	ExecutionID string            `json:"executionId,"`
 	SessionID   string            `json:"sessionId"`
 	CurrentNode string            `json:"currentNode"`
 	Responses   map[string]string `json:"responses"`
@@ -72,13 +72,13 @@ func HandleJSONAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	// Handle GET request - start/continue flow
 	if string(ctx.Method()) == "GET" {
-		handleJSONGetRequest(ctx, tenant, realm, flow)
+		handleJSONGetRequest(ctx, loadedRealm.Config, flow)
 		return
 	}
 
 	// Handle POST request - submit responses
 	if string(ctx.Method()) == "POST" {
-		handleJSONPostRequest(ctx, tenant, realm, flow)
+		handleJSONPostRequest(ctx, loadedRealm.Config, flow)
 		return
 	}
 
@@ -87,54 +87,23 @@ func HandleJSONAuthRequest(ctx *fasthttp.RequestCtx) {
 }
 
 // handleJSONGetRequest handles GET requests to start or continue a flow
-func handleJSONGetRequest(ctx *fasthttp.RequestCtx, tenant, realm string, flow *model.Flow) {
+func handleJSONGetRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *model.Flow) {
 
 	queryArgs := ctx.QueryArgs()
 	// Check if query contains a debug param (any value)
 	debug := queryArgs.Has("debug")
 
-	// Get the client ID from the query parameters
-	clientID := string(queryArgs.Peek("client_id"))
-	responseType := string(queryArgs.Peek("response_type"))
-	scope := string(queryArgs.Peek("scope"))
-
-	if clientID == "" {
-		sendErrorResponse(ctx, fasthttp.StatusBadRequest, "INVALID_REQUEST", "Client ID is required", "")
-		return
-	}
-
-	// Load the client from the database
-	application, ok := service.GetServices().ApplicationService.GetApplication(tenant, realm, clientID)
-	if !ok {
-		sendErrorResponse(ctx, fasthttp.StatusNotFound, "APPLICATION_NOT_FOUND", "client_id is required", "")
-		return
-	}
-
-	// Create a simple auth flow
-	simpleAuthFlow := &model.SimpleAuthRequest{
-		ClientID:     clientID,
-		Grant:        model.GRANT_SIMPLE_AUTH_BODY,
-		ResponseType: responseType,
-		Scope:        scope,
-	}
-
-	// Verify if the simple auth request is allowed
-	err := service.GetServices().SimpleAuthService.VerifySimpleAuthFlowRequest(ctx, simpleAuthFlow, application, flow)
-	if err != nil {
-		sendErrorResponse(ctx, fasthttp.StatusBadRequest, "INVALID_REQUEST", err.Error(), "")
-		return
-	}
-
 	// Create new session for GET requests (starting a new flow)
-	session, sessionId, err := createNewJSONSession(ctx, tenant, realm, flow, debug)
+	session, sessionId, err := createNewJSONSession(ctx, realm, flow, debug)
 	if err != nil {
 		sendErrorResponse(ctx, fasthttp.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Could not create session", "")
 		return
 	}
 
-	// Add the simple auth session to the execution context
-	session.SimpleAuthSessionInformation = &model.SimpleAuthContext{
-		Request: simpleAuthFlow,
+	// Get the client ID from the query parameters
+	shouldReturn := initializeSimpleFlow(queryArgs, realm.Tenant, realm.Realm, ctx, flow, session)
+	if shouldReturn {
+		return
 	}
 
 	// Process the flow to get current state
@@ -145,14 +114,52 @@ func handleJSONGetRequest(ctx *fasthttp.RequestCtx, tenant, realm string, flow *
 	}
 
 	// Save updated session
-	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, *newSession)
+	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
 
 	// Send response
 	sendFlowResponse(ctx, newSession, flow, sessionId)
 }
 
+func initializeSimpleFlow(queryArgs *fasthttp.Args, tenant string, realm string, ctx *fasthttp.RequestCtx, flow *model.Flow, session *model.AuthenticationSession) bool {
+	clientID := string(queryArgs.Peek("client_id"))
+
+	if clientID != "" {
+		responseType := string(queryArgs.Peek("response_type"))
+		scope := string(queryArgs.Peek("scope"))
+
+		// Load the client from the database
+		application, ok := service.GetServices().ApplicationService.GetApplication(tenant, realm, clientID)
+		if !ok {
+			sendErrorResponse(ctx, fasthttp.StatusNotFound, "APPLICATION_NOT_FOUND", "client_id is required", "")
+			return true
+		}
+
+		// Create a simple auth flow
+		simpleAuthFlow := &model.SimpleAuthRequest{
+			ClientID:     clientID,
+			Grant:        model.GRANT_SIMPLE_AUTH_BODY,
+			ResponseType: responseType,
+			Scope:        scope,
+		}
+
+		// Verify if the simple auth request is allowed
+		err := service.GetServices().SimpleAuthService.VerifySimpleAuthFlowRequest(ctx, simpleAuthFlow, application, flow)
+		if err != nil {
+			sendErrorResponse(ctx, fasthttp.StatusBadRequest, "INVALID_REQUEST", err.Error(), "")
+			return true
+		}
+
+		// Add the simple auth session to the execution context
+		session.SimpleAuthSessionInformation = &model.SimpleAuthContext{
+			Request: simpleAuthFlow,
+		}
+
+	}
+	return false
+}
+
 // handleJSONPostRequest handles POST requests to submit flow responses
-func handleJSONPostRequest(ctx *fasthttp.RequestCtx, tenant, realm string, flow *model.Flow) {
+func handleJSONPostRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *model.Flow) {
 	// Parse request body
 	var req FlowRequest
 	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
@@ -161,9 +168,9 @@ func handleJSONPostRequest(ctx *fasthttp.RequestCtx, tenant, realm string, flow 
 	}
 
 	// Get existing session using both IDs
-	session, ok := getJSONSessionByIDs(ctx, tenant, realm, req.ExecutionID, req.SessionID)
+	session, ok := getJSONSessionByIDs(ctx, realm.Tenant, realm.Realm, req.SessionID)
 	if !ok {
-		sendErrorResponse(ctx, fasthttp.StatusBadRequest, "INVALID_IDS", "Invalid execution ID or session ID", "")
+		sendErrorResponse(ctx, fasthttp.StatusBadRequest, "INVALID_IDS", "Invalid session ID", "")
 		return
 	}
 
@@ -181,17 +188,20 @@ func handleJSONPostRequest(ctx *fasthttp.RequestCtx, tenant, realm string, flow 
 	}
 
 	// Save updated session
-	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, *newSession)
+	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
 
 	// Send response
 	sendFlowResponse(ctx, newSession, flow, req.SessionID)
 }
 
 // Helper functions
-func createNewJSONSession(ctx *fasthttp.RequestCtx, tenant, realm string, flow *model.Flow, debug bool) (*model.AuthenticationSession, string, error) {
+func createNewJSONSession(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *model.Flow, debug bool) (*model.AuthenticationSession, string, error) {
+
 	// Create new session
-	loginUri := "/api/v1/" + flow.Route
-	session, sessionId := service.GetServices().SessionsService.CreateAuthSessionObject(tenant, realm, flow.Id, loginUri)
+	realmUrl := webutils.GetUrlForRealm(ctx, realm)
+	loginUri := realmUrl + "/api/v1/" + flow.Route
+
+	session, sessionId := service.GetServices().SessionsService.CreateAuthSessionObject(realm.Tenant, realm.Realm, flow.Id, loginUri)
 
 	// If allowed we add the debug flag
 	if debug && flow.DebugAllowed {
@@ -201,7 +211,7 @@ func createNewJSONSession(ctx *fasthttp.RequestCtx, tenant, realm string, flow *
 	return session, sessionId, nil
 }
 
-func getJSONSessionByIDs(ctx *fasthttp.RequestCtx, tenant, realm, executionID, sessionID string) (*model.AuthenticationSession, bool) {
+func getJSONSessionByIDs(ctx *fasthttp.RequestCtx, tenant, realm, sessionID string) (*model.AuthenticationSession, bool) {
 	// Get session by session ID
 	sessionIDHash := lib.HashString(sessionID)
 	session, ok := service.GetServices().SessionsService.GetAuthenticationSession(ctx, tenant, realm, sessionIDHash)
@@ -213,6 +223,7 @@ func getJSONSessionByIDs(ctx *fasthttp.RequestCtx, tenant, realm, executionID, s
 }
 
 func processJSONFlow(ctx *fasthttp.RequestCtx, flow *model.Flow, session model.AuthenticationSession) (*model.AuthenticationSession, error) {
+
 	// Load realm
 	loadedRealm, ok := service.GetServices().RealmService.GetRealm(flow.Tenant, flow.Realm)
 	if !ok {
@@ -261,16 +272,39 @@ func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSes
 		response.Prompts = session.Prompts
 	}
 
+	if session.DidResultError() {
+		response.Result = &model.SimpleAuthResponse{
+			Success: false,
+			Error:   *session.Error,
+		}
+	}
+
+	if session.DidResultFailure() {
+		response.Result = &model.SimpleAuthResponse{
+			Success: false,
+		}
+		if session.Error != nil {
+			response.Result.Error = *session.Error
+		}
+	}
+
 	if session.DidResultAuthenticated() {
 
-		simpleAuthResponse, simpleAuthError := service.GetServices().SimpleAuthService.FinishSimpleAuthFlow(ctx, session, flow.Tenant, flow.Realm)
 		service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, flow.Tenant, flow.Realm, session.SessionIdHash)
 
-		if simpleAuthError != nil {
-			sendErrorResponse(ctx, fasthttp.StatusInternalServerError, simpleAuthError.Error, simpleAuthError.ErrorDescription, "")
-			return
+		if session.SimpleAuthSessionInformation != nil {
+			simpleAuthResponse, simpleAuthError := service.GetServices().SimpleAuthService.FinishSimpleAuthFlow(ctx, session, flow.Tenant, flow.Realm)
+
+			if simpleAuthError != nil {
+				sendErrorResponse(ctx, fasthttp.StatusInternalServerError, simpleAuthError.Error, simpleAuthError.ErrorDescription, "")
+				return
+			}
+			response.Result = simpleAuthResponse
+		} else {
+			response.Result = &model.SimpleAuthResponse{
+				Success: true,
+			}
 		}
-		response.Result = simpleAuthResponse
 	}
 
 	// Send JSON response

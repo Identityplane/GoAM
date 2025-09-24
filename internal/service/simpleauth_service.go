@@ -140,6 +140,7 @@ func (s *simpleAuthService) FinishSimpleAuthFlow(ctx context.Context, session *m
 	// if the result node is a success result we return the tokens
 	if session.DidResultAuthenticated() {
 		return &model.SimpleAuthResponse{
+			Success:               true,
 			AccessToken:           accessToken,
 			TokenType:             tokenType,
 			ExpiresIn:             expiresIn,

@@ -1,12 +1,11 @@
 package authhandler
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
+	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/test/integration"
-	"github.com/gavv/httpexpect/v2"
 )
 
 // JSON API request/response structures
@@ -44,10 +43,23 @@ type User struct {
 func TestJSONFlow_MockSuccessFlow(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
 
+	tenant := "acme"
+	realm := "customers"
+	clientID := "customers-app"
+	flowID := "mock_success"
+	application, ok := service.GetServices().ApplicationService.GetApplication(tenant, realm, clientID)
+	if !ok {
+		t.Fatalf("Application not found")
+	}
+	flow, ok := service.GetServices().FlowService.GetFlowById(tenant, realm, flowID)
+	if !ok {
+		t.Fatalf("Flow not found")
+	}
+
 	t.Run("Mock Success Flow", func(t *testing.T) {
 		// Test the mock flow that should complete immediately with OAuth2 tokens
-		resp := e.GET("/acme/customers/api/v1/mock-success").
-			WithQuery("client_id", "customers-app").
+		resp := e.GET("/acme/customers/api/v1/"+flow.Route).
+			WithQuery("client_id", application.ClientId).
 			WithHeader("Accept", "application/json").
 			Expect().
 			Status(http.StatusOK).
@@ -65,11 +77,12 @@ func TestJSONFlow_MockSuccessFlow(t *testing.T) {
 			result := resp.Object().Value("result").Object()
 
 			// Check for OAuth2 tokens
+			result.Value("success").Boolean().IsEqual(true)
 			result.Value("access_token").String().NotEmpty()
-			result.Value("token_type").String().Equal("Bearer")
+			result.Value("token_type").String().IsEqual("Bearer")
 			result.Value("refresh_token").String().NotEmpty()
-			result.Value("expires_in").Number().Equal(3600)
-			result.Value("refresh_token_expires_in").Number().Equal(31536000)
+			result.Value("expires_in").Number().IsEqual(application.AccessTokenLifetime)
+			result.Value("refresh_token_expires_in").Number().IsEqual(application.RefreshTokenLifetime)
 
 			// Validate user object
 			user := result.Value("user").Object()
@@ -84,33 +97,27 @@ func TestJSONFlow_UsernamePasswordRegisterFlow(t *testing.T) {
 	var executionID, sessionID string
 
 	// Step 1: GET request - expect JSON with username prompt
-	t.Run("Step 1: GET - Username Prompt", func(t *testing.T) {
+	t.Run("Username Password Register Flow Step 1: GET - Username Prompt", func(t *testing.T) {
 		resp := e.GET("/acme/customers/api/v1/username-password-register").
-			WithQuery("client_id", "customers-app").
 			WithHeader("Accept", "application/json").
 			Expect().
 			Status(http.StatusOK).
 			JSON()
 
 		// Validate response structure
-		resp.Object().
-			HasValue("currentNode", "askUsername").
-			Value("executionId").String().NotEmpty()
+		resp.Object().HasValue("currentNode", "askUsername").Value("executionId").String().NotEmpty()
 
 		resp.Object().Value("sessionId").String().NotEmpty()
 
-		resp.Object().Value("prompts").Object().
-			HasValue("username", "text")
+		resp.Object().Value("prompts").Object().HasValue("username", "text")
 
 		// Extract IDs for next request
 		executionID = resp.Object().Value("executionId").String().Raw()
 		sessionID = resp.Object().Value("sessionId").String().Raw()
 	})
 
-	// Step 2: POST username - expect JSON with password prompt
-	t.Run("Step 2: POST Username - Password Prompt", func(t *testing.T) {
+	t.Run("Username Password Register Flow Step 2: POST Username - Password Prompt", func(t *testing.T) {
 		request := FlowRequest{
-			ExecutionID: executionID,
 			SessionID:   sessionID,
 			CurrentNode: "askUsername",
 			Responses: map[string]string{
@@ -128,18 +135,15 @@ func TestJSONFlow_UsernamePasswordRegisterFlow(t *testing.T) {
 		// Validate response structure
 		resp.Object().
 			HasValue("currentNode", "askPassword").
-			Value("executionId").String().Equal(executionID)
+			Value("executionId").String().IsEqual(executionID)
 
-		resp.Object().Value("sessionId").String().Equal(sessionID)
+		resp.Object().Value("sessionId").String().IsEqual(sessionID)
 
-		resp.Object().Value("prompts").Object().
-			HasValue("password", "password")
+		resp.Object().Value("prompts").Object().HasValue("password", "password")
 	})
 
-	// Step 3: POST password - expect success result with OAuth2 tokens
-	t.Run("Step 3: POST Password - Success Result with OAuth2 Tokens", func(t *testing.T) {
+	t.Run("Username Password Register Flow Step 3: POST Password - Success Result", func(t *testing.T) {
 		request := FlowRequest{
-			ExecutionID: executionID,
 			SessionID:   sessionID,
 			CurrentNode: "askPassword",
 			Responses: map[string]string{
@@ -148,7 +152,6 @@ func TestJSONFlow_UsernamePasswordRegisterFlow(t *testing.T) {
 		}
 
 		resp := e.POST("/acme/customers/api/v1/username-password-register").
-			WithQuery("client_id", "customers-app").
 			WithHeader("Content-Type", "application/json").
 			WithJSON(request).
 			Expect().
@@ -158,65 +161,47 @@ func TestJSONFlow_UsernamePasswordRegisterFlow(t *testing.T) {
 		// Validate success response
 		resp.Object().
 			HasValue("currentNode", "registerSuccess").
-			Value("executionId").String().Equal(executionID)
+			Value("executionId").String().IsEqual(executionID)
 
-		resp.Object().Value("sessionId").String().Equal(sessionID)
+		resp.Object().Value("sessionId").String().IsEqual(sessionID)
 
-		// Check if result contains OAuth2 tokens
-		if resp.Object().Value("result").Raw() != nil {
-			result := resp.Object().Value("result").Object()
-
-			// Check for OAuth2 tokens
-			result.Value("access_token").String().NotEmpty()
-			result.Value("token_type").String().Equal("Bearer")
-			result.Value("refresh_token").String().NotEmpty()
-			result.Value("expires_in").Number().Equal(3600)
-			result.Value("refresh_token_expires_in").Number().Equal(31536000)
-
-			// Validate user object
-			user := result.Value("user").Object()
-			user.Value("sub").String().NotEmpty()
-		}
+		// Check if result contains a sucessful response
+		resp.Object().Value("result").IsObject().Object().
+			HasValue("success", true)
 	})
 
 }
 
-func TestJSONFlow_ErrorHandling(t *testing.T) {
+func TestJSONFlow_FlowWithoutApplication(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
 
-	t.Run("JSON API Error Handling", func(t *testing.T) {
-		// Test missing client_id
-		t.Run("Missing Client ID", func(t *testing.T) {
-			e.GET("/acme/customers/api/v1/mock-success").
-				WithHeader("Accept", "application/json").
-				Expect().
-				Status(http.StatusBadRequest).
-				JSON().
-				Object().
-				Value("error").Object().
-				HasValue("error", "INVALID_REQUEST").
-				HasValue("error_description", "Client ID is required")
-		})
+	t.Run("Flow with no application and with success result should result in a success=true response without tokens", func(t *testing.T) {
+
+		e.GET("/acme/customers/api/v1/mock-success").
+			WithHeader("Accept", "application/json").
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			Value("result").Object().
+			HasValue("success", true).
+			NotContainsKey("access_token")
 	})
 }
 
-// Helper function to parse JSON response
-func parseJSONResponse(t *testing.T, resp *httpexpect.Object) FlowResponse {
-	var flowResp FlowResponse
+func TestJSONFlow_FlowWithFailureResult(t *testing.T) {
+	e := integration.SetupIntegrationTest(t, "")
 
-	// Convert httpexpect.Object to JSON bytes
-	rawData := resp.Raw()
+	t.Run("Flow with failure result should result in a success=false response without tokens", func(t *testing.T) {
 
-	// Convert map to JSON bytes
-	jsonBytes, err := json.Marshal(rawData)
-	if err != nil {
-		t.Fatalf("Failed to marshal response: %v", err)
-	}
-
-	err = json.Unmarshal(jsonBytes, &flowResp)
-	if err != nil {
-		t.Fatalf("Failed to parse JSON response: %v", err)
-	}
-
-	return flowResp
+		e.GET("/acme/customers/api/v1/mock-failure").
+			WithHeader("Accept", "application/json").
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			Value("result").Object().
+			HasValue("success", false).
+			NotContainsKey("access_token")
+	})
 }
