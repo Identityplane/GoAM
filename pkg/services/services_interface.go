@@ -20,6 +20,7 @@ type Services struct {
 	SessionsService            SessionsService
 	StaticConfigurationService StaticConfigurationService
 	OAuth2Service              OAuth2Service
+	SimpleAuthService          SimpleAuthService
 	JWTService                 JWTService
 	CacheService               CacheService
 	AdminAuthzService          AdminAuthzService
@@ -251,5 +252,17 @@ type OAuth2Service interface {
 	ToQueryString(response *oauth2.AuthorizationResponse) string
 
 	// GetUserClaims gets the user claims for a given client session
-	GetUserClaims(session *model.ClientSession) (map[string]interface{}, error)
+	GetUserClaims(user model.User, scope string) (map[string]interface{}, error)
+
+	// GetOtherJwtClaims gets the other JWT claims for a given client
+	GetOtherJwtClaims(tenant, realm, client_id string) (map[string]interface{}, error)
+}
+
+// SimpleAuthService defines the business logic for Simple Auth operations
+type SimpleAuthService interface {
+	// VerifySimpleAuthFlowRequest validates the Simple Auth flow request
+	VerifySimpleAuthFlowRequest(ctx context.Context, req *model.SimpleAuthRequest, application *model.Application, flow *model.Flow) error
+
+	// FinishSimpleAuthFlow completes the Simple Auth flow and returns tokens
+	FinishSimpleAuthFlow(ctx context.Context, session *model.AuthenticationSession, tenant, realm string) (*model.SimpleAuthResponse, *model.SimpleAuthError)
 }

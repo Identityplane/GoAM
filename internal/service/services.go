@@ -46,6 +46,7 @@ func InitServices(connections DatabaseConnections) *services_interface.Services 
 		CacheService:               cacheService,
 		TemplatesService:           NewTemplatesService(),
 		AdminAuthzService:          NewAdminAuthzService(),
+		SimpleAuthService:          NewSimpleAuthService(),
 	}
 
 	return services

@@ -8,7 +8,7 @@ import (
 )
 
 var SuccessResultNode = &model.NodeDefinition{
-	Name:                 "successResult",
+	Name:                 model.NODE_SUCCESS_RESULT,
 	PrettyName:           "Authentication Success",
 	Description:          "Terminal node that indicates successful authentication and returns user information",
 	Category:             "Results",

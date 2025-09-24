@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/auth/graph/node_system"
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/lib/oauth2"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -108,36 +107,15 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. No result")
 	}
 
-	// Too lookup the result node type we need to get the floew
-	flow, ok := GetServices().FlowService.GetFlowById(tenant, realm, session.FlowId)
-	if !ok {
-		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Flow not found")
-	}
+	// if there is an error we return an oauth2 error
 
-	// Get the type of the current node
-	currentNode, ok := flow.Definition.Nodes[session.Current]
-	if !ok {
-		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Current node not found")
-	}
-
-	// If the result node is a failure result we return an oauth2 error
-	if currentNode.Use == node_system.FailureResultNode.Name {
-		return nil, oauth2.NewOAuth2Error(oauth2.ErrorAccessDenied, "Authentication Failed")
-	}
-
-	if currentNode.Use != node_system.SuccessResultNode.Name {
+	if session.DidResultError() {
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Unexpected result node")
 	}
 
-	// In order to set a access token the result auth level must be at least 1
-	/*
-		if session.Result.AuthLevel == "" || session.Result.AuthLevel == model.AuthLevelUnauthenticated {
-			return nil, oauth2.NewOAuth2Error(oauth2.ErrorAccessDenied, "Authentication level unauthenticated")
-		}*/
-
-	// If the result is not authenticated we return an error
-	if !session.Result.Authenticated {
-		return nil, oauth2.NewOAuth2Error(oauth2.ErrorAccessDenied, "Authentication failed")
+	// If the result node is a failure result we return an oauth2 error
+	if !session.DidResultAuthenticated() {
+		return nil, oauth2.NewOAuth2Error(oauth2.ErrorAccessDenied, "Authentication Failed")
 	}
 
 	// If the result user is is empty we return an error
@@ -382,16 +360,31 @@ func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, logi
 }
 
 func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, error) {
+
+	// Load the user from the database
+	user, err := GetServices().UserService.GetUserWithAttributesByID(context.Background(), session.Tenant, session.Realm, session.UserID)
+	if err != nil || user == nil {
+		return "", fmt.Errorf("internal server error. Could not get user")
+	}
+
 	// TODO later we use the id token mapping but for now we just map the claims directly
-	userClaims, err := s.GetUserClaims(session)
+	userClaims, err := s.GetUserClaims(*user, session.Scope)
 	if err != nil {
 		return "", fmt.Errorf("internal server error. Could not get user claims")
 	}
 
-	otherClaims, err := s.GetOtherJwtClaims(session, loginSession, application)
+	otherClaims, err := s.GetOtherJwtClaims(session.Tenant, session.Realm, session.ClientID)
 	if err != nil {
 		return "", fmt.Errorf("internal server error. Could not get other claims")
 	}
+
+	// if we have a nonce in the login session we add it to the claims
+	if loginSession.Oauth2SessionInformation.AuthorizeRequest.Nonce != "" {
+		otherClaims["nonce"] = loginSession.Oauth2SessionInformation.AuthorizeRequest.Nonce
+	}
+
+	// if we have a auth_time in the login session we add it to the claims
+	otherClaims["acr"] = loginSession.Result.AuthLevel
 
 	// Merge the claims into the final set
 	claims := maps.Clone(userClaims)
@@ -475,32 +468,20 @@ func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, login
 	return refreshToken, nil
 }
 
-func (s *OAuth2Service) GetUserClaims(session *model.ClientSession) (map[string]interface{}, error) {
+func (s *OAuth2Service) GetUserClaims(user model.User, scope string) (map[string]interface{}, error) {
 
 	// If userid is empty we return an error. This might be the case if a client uses the client_credentials grant and then accesses the userinfo endpoint
-	if session.UserID == "" {
+	if user.ID == "" {
 		return nil, fmt.Errorf("internal server error. User ID is empty")
-	}
-
-	// First we need to load the user
-	user, err := GetServices().UserService.GetUserByID(context.Background(), session.Tenant, session.Realm, session.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("internal server error. Could not get user")
-	}
-
-	if user == nil {
-		return nil, fmt.Errorf("user not found")
 	}
 
 	// now we map the user attributes into claims
 	// we need to check the sesssion scopes and map the attributes accordingly
 	claims := make(map[string]interface{})
-	scopes := strings.Split(session.Scope, " ")
+	//scopes := strings.Split(scope, " ")
 
-	// if scopes contain openid we need to add the sub claim
-	if slices.Contains(scopes, "openid") {
-		claims["sub"] = user.ID
-	}
+	// We always return the sub claim
+	claims["sub"] = user.ID
 
 	//TODO we need to add the claims for the user attributes
 	/*
@@ -533,33 +514,31 @@ func (s *OAuth2Service) GetUserClaims(session *model.ClientSession) (map[string]
 	return claims, nil
 }
 
-func (s *OAuth2Service) GetOtherJwtClaims(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (map[string]interface{}, error) {
+func (s *OAuth2Service) GetOtherJwtClaims(tenant, realm, client_id string) (map[string]interface{}, error) {
 
 	// Issuer
 	claims := make(map[string]interface{})
 
 	// We need to load the realm to load the signing key
-	realm, ok := GetServices().RealmService.GetRealm(session.Tenant, session.Realm)
+	loadedRealm, ok := GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
 		return nil, fmt.Errorf("internal server error. Could not get realm")
 	}
 
+	// Load the application
+	application, ok := GetServices().ApplicationService.GetApplication(tenant, realm, client_id)
+	if !ok {
+		return nil, fmt.Errorf("internal server error. Could not get application")
+	}
+
 	now := time.Now()
 
-	claims["iss"] = realm.Config.BaseUrl
+	claims["iss"] = loadedRealm.Config.BaseUrl
 	claims["aud"] = application.ClientId
 	claims["exp"] = now.Add(time.Duration(application.AccessTokenLifetime) * time.Second).Unix()
 	claims["iat"] = now.Unix()
 	claims["nbf"] = now.Unix()
 	claims["jti"] = lib.GenerateSecureSessionID()
-
-	// if we have a nonce in the login session we add it to the claims
-	if loginSession.Oauth2SessionInformation.AuthorizeRequest.Nonce != "" {
-		claims["nonce"] = loginSession.Oauth2SessionInformation.AuthorizeRequest.Nonce
-	}
-
-	// if we have a auth_time in the login session we add it to the claims
-	claims["acr"] = loginSession.Result.AuthLevel
 
 	return claims, nil
 }

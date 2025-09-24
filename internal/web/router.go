@@ -6,6 +6,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/web/admin_api"
 	"github.com/Identityplane/GoAM/internal/web/auth"
+	"github.com/Identityplane/GoAM/internal/web/auth_api"
 	"github.com/Identityplane/GoAM/internal/web/debug"
 	"github.com/Identityplane/GoAM/internal/web/oauth2"
 
@@ -91,6 +92,10 @@ func New() *router.Router {
 	// Main authentication routes
 	r.GET("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
 	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
+
+	// JSON API authentication routes
+	r.GET("/{tenant}/{realm}/api/v1/{path}", WrapMiddleware(auth_api.HandleJSONAuthRequest))
+	r.POST("/{tenant}/{realm}/api/v1/{path}", WrapMiddleware(auth_api.HandleJSONAuthRequest))
 
 	// Oauth + OIDC
 	r.GET("/{tenant}/{realm}/oauth2/authorize", WrapMiddleware(oauth2.HandleAuthorizeEndpoint))
