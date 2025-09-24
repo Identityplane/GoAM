@@ -19,6 +19,7 @@ type SimpleAuthContext struct {
 }
 
 type SimpleAuthResponse struct {
+	Success               bool                   `json:"success"`
 	AccessToken           string                 `json:"access_token,omitempty"`
 	TokenType             string                 `json:"token_type,omitempty"`
 	RefreshToken          string                 `json:"refresh_token,omitempty"`
@@ -26,6 +27,7 @@ type SimpleAuthResponse struct {
 	ExpiresIn             int                    `json:"expires_in,omitempty"`
 	RefreshTokenExpiresIn int                    `json:"refresh_token_expires_in,omitempty"`
 	Scope                 string                 `json:"scope,omitempty"`
+	Error                 string                 `json:"error,omitempty"`
 }
 
 type SimpleAuthError struct {

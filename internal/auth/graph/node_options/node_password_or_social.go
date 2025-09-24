@@ -45,13 +45,45 @@ func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *mode
 	option, ok := input["option"]
 	if !latestIsOptionsNdoe || !ok {
 
-		// For passkey discovery we create a passkey challenge
-		passkeysLoginOptions, err := node_passkeys.GeneratePasskeysChallenge(state, node, "", "")
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate passkey challenge: %w", err)
+		prompts := map[string]string{
+			"option": "text",
 		}
 
-		return model.NewNodeResultWithPrompts(map[string]string{"option": "text", "username": "text", "password": "password", "email": "email", "passkeysLoginOptions": passkeysLoginOptions})
+		if node.CustomConfig["usePasskeys"] == "true" {
+			// For passkey discovery we create a passkey challenge
+			passkeysLoginOptions, err := node_passkeys.GeneratePasskeysChallenge(state, node, "", "")
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate passkey challenge: %w", err)
+			}
+			prompts["passkeysLoginOptions"] = passkeysLoginOptions
+		}
+
+		if node.CustomConfig["useUsername"] == "true" {
+			prompts["username"] = "text"
+		}
+		if node.CustomConfig["useEmail"] == "true" {
+			prompts["email"] = "email"
+		}
+		if node.CustomConfig["usePassword"] == "true" {
+			prompts["password"] = "password"
+		}
+		if node.CustomConfig["showForgotPassword"] == "true" {
+			prompts["forgotPassword"] = "forgotPassword"
+		}
+		if node.CustomConfig["showRegistrationLink"] == "true" {
+			prompts["register"] = "register"
+		}
+		if node.CustomConfig["social1"] != "" {
+			prompts["social1"] = node.CustomConfig["social1"]
+		}
+		if node.CustomConfig["social2"] != "" {
+			prompts["social2"] = node.CustomConfig["social2"]
+		}
+		if node.CustomConfig["social3"] != "" {
+			prompts["social3"] = node.CustomConfig["social3"]
+		}
+
+		return model.NewNodeResultWithPrompts(prompts)
 	}
 
 	// if option is set we return the result

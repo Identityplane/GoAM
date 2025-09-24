@@ -5,8 +5,18 @@ import (
 	"strings"
 
 	"github.com/Identityplane/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/valyala/fasthttp"
 )
+
+func GetUrlForRealm(ctx *fasthttp.RequestCtx, realm *model.Realm) string {
+
+	if realm.BaseUrl != "" {
+		return realm.BaseUrl
+	}
+
+	return GetFallbackUrl(ctx, realm.Tenant, realm.Realm)
+}
 
 // We we dont know the base url we use this to get the full url in the cases we need to assemble urls
 func GetFallbackUrl(ctx *fasthttp.RequestCtx, tenant, realm string) string {
