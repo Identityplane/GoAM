@@ -1,14 +1,12 @@
 package auth
 
 import (
-	"fmt"
-
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/valyala/fasthttp"
 )
 
-func createSimpleAuthSession(ctx *fasthttp.RequestCtx, flow *model.Flow, session *model.AuthenticationSession) error {
+func CreateSimpleAuthSession(ctx *fasthttp.RequestCtx, flow *model.Flow, session *model.AuthenticationSession, grantType string) *model.AuthError {
 
 	clientID := string(ctx.QueryArgs().Peek("client_id"))
 
@@ -24,7 +22,9 @@ func createSimpleAuthSession(ctx *fasthttp.RequestCtx, flow *model.Flow, session
 		// Get the application from the database
 		application, ok := service.GetServices().ApplicationService.GetApplication(flow.Tenant, flow.Realm, clientID)
 		if !ok {
-			return fmt.Errorf("application not found")
+			authError := model.SimpleAuthErrorInvalidClientID()
+			authError.ErrorDescription = "Application not found"
+			return authError
 		}
 
 		// Create the simple auth request
@@ -33,7 +33,7 @@ func createSimpleAuthSession(ctx *fasthttp.RequestCtx, flow *model.Flow, session
 			RedirectURI:  redirectUrl,
 			Scope:        scope,
 			State:        state,
-			Grant:        model.GRANT_SIMPLE_AUTH_COOKIE,
+			Grant:        grantType,
 			ResponseType: responseType,
 		}
 
@@ -45,7 +45,9 @@ func createSimpleAuthSession(ctx *fasthttp.RequestCtx, flow *model.Flow, session
 		// Verify the simple auth flow request
 		err := service.GetServices().SimpleAuthService.VerifySimpleAuthFlowRequest(ctx, req, application, flow)
 		if err != nil {
-			return fmt.Errorf("failed to verify simple auth flow request: %v", err)
+			authError := model.SimpleAuthErrorClientUnauthorized()
+			authError.ErrorDescription = "Client unauthorized: " + err.Error()
+			return authError
 		}
 
 		// Add the simple auth session to the execution context
@@ -55,49 +57,70 @@ func createSimpleAuthSession(ctx *fasthttp.RequestCtx, flow *model.Flow, session
 	return nil
 }
 
-func finishSimpleAuthFlow(ctx *fasthttp.RequestCtx, session *model.AuthenticationSession, realm *model.Realm) error {
+func FinishSimpleAuthFlow(ctx *fasthttp.RequestCtx, session *model.AuthenticationSession, realm *model.Realm) (*model.SimpleAuthResponse, *model.AuthError) {
+
+	if session.SimpleAuthSessionInformation == nil || session.SimpleAuthSessionInformation.Request == nil {
+		// This means the flow was not initialized correctly
+		return nil, model.SimpleAuthServerError()
+	}
+
+	if session.DidResultError() {
+		return nil, model.SimpleAuthServerError()
+	}
+
+	if session.DidResultFailure() {
+		return nil, model.SimpleAuthFailure()
+	}
 
 	simpleAuthResponse, simpleAuthError := service.GetServices().SimpleAuthService.FinishSimpleAuthFlow(ctx, session, realm.Tenant, realm.Realm)
 	if simpleAuthError != nil {
-		return fmt.Errorf("failed to finish auth flow: %v", simpleAuthError)
+		authError := model.SimpleAuthServerError()
+		authError.ErrorDescription = "Failed to finish auth flow"
+		return nil, authError
 	}
 
 	if session.SimpleAuthSessionInformation.Request.Grant == model.GRANT_SIMPLE_AUTH_COOKIE {
 		err := finishSimpleAuthCookieGrant(ctx, simpleAuthResponse, session)
 		if err != nil {
-			return fmt.Errorf("failed to finish simple auth cookie grant: %v", err)
+			return nil, err
 		}
 	}
 
 	if session.SimpleAuthSessionInformation.Request.Grant == model.GRANT_SIMPLE_AUTH_BODY {
 		err := finishSimpleAuthBodyGrant(ctx, simpleAuthResponse, session)
 		if err != nil {
-			return fmt.Errorf("failed to finish simple auth body grant: %v", err)
+			return nil, err
 		}
 	}
 
 	// Detele the session
 	service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, realm.Tenant, realm.Realm, session.SessionIdHash)
 
-	return nil
+	return simpleAuthResponse, nil
 }
 
-func finishSimpleAuthCookieGrant(ctx *fasthttp.RequestCtx, simpleAuthResponse *model.SimpleAuthResponse, session *model.AuthenticationSession) error {
+func finishSimpleAuthCookieGrant(ctx *fasthttp.RequestCtx, simpleAuthResponse *model.SimpleAuthResponse, session *model.AuthenticationSession) *model.AuthError {
 
 	if session.DidResultAuthenticated() {
 
 		// We need to get the application to get the cookie specifications
 		application, ok := service.GetServices().ApplicationService.GetApplication(session.Tenant, session.Realm, session.SimpleAuthSessionInformation.Request.ClientID)
 		if !ok {
-			return fmt.Errorf("application not found")
+			authError := model.SimpleAuthErrorFound()
+			authError.ErrorDescription = "Application not found"
+			return authError
 		}
 
-		spec := application.Settings.Cookie
+		var spec *model.CookieSpecification
+		if application.Settings != nil && application.Settings.Cookie != nil {
+			spec = application.Settings.Cookie
+		}
+
 		if spec == nil {
 
 			// Use default cookie specification if none set in the application
 			spec = &model.CookieSpecification{
-				Name:          "session_id",
+				Name:          "access_token",
 				Secure:        true,
 				HttpOnly:      true,
 				SameSite:      "Lax",
@@ -141,9 +164,8 @@ func finishSimpleAuthCookieGrant(ctx *fasthttp.RequestCtx, simpleAuthResponse *m
 	return nil
 }
 
-func finishSimpleAuthBodyGrant(ctx *fasthttp.RequestCtx, simpleAuthResponse *model.SimpleAuthResponse, session *model.AuthenticationSession) error {
+func finishSimpleAuthBodyGrant(ctx *fasthttp.RequestCtx, simpleAuthResponse *model.SimpleAuthResponse, session *model.AuthenticationSession) *model.AuthError {
 
 	// Nothing to do, renderer should add the values to the body
-
 	return nil
 }

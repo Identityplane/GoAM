@@ -14,12 +14,6 @@
   
   <div class="main-content" data-node="{{ .Node.Use }}">
     <div class="login-container">
-
-        {{ if .Error }}
-        <div class="error" style="color: red; font-weight: bold;">
-          {{ .Error }}
-        </div>
-        {{ end }}
         {{ template "content" . }}
       </div>
 </div>

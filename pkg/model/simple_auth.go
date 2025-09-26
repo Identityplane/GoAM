@@ -1,5 +1,7 @@
 package model
 
+import "net/http"
+
 const (
 	GRANT_SIMPLE_AUTH_BODY   = "simple-body"
 	GRANT_SIMPLE_AUTH_COOKIE = "simple-cookie"
@@ -31,7 +33,56 @@ type SimpleAuthResponse struct {
 	Error                 string                 `json:"error,omitempty"`
 }
 
-type SimpleAuthError struct {
+type AuthError struct {
 	Error            string `json:"error"`
 	ErrorDescription string `json:"error_description,omitempty"`
+	HttpStatusCode   int    `json:"http_status_code,omitempty"`
+}
+
+func SimpleAuthErrorFound() *AuthError {
+	return &AuthError{
+		Error:            "NOT_FOUND",
+		ErrorDescription: "Not found",
+		HttpStatusCode:   http.StatusNotFound,
+	}
+}
+
+func SimpleAuthErrorInvalidClientID() *AuthError {
+	return &AuthError{
+		Error:            "INVALID_REQUEST",
+		ErrorDescription: "Invalid client id",
+		HttpStatusCode:   http.StatusBadRequest,
+	}
+}
+
+func SimpleAuthErrorClientUnauthorized() *AuthError {
+	return &AuthError{
+		Error:            "INVALID_REQUEST",
+		ErrorDescription: "Client unauthorized",
+		HttpStatusCode:   http.StatusUnauthorized,
+	}
+}
+
+func SimpleAuthServerError() *AuthError {
+	return &AuthError{
+		Error:            "SERVER_ERROR",
+		ErrorDescription: "Internal server error",
+		HttpStatusCode:   http.StatusInternalServerError,
+	}
+}
+
+func SimpleAuthFailure() *AuthError {
+	return &AuthError{
+		Error:            "FAILURE",
+		ErrorDescription: "Authentication failed",
+		HttpStatusCode:   http.StatusUnauthorized,
+	}
+}
+
+func NewSimpleAuthServerError(description string) *AuthError {
+	return &AuthError{
+		Error:            "SERVER_ERROR",
+		ErrorDescription: description,
+		HttpStatusCode:   http.StatusInternalServerError,
+	}
 }

@@ -122,9 +122,9 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 
 	// We create a new session for this auth request
 	var session *model.AuthenticationSession
-	var err error
-	session, err = auth.CreateNewAuthenticationSession(ctx, loadedRealm.Config, flow, false)
-	if err != nil {
+	var authErr *model.AuthError
+	session, authErr = auth.CreateNewAuthenticationSession(ctx, loadedRealm.Config, flow, false)
+	if authErr != nil {
 		RenderOauth2Error(ctx, oauth2.ErrorServerError, "Internal server error. Cannot create session", oauth2request, redirectUri)
 		return
 	}

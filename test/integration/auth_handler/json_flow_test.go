@@ -8,38 +8,6 @@ import (
 	"github.com/Identityplane/GoAM/test/integration"
 )
 
-// JSON API request/response structures
-type FlowRequest struct {
-	ExecutionID string            `json:"executionId"`
-	SessionID   string            `json:"sessionId"`
-	CurrentNode string            `json:"currentNode"`
-	Responses   map[string]string `json:"responses"`
-}
-
-type FlowResponse struct {
-	ExecutionID string            `json:"executionId"`
-	SessionID   string            `json:"sessionId"`
-	CurrentNode string            `json:"currentNode"`
-	Prompts     map[string]string `json:"prompts,omitempty"`
-	Result      *FlowResult       `json:"result,omitempty"`
-	Debug       any               `json:"debug,omitempty"`
-}
-
-type FlowResult struct {
-	Status                string `json:"status"`
-	Message               string `json:"message"`
-	AccessToken           string `json:"access_token,omitempty"`
-	TokenType             string `json:"token_type,omitempty"`
-	RefreshToken          string `json:"refresh_token,omitempty"`
-	ExpiresIn             int    `json:"expires_in,omitempty"`
-	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in,omitempty"`
-	User                  *User  `json:"user,omitempty"`
-}
-
-type User struct {
-	Sub string `json:"sub"`
-}
-
 func TestJSONFlow_MockSuccessFlow(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
 
@@ -204,4 +172,36 @@ func TestJSONFlow_FlowWithFailureResult(t *testing.T) {
 			HasValue("success", false).
 			NotContainsKey("access_token")
 	})
+}
+
+// JSON API request/response structures
+type FlowRequest struct {
+	ExecutionID string            `json:"executionId"`
+	SessionID   string            `json:"sessionId"`
+	CurrentNode string            `json:"currentNode"`
+	Responses   map[string]string `json:"responses"`
+}
+
+type FlowResponse struct {
+	ExecutionID string            `json:"executionId"`
+	SessionID   string            `json:"sessionId"`
+	CurrentNode string            `json:"currentNode"`
+	Prompts     map[string]string `json:"prompts,omitempty"`
+	Result      *FlowResult       `json:"result,omitempty"`
+	Debug       any               `json:"debug,omitempty"`
+}
+
+type FlowResult struct {
+	Status                string `json:"status"`
+	Message               string `json:"message"`
+	AccessToken           string `json:"access_token,omitempty"`
+	TokenType             string `json:"token_type,omitempty"`
+	RefreshToken          string `json:"refresh_token,omitempty"`
+	ExpiresIn             int    `json:"expires_in,omitempty"`
+	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in,omitempty"`
+	User                  *User  `json:"user,omitempty"`
+}
+
+type User struct {
+	Sub string `json:"sub"`
 }

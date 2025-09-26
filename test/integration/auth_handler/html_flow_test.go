@@ -83,6 +83,18 @@ func TestHTMLFlow_SuccessLeadToSessionCookie(t *testing.T) {
 	})
 }
 
+func TestHTMLFlow_InvalidClientId(t *testing.T) {
+	e := integration.SetupIntegrationTest(t, "")
+
+	t.Run("Invalid Client ID", func(t *testing.T) {
+
+		e.GET("/acme/customers/auth/mock-success").
+			WithQuery("client_id", "invalid-client-id").
+			Expect().
+			Status(http.StatusBadRequest)
+	})
+}
+
 func TestHTMLFlow_UserRegistration(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
 
