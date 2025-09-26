@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS applications (
     id_token_algorithm VARCHAR(50),
     id_token_mapping JSONB,
     redirect_uris JSONB DEFAULT '[]'::jsonb,
+    settings JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (tenant, realm, client_id)

@@ -40,6 +40,12 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		RedirectUris:               []string{"https://example.com/callback", "https://example.com/oauth2/callback"},
 		CreatedAt:                  time.Now(),
 		UpdatedAt:                  time.Now(),
+		Settings: &model.ApplicationExtensionSettings{
+			Cookie: &model.CookieSpecification{
+				Name:   "session_id",
+				Domain: "example.com",
+			},
+		},
 	}
 
 	t.Run("CreateApplication", func(t *testing.T) {
@@ -66,6 +72,7 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		assert.Equal(t, testApp.IdTokenAlgorithm, app.IdTokenAlgorithm)
 		assert.Equal(t, testApp.IdTokenMapping, app.IdTokenMapping)
 		assert.Equal(t, testApp.RedirectUris, app.RedirectUris)
+		assert.Equal(t, testApp.Settings, app.Settings)
 	})
 
 	t.Run("UpdateApplication", func(t *testing.T) {
@@ -84,6 +91,7 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		app.IdTokenAlgorithm = "HS256"
 		app.IdTokenMapping = "custom"
 		app.RedirectUris = []string{"https://example.com/new-callback"}
+		app.Settings.Cookie.HttpOnly = true
 		err = db.UpdateApplication(ctx, app)
 		assert.NoError(t, err)
 
@@ -100,6 +108,7 @@ func TemplateTestApplicationCRUD(t *testing.T, db ApplicationDB) {
 		assert.Equal(t, "HS256", updatedApp.IdTokenAlgorithm)
 		assert.Equal(t, "custom", updatedApp.IdTokenMapping)
 		assert.Equal(t, []string{"https://example.com/new-callback"}, updatedApp.RedirectUris)
+		assert.Equal(t, true, updatedApp.Settings.Cookie.HttpOnly)
 	})
 
 	t.Run("ListApplications", func(t *testing.T) {

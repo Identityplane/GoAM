@@ -53,6 +53,10 @@ func (s *sessionsService) CreateAuthSessionObject(tenant, realm, flowId, loginUr
 	sessionID := lib.GenerateSecureSessionID()
 
 	session := &model.AuthenticationSession{
+		RealmObject: model.RealmObject{
+			Tenant: tenant,
+			Realm:  realm,
+		},
 		RunID:                    uuid.New().String(),
 		FlowId:                   flowId,
 		SessionIdHash:            lib.HashString(sessionID),

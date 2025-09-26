@@ -167,7 +167,7 @@ func (s *simpleAuthService) generateAccessToken(request *model.SimpleAuthRequest
 	scopesArray := strings.Split(scopes, " ")
 
 	// Then we store it into the client sessions database using the service
-	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, request.ClientID, userID, scopesArray, "authorization_code", expiresIn)
+	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, request.ClientID, userID, scopesArray, request.Grant, expiresIn)
 
 	if err != nil {
 		return "", 0, "", "", fmt.Errorf("internal server error. Could not create access token session: %w", err)

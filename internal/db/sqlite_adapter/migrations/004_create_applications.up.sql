@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS applications (
     id_token_algorithm TEXT,
     id_token_mapping TEXT,
     redirect_uris TEXT,
+    settings TEXT,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
     PRIMARY KEY (tenant, realm, client_id)

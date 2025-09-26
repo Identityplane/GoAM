@@ -15,7 +15,8 @@ type SimpleAuthRequest struct {
 }
 
 type SimpleAuthContext struct {
-	Request *SimpleAuthRequest `json:"request"`
+	Request     *SimpleAuthRequest `json:"request"`
+	RedirectURI string             `json:"redirect_uri"`
 }
 
 type SimpleAuthResponse struct {
