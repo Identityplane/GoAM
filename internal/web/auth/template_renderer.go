@@ -121,7 +121,6 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.Authenticati
 
 	if state == nil {
 
-		msg := "Error without state"
 		SimpleErrorHtml(ctx, msg)
 		return
 	}
@@ -188,14 +187,12 @@ func RenderError(ctx *fasthttp.RequestCtx, msg string, state *model.Authenticati
 	}
 
 	ctx.SetContentType("text/html")
-	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetBody(buf.Bytes())
 
 }
 
 func SimpleErrorHtml(ctx *fasthttp.RequestCtx, msg string) {
 	ctx.SetContentType("text/html")
-	ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 	ctx.SetBodyString(fmt.Sprintf("<html><body><h2>Error</h2><p>%s</p></body></html>", msg))
 }
 

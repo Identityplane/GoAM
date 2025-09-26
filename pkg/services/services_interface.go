@@ -264,5 +264,5 @@ type SimpleAuthService interface {
 	VerifySimpleAuthFlowRequest(ctx context.Context, req *model.SimpleAuthRequest, application *model.Application, flow *model.Flow) error
 
 	// FinishSimpleAuthFlow completes the Simple Auth flow and returns tokens
-	FinishSimpleAuthFlow(ctx context.Context, session *model.AuthenticationSession, tenant, realm string) (*model.SimpleAuthResponse, *model.SimpleAuthError)
+	FinishSimpleAuthFlow(ctx context.Context, session *model.AuthenticationSession, tenant, realm string) (*model.SimpleAuthResponse, *model.AuthError)
 }

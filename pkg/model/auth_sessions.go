@@ -53,6 +53,10 @@ func (s *AuthenticationSession) GetLatestHistory() string {
 	return s.History[len(s.History)-1]
 }
 
+func (s *AuthenticationSession) Finished() bool {
+	return s.CurrentType == NODE_SUCCESS_RESULT || s.CurrentType == NODE_FAILURE_RESULT || s.CurrentType == NODE_ERROR
+}
+
 // DidResultAuthenticated returns true if the result node was a success result and the user is set in the context
 func (s *AuthenticationSession) DidResultAuthenticated() bool {
 

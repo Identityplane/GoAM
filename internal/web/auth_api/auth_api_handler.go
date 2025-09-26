@@ -7,6 +7,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph"
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/internal/web/auth"
 	"github.com/Identityplane/GoAM/internal/web/webutils"
 	"github.com/Identityplane/GoAM/pkg/model"
 
@@ -29,7 +30,7 @@ type FlowResponse struct {
 	CurrentNode string                    `json:"currentNode,omitempty"`
 	Prompts     map[string]string         `json:"prompts,omitempty"`
 	Result      *model.SimpleAuthResponse `json:"result,omitempty"`
-	Error       *model.SimpleAuthError    `json:"error,omitempty"`
+	Error       *model.AuthError          `json:"error,omitempty"`
 	Debug       any                       `json:"debug,omitempty"`
 }
 
@@ -117,44 +118,17 @@ func handleJSONGetRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *mo
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
 
 	// Send response
-	sendFlowResponse(ctx, newSession, flow, sessionId)
+	sendFlowResponse(ctx, newSession, flow, realm, sessionId)
 }
 
 func initializeSimpleFlow(queryArgs *fasthttp.Args, tenant string, realm string, ctx *fasthttp.RequestCtx, flow *model.Flow, session *model.AuthenticationSession) bool {
-	clientID := string(queryArgs.Peek("client_id"))
 
-	if clientID != "" {
-		responseType := string(queryArgs.Peek("response_type"))
-		scope := string(queryArgs.Peek("scope"))
-
-		// Load the client from the database
-		application, ok := service.GetServices().ApplicationService.GetApplication(tenant, realm, clientID)
-		if !ok {
-			sendErrorResponse(ctx, fasthttp.StatusNotFound, "APPLICATION_NOT_FOUND", "client_id is required", "")
-			return true
-		}
-
-		// Create a simple auth flow
-		simpleAuthFlow := &model.SimpleAuthRequest{
-			ClientID:     clientID,
-			Grant:        model.GRANT_SIMPLE_AUTH_BODY,
-			ResponseType: responseType,
-			Scope:        scope,
-		}
-
-		// Verify if the simple auth request is allowed
-		err := service.GetServices().SimpleAuthService.VerifySimpleAuthFlowRequest(ctx, simpleAuthFlow, application, flow)
-		if err != nil {
-			sendErrorResponse(ctx, fasthttp.StatusBadRequest, "INVALID_REQUEST", err.Error(), "")
-			return true
-		}
-
-		// Add the simple auth session to the execution context
-		session.SimpleAuthSessionInformation = &model.SimpleAuthContext{
-			Request: simpleAuthFlow,
-		}
-
+	err := auth.CreateSimpleAuthSession(ctx, flow, session, model.GRANT_SIMPLE_AUTH_BODY)
+	if err != nil {
+		sendErrorResponse(ctx, fasthttp.StatusBadRequest, err.Error, err.ErrorDescription, "")
+		return true
 	}
+
 	return false
 }
 
@@ -191,7 +165,7 @@ func handleJSONPostRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *m
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
 
 	// Send response
-	sendFlowResponse(ctx, newSession, flow, req.SessionID)
+	sendFlowResponse(ctx, newSession, flow, realm, req.SessionID)
 }
 
 // Helper functions
@@ -255,7 +229,7 @@ func processJSONFlowWithResponses(ctx *fasthttp.RequestCtx, flow *model.Flow, se
 	return newSession, nil
 }
 
-func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSession, flow *model.Flow, sessionId string) {
+func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSession, flow *model.Flow, realm *model.Realm, sessionId string) {
 
 	response := FlowResponse{
 		RunId:       session.RunID,
@@ -272,37 +246,21 @@ func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSes
 		response.Prompts = session.Prompts
 	}
 
-	if session.DidResultError() {
-		response.Result = &model.SimpleAuthResponse{
-			Success: false,
-			Error:   *session.Error,
-		}
-	}
-
-	if session.DidResultFailure() {
-		response.Result = &model.SimpleAuthResponse{
-			Success: false,
-		}
-		if session.Error != nil {
-			response.Result.Error = *session.Error
-		}
-	}
-
-	if session.DidResultAuthenticated() {
-
-		service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, flow.Tenant, flow.Realm, session.SessionIdHash)
+	if session.Finished() {
 
 		if session.SimpleAuthSessionInformation != nil {
-			simpleAuthResponse, simpleAuthError := service.GetServices().SimpleAuthService.FinishSimpleAuthFlow(ctx, session, flow.Tenant, flow.Realm)
-
-			if simpleAuthError != nil {
-				sendErrorResponse(ctx, fasthttp.StatusInternalServerError, simpleAuthError.Error, simpleAuthError.ErrorDescription, "")
+			authResult, authError := auth.FinishSimpleAuthFlow(ctx, session, realm)
+			if authError != nil {
+				sendErrorResponse(ctx, fasthttp.StatusInternalServerError, authError.Error, authError.ErrorDescription, "")
 				return
 			}
-			response.Result = simpleAuthResponse
+			if authResult != nil && session.SimpleAuthSessionInformation.Request.Grant == model.GRANT_SIMPLE_AUTH_BODY {
+
+				response.Result = authResult
+			}
 		} else {
 			response.Result = &model.SimpleAuthResponse{
-				Success: true,
+				Success: session.DidResultAuthenticated(),
 			}
 		}
 	}
@@ -316,7 +274,7 @@ func sendErrorResponse(ctx *fasthttp.RequestCtx, statusCode int, code, message, 
 
 	ctx.SetStatusCode(statusCode)
 	errorResp := FlowResponse{
-		Error: &model.SimpleAuthError{
+		Error: &model.AuthError{
 			Error:            code,
 			ErrorDescription: message,
 		},

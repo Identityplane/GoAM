@@ -52,6 +52,9 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	}
 	realm := loadedRealm.Config
 
+	// If the base url is empty we use the fallback url
+	baseUrl := webutils.GetUrlForRealm(ctx, realm)
+
 	// Load the flow
 	flow, ok := service.GetServices().FlowService.GetFlowForExecution(flowPath, loadedRealm)
 	if !ok {
@@ -64,15 +67,23 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	debug := flow.DebugAllowed && ctx.QueryArgs().Has("debug")
 
 	// Create a new or load the authentication session
-	session, err := GetOrCreateAuthenticationSesssion(ctx, realm, flow, debug)
-	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		ctx.SetBodyString("Could not create session")
+	session, authErr := GetOrCreateAuthenticationSesssion(ctx, realm, flow, debug)
+	if authErr != nil {
+		ctx.SetStatusCode(authErr.HttpStatusCode)
+		RenderError(ctx, authErr.ErrorDescription, session, baseUrl)
 		return
 	}
 
-	// If the base url is empty we use the fallback url
-	baseUrl := webutils.GetUrlForRealm(ctx, realm)
+	// If there is no Oauth2 session and no SimpleAuth context we create a new one if we have a client id in the params
+	if session.Oauth2SessionInformation == nil && session.SimpleAuthSessionInformation == nil {
+
+		authErr := CreateSimpleAuthSession(ctx, flow, session, model.GRANT_SIMPLE_AUTH_COOKIE)
+		if authErr != nil {
+			ctx.SetStatusCode(authErr.HttpStatusCode)
+			RenderError(ctx, authErr.ErrorDescription, session, baseUrl)
+			return
+		}
+	}
 
 	// Process the auth request
 	newSession, err := ProcessAuthRequest(ctx, flow, *session)
@@ -98,7 +109,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	// If we have a simple auth session we finish the flow
 	if newSession.Result != nil && newSession.SimpleAuthSessionInformation != nil {
 
-		finishSimpleAuthFlow(ctx, newSession, realm)
+		FinishSimpleAuthFlow(ctx, newSession, realm)
 		if newSession.SimpleAuthSessionInformation.Request.RedirectURI != "" {
 			webutils.RedirectTo(ctx, newSession.SimpleAuthSessionInformation.Request.RedirectURI)
 			return
@@ -163,19 +174,32 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 
 func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, bool) {
 
-	// Try load the session cookie from the request
-	cookie := string(ctx.Request.Header.Cookie(sessionCookieName))
+	// Try load the session cookie from the request (there can be multiple cookies with the same name)
+	all_cookie_values := make([]string, 0)
+	ctx.Request.Header.VisitAllCookie(func(key []byte, value []byte) {
+		if string(key) == sessionCookieName {
+			all_cookie_values = append(all_cookie_values, string(value))
+		}
+	})
 
-	// if present we load the session from the session service
-	session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(ctx, tenant, realm, cookie)
-	if !ok {
-		log.Debug().Msg("session not found")
+	// We should not have multiple cookies with the same value, if so we log it
+	if len(all_cookie_values) >= 2 {
+		log.Info().Msg("multiple session cookies with the same name detected")
 		return nil, false
 	}
-	return session, true
+
+	// Go over all cookie and return the first valid one
+	for _, cookie := range all_cookie_values {
+		session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(ctx, tenant, realm, cookie)
+		if ok {
+			return session, true
+		}
+	}
+	log.Debug().Msg("session not found")
+	return nil, false
 }
 
-func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *model.Flow, debug bool) (*model.AuthenticationSession, error) {
+func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *model.Flow, debug bool) (*model.AuthenticationSession, *model.AuthError) {
 
 	// Try to get existing session first
 	session, ok := GetAuthenticationSession(ctx, realm.Tenant, realm.Realm)
@@ -201,22 +225,13 @@ func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, realm *model.Re
 	return session, nil
 }
 
-func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *model.Flow, debug bool) (*model.AuthenticationSession, error) {
+func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *model.Flow, debug bool) (*model.AuthenticationSession, *model.AuthError) {
 
 	baseUrl := webutils.GetUrlForRealm(ctx, realm)
 
 	// if not we create a new session
 	loginUri := baseUrl + "/auth/" + flow.Route
 	session, sessionID := service.GetServices().SessionsService.CreateAuthSessionObject(realm.Tenant, realm.Realm, flow.Id, loginUri)
-
-	// If there is no Oauth2 session and no SimpleAuth context we create a new one if we have a client id in the params
-	if session.Oauth2SessionInformation == nil && session.SimpleAuthSessionInformation == nil {
-
-		err := createSimpleAuthSession(ctx, flow, session)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create simple auth session: %v", err)
-		}
-	}
 
 	// Set the debug flag
 	session.Debug = debug
@@ -226,7 +241,7 @@ func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, realm *model.Realm
 	// Parse base url and get path
 	parsedUrl, err := url.Parse(baseUrl)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse base url: %v", err)
+		return nil, model.NewSimpleAuthServerError("failed to parse base url: " + err.Error())
 	}
 	basePath := parsedUrl.Path
 

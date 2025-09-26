@@ -82,7 +82,7 @@ func (s *simpleAuthService) VerifySimpleAuthFlowRequest(ctx context.Context, req
 	return nil
 }
 
-func (s *simpleAuthService) FinishSimpleAuthFlow(ctx context.Context, session *model.AuthenticationSession, tenant, realm string) (*model.SimpleAuthResponse, *model.SimpleAuthError) {
+func (s *simpleAuthService) FinishSimpleAuthFlow(ctx context.Context, session *model.AuthenticationSession, tenant, realm string) (*model.SimpleAuthResponse, *model.AuthError) {
 
 	// If there is no oauth2 session information we return an error
 	if session.SimpleAuthSessionInformation == nil || session.SimpleAuthSessionInformation.Request == nil {
@@ -200,8 +200,8 @@ func (s *simpleAuthService) generateRefreshToken(request *model.SimpleAuthReques
 	return refreshToken, expiresIn, scopes, nil
 }
 
-func returnSimpleAuthError(err, errorDescription string) *model.SimpleAuthError {
-	return &model.SimpleAuthError{
+func returnSimpleAuthError(err, errorDescription string) *model.AuthError {
+	return &model.AuthError{
 		Error:            err,
 		ErrorDescription: errorDescription,
 	}
