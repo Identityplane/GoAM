@@ -1,17 +1,89 @@
 package authhandler
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/test/integration"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gavv/httpexpect/v2"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestHTMLFlow_Integration(t *testing.T) {
+func TestHTMLFlow_SuccessLeadToSessionCookie(t *testing.T) {
+	e := integration.SetupIntegrationTest(t, "")
+	ctx := context.Background()
+
+	// Create a new appliaction with simple-cookie and cookie settings
+	application := &model.Application{
+		ClientId:                   "test-app",
+		AllowedGrants:              []string{model.GRANT_SIMPLE_AUTH_COOKIE},
+		AllowedScopes:              []string{"openid", "profile", "email"},
+		AllowedAuthenticationFlows: []string{"mock_success"},
+		RedirectUris:               []string{"https://example.com/success"},
+		AccessTokenLifetime:        3600,
+		Settings: &model.ApplicationExtensionSettings{
+			Cookie: &model.CookieSpecification{
+				Name:          "access_token",
+				Domain:        "example.com",
+				Path:          "/",
+				Secure:        true,
+				HttpOnly:      true,
+				SameSite:      "Strict",
+				SessionExpiry: false,
+			},
+		},
+	}
+
+	err := service.GetServices().ApplicationService.CreateApplication("acme", "customers", *application)
+	assert.NoError(t, err)
+
+	t.Run("Success Leads to Session Cookie", func(t *testing.T) {
+		resp := e.GET("/acme/customers/auth/mock-success").
+			WithQuery("client_id", "test-app").
+			WithQuery("scope", "profile email").
+			Expect().
+			Status(http.StatusSeeOther)
+
+		// Validate the the cookie is set correctly
+		header := resp.Header("Set-Cookie").Raw()
+		assert.NotNil(t, header)
+
+		cookie := resp.Cookie(application.Settings.Cookie.Name)
+		cookie_raw := cookie.Raw()
+		assert.NotNil(t, cookie_raw)
+
+		cookie.Domain().IsEqual(application.Settings.Cookie.Domain)
+		cookie.Name().IsEqual(application.Settings.Cookie.Name)
+		cookie.MaxAge().IsEqual(time.Duration(application.AccessTokenLifetime) * time.Second)
+		cookie.Path().IsEqual(application.Settings.Cookie.Path)
+		assert.Equal(t, cookie.Raw().Secure, application.Settings.Cookie.Secure)
+		assert.Equal(t, cookie.Raw().HttpOnly, application.Settings.Cookie.HttpOnly)
+		assert.Equal(t, cookie.Raw().SameSite, http.SameSiteStrictMode)
+
+		// Check if the access token is valid
+		access_token := cookie.Raw().Value
+
+		sesssion, err := service.GetServices().SessionsService.GetClientSessionByAccessToken(ctx, "acme", "customers", access_token)
+		assert.NoError(t, err)
+		assert.NotNil(t, sesssion)
+		assert.Equal(t, application.ClientId, sesssion.ClientID)
+		assert.Equal(t, "profile email", sesssion.Scope)
+		assert.Equal(t, "simple-cookie", sesssion.GrantType)
+		assert.NotNil(t, sesssion.UserID)
+
+		// Validate the the redirection is also correct
+		assert.Equal(t, "https://example.com/success", string(resp.Header("Location").Raw()))
+	})
+}
+
+func TestHTMLFlow_UserRegistration(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
 
 	t.Run("Complete Registration Flow", func(t *testing.T) {
