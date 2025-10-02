@@ -55,7 +55,7 @@ func RunYubicoVerifyNode(state *model.AuthenticationSession, node *model.GraphNo
 
 	// This node needs a user in the context
 	if user == nil && node.CustomConfig[CONFIG_CHECK_YUBICO_UNIQUE] != "true" {
-		return nil, errors.New("user not found in context - register otp needs a user in the context")
+		return nil, errors.New("user not found in context - verify yubico otp needs a user in the context")
 	}
 
 	// Validate the Yubikey OTP
