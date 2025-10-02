@@ -23,16 +23,9 @@ import (
 // top level middleware, called before the router
 func TopLevelMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
-		log := logger.GetGoamLogger()
 
 		// here we can handle request before the router
 		next(ctx)
-
-		log.Info().
-			Str("method", string(ctx.Method())).
-			Str("path", string(ctx.Path())).
-			Int("status", ctx.Response.StatusCode()).
-			Msg("request processed")
 	}
 }
 
@@ -50,15 +43,18 @@ func traceIDMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 
+		// Get basic values for the request
 		startTime := time.Now()
 		traceID := ctx.UserValue("trace_id").(string)
 		method := string(ctx.Method())
 		path := string(ctx.Path())
 
+		// Create a request logger
+		log := logger.CreateRequestLogger(traceID)
+
 		// Get ip address from request
 		userIP, ok := ctx.UserValue("remote_ip").(string)
 		if !ok {
-			log := logger.GetGoamLogger()
 			log.Warn().Msg("user ip address not set in request")
 		}
 
@@ -72,13 +68,18 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			ctx.Response.Header.Set("Server-Timing", fmt.Sprintf("req;dur=%d", durationMs))
 		}
 
+		event := log.Info()
+
+		// If the request is /healthz or /readyz we only create a trace log
+		if path == "/healthz" || path == "/readyz" {
+			event = log.Trace()
+		}
+
 		// Log response details
-		log := logger.GetGoamLogger()
-		log.Info().
-			Str("trace_id", traceID).
-			Int("status", ctx.Response.StatusCode()).
-			Str("method", method).
+		event.
 			Str("path", path).
+			Str("method", method).
+			Int("status", ctx.Response.StatusCode()).
 			Str("ip", userIP).
 			Str("user_agent", string(ctx.UserAgent())).
 			Str("referer", string(ctx.Referer())).
