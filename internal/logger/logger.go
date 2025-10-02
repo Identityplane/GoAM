@@ -111,6 +111,12 @@ func GetGoamLogger() zerolog.Logger {
 	return globalLogger
 }
 
+func CreateRequestLogger(traceID string) zerolog.Logger {
+	return globalLogger.With().
+		Str("trace_id", traceID).
+		Logger()
+}
+
 // SetLogLevel sets the global log level
 func SetLogLevel(level string) {
 	var logLevel zerolog.Level
