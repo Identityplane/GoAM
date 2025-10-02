@@ -125,6 +125,7 @@ func finishSimpleAuthCookieGrant(ctx *fasthttp.RequestCtx, simpleAuthResponse *m
 				HttpOnly:      true,
 				SameSite:      "Lax",
 				SessionExpiry: false,
+				Path:          "/",
 			}
 		}
 
