@@ -1,231 +1,3 @@
-var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
-var _freeGlobal;
-var hasRequired_freeGlobal;
-function require_freeGlobal() {
-  if (hasRequired_freeGlobal) return _freeGlobal;
-  hasRequired_freeGlobal = 1;
-  var freeGlobal = typeof commonjsGlobal == "object" && commonjsGlobal && commonjsGlobal.Object === Object && commonjsGlobal;
-  _freeGlobal = freeGlobal;
-  return _freeGlobal;
-}
-var _root;
-var hasRequired_root;
-function require_root() {
-  if (hasRequired_root) return _root;
-  hasRequired_root = 1;
-  var freeGlobal = require_freeGlobal();
-  var freeSelf = typeof self == "object" && self && self.Object === Object && self;
-  var root = freeGlobal || freeSelf || Function("return this")();
-  _root = root;
-  return _root;
-}
-var _Symbol;
-var hasRequired_Symbol;
-function require_Symbol() {
-  if (hasRequired_Symbol) return _Symbol;
-  hasRequired_Symbol = 1;
-  var root = require_root();
-  var Symbol = root.Symbol;
-  _Symbol = Symbol;
-  return _Symbol;
-}
-var _getRawTag;
-var hasRequired_getRawTag;
-function require_getRawTag() {
-  if (hasRequired_getRawTag) return _getRawTag;
-  hasRequired_getRawTag = 1;
-  var Symbol = require_Symbol();
-  var objectProto = Object.prototype;
-  var hasOwnProperty = objectProto.hasOwnProperty;
-  var nativeObjectToString = objectProto.toString;
-  var symToStringTag = Symbol ? Symbol.toStringTag : void 0;
-  function getRawTag(value) {
-    var isOwn = hasOwnProperty.call(value, symToStringTag), tag = value[symToStringTag];
-    try {
-      value[symToStringTag] = void 0;
-      var unmasked = true;
-    } catch (e) {
-    }
-    var result = nativeObjectToString.call(value);
-    if (unmasked) {
-      if (isOwn) {
-        value[symToStringTag] = tag;
-      } else {
-        delete value[symToStringTag];
-      }
-    }
-    return result;
-  }
-  _getRawTag = getRawTag;
-  return _getRawTag;
-}
-var _objectToString;
-var hasRequired_objectToString;
-function require_objectToString() {
-  if (hasRequired_objectToString) return _objectToString;
-  hasRequired_objectToString = 1;
-  var objectProto = Object.prototype;
-  var nativeObjectToString = objectProto.toString;
-  function objectToString(value) {
-    return nativeObjectToString.call(value);
-  }
-  _objectToString = objectToString;
-  return _objectToString;
-}
-var _baseGetTag;
-var hasRequired_baseGetTag;
-function require_baseGetTag() {
-  if (hasRequired_baseGetTag) return _baseGetTag;
-  hasRequired_baseGetTag = 1;
-  var Symbol = require_Symbol(), getRawTag = require_getRawTag(), objectToString = require_objectToString();
-  var nullTag = "[object Null]", undefinedTag = "[object Undefined]";
-  var symToStringTag = Symbol ? Symbol.toStringTag : void 0;
-  function baseGetTag(value) {
-    if (value == null) {
-      return value === void 0 ? undefinedTag : nullTag;
-    }
-    return symToStringTag && symToStringTag in Object(value) ? getRawTag(value) : objectToString(value);
-  }
-  _baseGetTag = baseGetTag;
-  return _baseGetTag;
-}
-var isObjectLike_1;
-var hasRequiredIsObjectLike;
-function requireIsObjectLike() {
-  if (hasRequiredIsObjectLike) return isObjectLike_1;
-  hasRequiredIsObjectLike = 1;
-  function isObjectLike(value) {
-    return value != null && typeof value == "object";
-  }
-  isObjectLike_1 = isObjectLike;
-  return isObjectLike_1;
-}
-var isSymbol_1;
-var hasRequiredIsSymbol;
-function requireIsSymbol() {
-  if (hasRequiredIsSymbol) return isSymbol_1;
-  hasRequiredIsSymbol = 1;
-  var baseGetTag = require_baseGetTag(), isObjectLike = requireIsObjectLike();
-  var symbolTag = "[object Symbol]";
-  function isSymbol(value) {
-    return typeof value == "symbol" || isObjectLike(value) && baseGetTag(value) == symbolTag;
-  }
-  isSymbol_1 = isSymbol;
-  return isSymbol_1;
-}
-var _baseToNumber;
-var hasRequired_baseToNumber;
-function require_baseToNumber() {
-  if (hasRequired_baseToNumber) return _baseToNumber;
-  hasRequired_baseToNumber = 1;
-  var isSymbol = requireIsSymbol();
-  var NAN = 0 / 0;
-  function baseToNumber(value) {
-    if (typeof value == "number") {
-      return value;
-    }
-    if (isSymbol(value)) {
-      return NAN;
-    }
-    return +value;
-  }
-  _baseToNumber = baseToNumber;
-  return _baseToNumber;
-}
-var _arrayMap;
-var hasRequired_arrayMap;
-function require_arrayMap() {
-  if (hasRequired_arrayMap) return _arrayMap;
-  hasRequired_arrayMap = 1;
-  function arrayMap(array, iteratee) {
-    var index = -1, length = array == null ? 0 : array.length, result = Array(length);
-    while (++index < length) {
-      result[index] = iteratee(array[index], index, array);
-    }
-    return result;
-  }
-  _arrayMap = arrayMap;
-  return _arrayMap;
-}
-var isArray_1;
-var hasRequiredIsArray;
-function requireIsArray() {
-  if (hasRequiredIsArray) return isArray_1;
-  hasRequiredIsArray = 1;
-  var isArray = Array.isArray;
-  isArray_1 = isArray;
-  return isArray_1;
-}
-var _baseToString;
-var hasRequired_baseToString;
-function require_baseToString() {
-  if (hasRequired_baseToString) return _baseToString;
-  hasRequired_baseToString = 1;
-  var Symbol = require_Symbol(), arrayMap = require_arrayMap(), isArray = requireIsArray(), isSymbol = requireIsSymbol();
-  var symbolProto = Symbol ? Symbol.prototype : void 0, symbolToString = symbolProto ? symbolProto.toString : void 0;
-  function baseToString(value) {
-    if (typeof value == "string") {
-      return value;
-    }
-    if (isArray(value)) {
-      return arrayMap(value, baseToString) + "";
-    }
-    if (isSymbol(value)) {
-      return symbolToString ? symbolToString.call(value) : "";
-    }
-    var result = value + "";
-    return result == "0" && 1 / value == -Infinity ? "-0" : result;
-  }
-  _baseToString = baseToString;
-  return _baseToString;
-}
-var _createMathOperation;
-var hasRequired_createMathOperation;
-function require_createMathOperation() {
-  if (hasRequired_createMathOperation) return _createMathOperation;
-  hasRequired_createMathOperation = 1;
-  var baseToNumber = require_baseToNumber(), baseToString = require_baseToString();
-  function createMathOperation(operator, defaultValue) {
-    return function(value, other) {
-      var result;
-      if (value === void 0 && other === void 0) {
-        return defaultValue;
-      }
-      if (value !== void 0) {
-        result = value;
-      }
-      if (other !== void 0) {
-        if (result === void 0) {
-          return other;
-        }
-        if (typeof value == "string" || typeof other == "string") {
-          value = baseToString(value);
-          other = baseToString(other);
-        } else {
-          value = baseToNumber(value);
-          other = baseToNumber(other);
-        }
-        result = operator(value, other);
-      }
-      return result;
-    };
-  }
-  _createMathOperation = createMathOperation;
-  return _createMathOperation;
-}
-var add_1;
-var hasRequiredAdd;
-function requireAdd() {
-  if (hasRequiredAdd) return add_1;
-  hasRequiredAdd = 1;
-  var createMathOperation = require_createMathOperation();
-  var add = createMathOperation(function(augend, addend) {
-    return augend + addend;
-  }, 0);
-  add_1 = add;
-  return add_1;
-}
-requireAdd();
 function initEmailOTP() {
   var _a;
   const form = document.getElementById("otpForm");
@@ -673,7 +445,7 @@ var h, A = (h = class {
     h._instance = void 0;
   }
 }, l(h, "_instance"), h);
-var he = "https://d233059272824702afc8c43834c4912d@sentry.hcaptcha.com/6", fe = "2.0.0", me = "production";
+var he = "https://d233059272824702afc8c43834c4912d@sentry.hcaptcha.com/6", fe = "2.1.0", me = "production";
 function j(t = true) {
   if (!t) return q();
   A.init({ dsn: he, release: fe, environment: me });
@@ -689,7 +461,7 @@ function q(t = null) {
     t && A.captureException(e, t);
   } };
 }
-function H({ scriptLocation: t, query: e, loadAsync: r = true, crossOrigin: n, apihost: s = "https://js.hcaptcha.com", cleanup: a = true, secureApi: u = false, scriptSource: o = "" } = {}, c) {
+function H({ scriptLocation: t, query: e, loadAsync: r = true, crossOrigin: n = "anonymous", apihost: s = "https://js.hcaptcha.com", cleanup: a = false, secureApi: u = false, scriptSource: o = "" } = {}, c) {
   let i = S(t), f = R(i);
   return new Promise((v, w) => {
     let m = f.document.createElement("script");
@@ -707,7 +479,7 @@ function H({ scriptLocation: t, query: e, loadAsync: r = true, crossOrigin: n, a
   });
 }
 var C = [];
-function ge(t = { cleanup: true }, e) {
+function ge(t = { cleanup: false }, e) {
   try {
     e.addBreadcrumb({ category: g, message: "hCaptcha loader params", data: t });
     let r = S(t.scriptLocation), n = R(r), s = C.find(({ scope: u }) => u === n.window);
@@ -870,6 +642,23 @@ async function initTelegramLogin() {
     }
   }
 }
+function initNodeHistory() {
+  console.log("initializing NodeHistory");
+  const nodeCurrent = document.querySelector(".main-content");
+  if (!nodeCurrent) {
+    console.log("no main content found");
+    return;
+  }
+  const loginuri = nodeCurrent.dataset.loginuri;
+  if (!loginuri) {
+    console.log("no loginuri found");
+    return;
+  }
+  window.history.pushState({}, "", loginuri);
+  window.addEventListener("popstate", function(event) {
+    location.reload(true);
+  });
+}
 const nodeHandlers = {
   "emailOTP": initEmailOTP,
   "passwordOrSocialLogin": initPasswordOrSocialLogin,
@@ -890,4 +679,5 @@ document.addEventListener("DOMContentLoaded", function() {
       console.log("Initialized node:", nodeName);
     }
   }
+  initNodeHistory();
 });

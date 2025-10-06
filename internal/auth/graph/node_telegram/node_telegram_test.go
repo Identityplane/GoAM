@@ -202,14 +202,14 @@ func runTelegramLoginNodeWithTime(state *model.AuthenticationSession, node *mode
 	}
 
 	// Otherwise we redirect to Telegram for the login flow
-	origin := getOrigin(state.LoginUri)
+	origin := getOrigin(state.LoginUriBase)
 
 	// Assemble the url with query params using net/url
 	baseUrl := "https://oauth.telegram.org/auth"
 	params := url.Values{}
 	params.Set("bot_id", botId)
 	params.Set("origin", origin)
-	params.Set("return_to", state.LoginUri+"?callback=telegram")
+	params.Set("return_to", state.LoginUriBase+"?callback=telegram")
 
 	if node.CustomConfig["telegram_request_write_access"] == "true" {
 		params.Set("request_access", "write")

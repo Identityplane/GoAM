@@ -58,7 +58,7 @@ func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNod
 			"%s?client_id=%s&redirect_uri=%s&scope=%s",
 			githubAuthURL,
 			url.QueryEscape(githubClientID),
-			url.QueryEscape(state.LoginUri),
+			url.QueryEscape(state.LoginUriBase),
 			url.QueryEscape(githubScope),
 		)
 

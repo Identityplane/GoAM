@@ -18,10 +18,11 @@ func TestPersistentAuthSession_MarshalUnmarshal(t *testing.T) {
 		Context: map[string]string{
 			"key1": "value1",
 		},
-		History:   []string{"node1", "node2"},
-		CreatedAt: now,
-		ExpiresAt: now.Add(time.Hour),
-		LoginUri:  "http://example.com/login",
+		History:      []string{"node1", "node2"},
+		CreatedAt:    now,
+		ExpiresAt:    now.Add(time.Hour),
+		LoginUriBase: "http://example.com/login",
+		LoginUriNext: "http://example.com/login/next",
 	}
 
 	// Create PersistentAuthSession
@@ -54,5 +55,6 @@ func TestPersistentAuthSession_MarshalUnmarshal(t *testing.T) {
 	assert.Equal(t, session.History, recoveredSession.History)
 	assert.True(t, session.CreatedAt.Equal(recoveredSession.CreatedAt))
 	assert.True(t, session.ExpiresAt.Equal(recoveredSession.ExpiresAt))
-	assert.Equal(t, session.LoginUri, recoveredSession.LoginUri)
+	assert.Equal(t, session.LoginUriNext, recoveredSession.LoginUriNext)
+	assert.Equal(t, session.LoginUriBase, recoveredSession.LoginUriBase)
 }

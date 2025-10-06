@@ -81,7 +81,7 @@ func getWebAuthnConfig(state *model.AuthenticationSession, node *model.GraphNode
 
 	// Get the RPOrigins for the login uri which is everything without the path
 	// Step 1 parse the login uri with net/url
-	loginUri, err := url.Parse(state.LoginUri)
+	loginUri, err := url.Parse(state.LoginUriBase)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse login uri: %w", err)

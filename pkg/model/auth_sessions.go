@@ -34,7 +34,8 @@ type AuthenticationSession struct {
 	ExpiresAt                    time.Time          `json:"expires_at"` // Time when this auth session will expire
 
 	// LoginUri is the uri of the login endpoints where the actual authentication takes place
-	LoginUri string `json:"login_uri"`
+	LoginUriBase string `json:"login_uri_base"`
+	LoginUriNext string `json:"login_uri_next"`
 
 	// FinishUri is the uri where the user will be redirected after the flow has been completed
 	// When using oaoth2 the graph handler will use this to redirect back oauth2/finishauthorize which will

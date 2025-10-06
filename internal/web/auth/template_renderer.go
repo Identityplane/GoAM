@@ -67,7 +67,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 		flowPath = ctx.UserValue("path").(string)
 	}
 
-	loginUri := state.LoginUri
+	loginUri := state.LoginUriNext
 	//Keep debug query parameter if flow is debug mode
 	if debug {
 		loginUri += "?debug"

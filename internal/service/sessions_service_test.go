@@ -243,7 +243,7 @@ func TestSessionsService(t *testing.T) {
 
 		assert.NotEmpty(t, sessionID)
 		assert.Equal(t, flowID, session.FlowId)
-		assert.Equal(t, loginURI, session.LoginUri)
+		assert.Equal(t, loginURI, session.LoginUriBase)
 		assert.NotEmpty(t, session.RunID)
 		assert.NotEmpty(t, session.SessionIdHash)
 		assert.NotNil(t, session.Context)

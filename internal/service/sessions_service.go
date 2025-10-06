@@ -66,10 +66,24 @@ func (s *sessionsService) CreateAuthSessionObject(tenant, realm, flowId, loginUr
 		Oauth2SessionInformation: nil,
 		CreatedAt:                s.timeProvider.Now(),
 		ExpiresAt:                s.timeProvider.Now().Add(30 * time.Minute), // 30 minutes expiration TODO make this variable by realm
-		LoginUri:                 loginUri,
+		LoginUriBase:             loginUri,
+		LoginUriNext:             loginUri,
 	}
 
 	return session, sessionID
+}
+
+func (s *sessionsService) ResetAuthSessionObject(session *model.AuthenticationSession) {
+
+	session.History = append(session.History, "reset")
+	session.LoginUriNext = session.LoginUriBase
+	session.Context = make(map[string]string)
+	session.Error = nil
+	session.Result = nil
+	session.User = nil
+	session.Prompts = make(map[string]string)
+	session.Current = ""
+	session.CurrentType = ""
 }
 
 // CreateOrUpdateAuthenticationSession creates a new authentication session or updates an existing one

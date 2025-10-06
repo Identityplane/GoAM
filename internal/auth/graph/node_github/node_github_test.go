@@ -49,8 +49,8 @@ func TestGithubLogin_NewUserCreate(t *testing.T) {
 
 	// Test 1: Initial state - should return redirect URL
 	session := &model.AuthenticationSession{
-		LoginUri: "http://localhost:8080/callback",
-		Context:  make(map[string]string),
+		LoginUriBase: "http://localhost:8080/callback",
+		Context:      make(map[string]string),
 	}
 
 	t.Run("Initial state - should return redirect URL", func(t *testing.T) {
