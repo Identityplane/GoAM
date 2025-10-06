@@ -116,8 +116,9 @@ func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphN
 		}
 
 		// If we should not create a user just set the telegram fields to the context
-		state.User = &model.User{
-			Status: "active",
+		state.User, err = services.UserRepo.NewUserModel(state)
+		if err != nil {
+			return model.NewNodeResultWithError(err)
 		}
 
 		// Add the telegram attribute to the user
@@ -126,6 +127,8 @@ func RunTelegramLoginNode(state *model.AuthenticationSession, node *model.GraphN
 			Type:  model.AttributeTypeTelegram,
 			Value: telegramAttributeValue,
 		})
+
+		return model.NewNodeResultWithCondition("new-user")
 	}
 
 	// Unfortunately with the fragement we cannot know if the user has already logged in or not
