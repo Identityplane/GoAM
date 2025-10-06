@@ -33,6 +33,10 @@ type GoamServerSettings struct {
 	BaseUrlOverwrite  map[string]string `mapstructure:"realm_base_url_overwrite"`
 
 	RunDBMigrations bool `mapstructure:"run_db_migrations"`
+
+	// Http server
+	ReadBufferSize  int `mapstructure:"read_buffer_size"`
+	WriteBufferSize int `mapstructure:"write_buffer_size"`
 }
 
 // ConfigDocumentation holds documentation for each configuration option
@@ -157,6 +161,20 @@ func GetConfigDocumentation() []ConfigDocumentation {
 			Default:     []string{},
 			Examples:    []string{"example.com/overwrite/"},
 			EnvVar:      "GOAM_REALM_BASE_URL_OVERWRITE_<TENANT/REALM>",
+		},
+		{
+			Field:       "read_buffer_size",
+			Description: "The size of the read buffer for the http server. See: https://pkg.go.dev/github.com/valyala/fasthttp?utm_source=godoc#Server.ReadBufferSize",
+			Default:     4096,
+			Examples:    []string{"4096", "8192", "16384"},
+			EnvVar:      "GOAM_READ_BUFFER_SIZE",
+		},
+		{
+			Field:       "write_buffer_size",
+			Description: "The size of the write buffer for the http server. See: https://pkg.go.dev/github.com/valyala/fasthttp?utm_source=godoc#Server.WriteBufferSize",
+			Default:     4069,
+			Examples:    []string{"4096", "8192", "16384"},
+			EnvVar:      "GOAM_WRITE_BUFFER_SIZE",
 		},
 	}
 }

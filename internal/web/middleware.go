@@ -70,9 +70,9 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 		event := log.Info()
 
-		// If the request is /healthz or /readyz we only create a trace log
+		// If the request is /healthz or /readyz we don't log the request
 		if path == "/healthz" || path == "/readyz" {
-			event = log.Trace()
+			return
 		}
 
 		// Log response details
