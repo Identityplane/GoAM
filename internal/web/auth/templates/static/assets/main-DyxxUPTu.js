@@ -643,7 +643,6 @@ async function initTelegramLogin() {
   }
 }
 function initNodeHistory() {
-  console.log("initializing NodeHistory");
   const nodeCurrent = document.querySelector(".main-content");
   if (!nodeCurrent) {
     console.log("no main content found");

@@ -1,6 +1,4 @@
 export function initNodeHistory() {
-
-    console.log('initializing NodeHistory')
     
     // Get the current node name from the main content
     // <div class="main-content" data-node="{{ if .Node }}{{ .Node.Use }}{{ end }}" data-node-current="{{ .NodeName }}">
