@@ -190,7 +190,7 @@ func TestGetWebAuthnConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test state
 			state := &model.AuthenticationSession{
-				LoginUri: tt.loginUri,
+				LoginUriBase: tt.loginUri,
 			}
 
 			// Create test node

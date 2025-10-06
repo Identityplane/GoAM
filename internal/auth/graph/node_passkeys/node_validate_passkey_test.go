@@ -22,7 +22,7 @@ func TestRunPasskeyVerifyNode_GenerateOptions(t *testing.T) {
 		Context: map[string]string{
 			"username": "alice",
 		},
-		LoginUri: "https://localhost:8080/acme/customers/auth/login",
+		LoginUriBase: "https://localhost:8080/acme/customers/auth/login",
 	}
 
 	// Create graph node
@@ -65,7 +65,7 @@ func TestRunPasskeyVerifyNode_WrongCredentials(t *testing.T) {
 		Context: map[string]string{
 			"username": "alice",
 		},
-		LoginUri: "https://localhost:8080/acme/customers/auth/login",
+		LoginUriBase: "https://localhost:8080/acme/customers/auth/login",
 	}
 
 	// Create graph node
@@ -110,7 +110,7 @@ func TestRunPasskeyVerifyNode_UserNotFound(t *testing.T) {
 		Context: map[string]string{
 			"username": "alice",
 		},
-		LoginUri: "https://localhost:8080/acme/customers/auth/login",
+		LoginUriBase: "https://localhost:8080/acme/customers/auth/login",
 	}
 
 	// Create graph node

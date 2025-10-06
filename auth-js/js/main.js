@@ -1,4 +1,3 @@
-import { addAndDouble } from './lib/math.js'
 import { initEmailOTP } from './lib/nodes/emailOTP.js'
 import { initPasswordOrSocialLogin } from './lib/nodes/passwordOrSocialLogin.js'
 import { initHcaptcha } from './lib/nodes/hcaptcha.js'
@@ -6,6 +5,7 @@ import { initVerifyPasskey } from './lib/nodes/verifyPasskey.js'
 import { initRegisterPasskey } from './lib/nodes/registerPasskey.js'
 import { initOnboardingWithPasskey } from './lib/nodes/onboardingWithPasskey.js'
 import { initTelegramLogin } from './lib/nodes/telegramLogin.js'
+import { initNodeHistory } from './lib/node_history.js'
 // Node-specific initialization
 
 const nodeHandlers = {
@@ -32,4 +32,5 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('Initialized node:', nodeName)
         }
     }
+    initNodeHistory()
 })

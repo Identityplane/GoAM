@@ -140,6 +140,9 @@ type SessionsService interface {
 	// CreateAuthSessionObject creates a new session object but does not store it
 	CreateAuthSessionObject(tenant, realm, flowId, loginUri string) (*model.AuthenticationSession, string)
 
+	// ResetAuthSessionObject resets the internal state of an authentication session but keeps the sesssion id, history and oauth2 session information
+	ResetAuthSessionObject(session *model.AuthenticationSession)
+
 	// CreateOrUpdateAuthenticationSession creates or updates an authentication session
 	CreateOrUpdateAuthenticationSession(ctx context.Context, tenant, realm string, session model.AuthenticationSession) error
 

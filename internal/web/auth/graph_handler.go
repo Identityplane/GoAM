@@ -86,7 +86,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Process the auth request
-	newSession, err := ProcessAuthRequest(ctx, flow, *session)
+	newSession, err := ProcessAuthRequest(ctx, flow, session)
 
 	// If there is an error we render the error, otherwiese the ProcessAuthRequest will render the result
 	if err != nil {
@@ -128,10 +128,27 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	Render(ctx, flow.Definition, newSession, currentNode, newSession.Prompts, baseUrl)
 }
 
-func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session model.AuthenticationSession) (*model.AuthenticationSession, error) {
+func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session *model.AuthenticationSession) (*model.AuthenticationSession, error) {
 
 	tenant := flow.Tenant
 	realm := flow.Realm
+
+	var flowNode string
+	if ctx.UserValue("node") != nil {
+		flowNode = ctx.UserValue("node").(string)
+	}
+
+	// if we have a node in the url we check if it is the current node
+	if flowNode != "" {
+		if flowNode != session.Current {
+
+			// If it is not the current node we detect an invalid node transition which could be because of
+			// a backwards navigation in the browser. In that case we move back in the graph
+			log.Debug().Msg("invalid node transition detected, resetting the session")
+			service.GetServices().SessionsService.ResetAuthSessionObject(session)
+
+		}
+	}
 
 	// Load the realm
 	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
@@ -157,7 +174,7 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 	session.Error = nil
 
 	// Run the flow engine with the current state and input
-	newSession, err := graph.Run(flow.Definition, &session, input, registry)
+	newSession, err := graph.Run(flow.Definition, session, input, registry)
 	if err != nil {
 		log.Debug().Err(err).Msg("flow resulted in error")
 		return newSession, err
@@ -168,6 +185,9 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session mode
 	if currentNode == nil {
 		return newSession, fmt.Errorf("result node not found")
 	}
+
+	// Update the next login uri with the current node name
+	session.LoginUriNext = session.LoginUriBase + "/" + session.Current
 
 	return newSession, nil
 }
@@ -272,7 +292,7 @@ func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *model.FlowDefinit
 
 	body := string(ctx.PostBody())
 
-	log.Debug().Str("body", string(body)).Msg("response body")
+	log.Debug().Str("body", string(body)).Msg("post body")
 
 	// Check the definiton to see which inputs are allowed
 	def := graph.NodeDefinitions[node.Use]

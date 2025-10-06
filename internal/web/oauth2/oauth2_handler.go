@@ -160,7 +160,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, *session)
 
 	// Redirect to the login page
-	webutils.RedirectTo(ctx, session.LoginUri)
+	webutils.RedirectTo(ctx, session.LoginUriNext)
 }
 
 // This functions starts the graph execution and peeks if there is a prompt

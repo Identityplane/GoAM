@@ -40,6 +40,11 @@ func (s *cachedSessionsService) CreateAuthSessionObject(tenant, realm, flowId, l
 	return s.sessionsService.CreateAuthSessionObject(tenant, realm, flowId, loginUri)
 }
 
+// ResetAuthSessionObject resets the internal state of an authentication session but keeps the sesssion id, history and oauth2 session information
+func (s *cachedSessionsService) ResetAuthSessionObject(session *model.AuthenticationSession) {
+	s.sessionsService.ResetAuthSessionObject(session)
+}
+
 // CreateOrUpdateAuthenticationSession creates or updates an authentication session
 func (s *cachedSessionsService) CreateOrUpdateAuthenticationSession(ctx context.Context, tenant, realm string, session model.AuthenticationSession) error {
 	err := s.sessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, session)

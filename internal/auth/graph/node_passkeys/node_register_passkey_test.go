@@ -43,8 +43,8 @@ func TestRunPasskeyRegisterNode_GenerateOptions(t *testing.T) {
 		Context: map[string]string{
 			"username": "alice",
 		},
-		User:     testUser, // Set user directly to avoid database lookup
-		LoginUri: "https://localhost:8080/acme/customers/auth/login",
+		User:         testUser, // Set user directly to avoid database lookup
+		LoginUriBase: "https://localhost:8080/acme/customers/auth/login",
 	}
 
 	// Create graph node
@@ -102,9 +102,9 @@ func TestRunPasskeyRegisterNode_UserNotInContext(t *testing.T) {
 
 	// Create authentication session without user context
 	state := &model.AuthenticationSession{
-		Context:  map[string]string{}, // No user identifier in context
-		User:     nil,                 // No user loaded
-		LoginUri: "https://localhost:8080/acme/customers/auth/login",
+		Context:      map[string]string{}, // No user identifier in context
+		User:         nil,                 // No user loaded
+		LoginUriBase: "https://localhost:8080/acme/customers/auth/login",
 	}
 
 	// Create graph node
@@ -155,8 +155,8 @@ func TestRunPasskeyRegisterNode_InvalidCredentialResponse(t *testing.T) {
 		Context: map[string]string{
 			"username": "alice",
 		},
-		User:     testUser, // Set user directly to avoid database lookup
-		LoginUri: "https://localhost:8080/acme/customers/auth/login",
+		User:         testUser, // Set user directly to avoid database lookup
+		LoginUriBase: "https://localhost:8080/acme/customers/auth/login",
 	}
 
 	// Create graph node

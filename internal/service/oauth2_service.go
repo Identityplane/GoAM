@@ -145,7 +145,7 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 	response := oauth2.AuthorizationResponse{
 		Code:  authCode,
 		State: session.Oauth2SessionInformation.AuthorizeRequest.State,
-		Iss:   session.LoginUri,
+		Iss:   session.LoginUriBase,
 	}
 
 	return &response, nil
