@@ -35,12 +35,18 @@ func startWebAdapter(settings *server_settings.GoamServerSettings) {
 	r := web.New()
 	var wg sync.WaitGroup
 
+	server := &fasthttp.Server{
+		Handler: web.TopLevelMiddleware(r.Handler),
+	}
+	server.ReadBufferSize = settings.ReadBufferSize
+	server.WriteBufferSize = settings.WriteBufferSize
+
 	if settings.ListenerHTTPS != "" {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			log.Info().Msgf("https server starting on %s", settings.ListenerHTTPS)
-			if err := fasthttp.ListenAndServeTLS(settings.ListenerHTTPS, settings.TlsCertFile, settings.TlsKeyFile, web.TopLevelMiddleware(r.Handler)); err != nil {
+			if err := server.ListenAndServeTLS(settings.ListenerHTTPS, settings.TlsCertFile, settings.TlsKeyFile); err != nil {
 				log.Panic().Err(err).Msg("https server error")
 			}
 		}()
@@ -51,7 +57,7 @@ func startWebAdapter(settings *server_settings.GoamServerSettings) {
 		go func() {
 			defer wg.Done()
 			log.Info().Msgf("http  server starting on %s", settings.ListenerHttp)
-			if err := fasthttp.ListenAndServe(settings.ListenerHttp, web.TopLevelMiddleware(r.Handler)); err != nil {
+			if err := server.ListenAndServe(settings.ListenerHttp); err != nil {
 				log.Panic().Err(err).Msg("http server error")
 			}
 		}()
