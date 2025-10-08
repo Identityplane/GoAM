@@ -1,0 +1,38 @@
+description: ''
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: askEmail
+      
+  askEmail:
+    name: askEmail
+    use: askEmail
+    custom_config:
+      message: Please register your account
+    next:
+      submitted: emailOTP
+
+  emailOTP:
+    name: emailOTP
+    use: emailOTP
+    custom_config: {}
+    next:
+      
+  
+  failureResult:
+    name: failureResult
+    use: failureResult
+    custom_config:
+      message: Failed to create user. Email may already exist.
+    next: {}
+    
+  successResult:
+    name: successResult
+    use: successResult
+    custom_config:
+      message: Registration successful!
+    next: {}

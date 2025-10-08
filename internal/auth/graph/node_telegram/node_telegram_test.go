@@ -298,11 +298,10 @@ func TestParseTelegramAuthResultOutdated(t *testing.T) {
 func TestRunTelegramLoginNodeExistingUser(t *testing.T) {
 	// Setup
 	mockUserRepo := repository.NewMockUserRepository()
-	mockEmailSender := &MockEmailSender{}
 
 	services := &model.Repositories{
 		UserRepo:    mockUserRepo,
-		EmailSender: mockEmailSender,
+		EmailSender: nil,
 	}
 
 	// Create test data
@@ -365,11 +364,10 @@ func TestRunTelegramLoginNodeExistingUser(t *testing.T) {
 func TestRunTelegramLoginNodeNewUser(t *testing.T) {
 	// Setup
 	mockUserRepo := repository.NewMockUserRepository()
-	mockEmailSender := &MockEmailSender{}
 
 	services := &model.Repositories{
 		UserRepo:    mockUserRepo,
-		EmailSender: mockEmailSender,
+		EmailSender: nil,
 	}
 
 	// Create test data
@@ -430,11 +428,9 @@ func TestRunTelegramLoginNodeNewUser(t *testing.T) {
 func TestRunTelegramLoginNodeNoCreateUser(t *testing.T) {
 	// Setup
 	mockUserRepo := repository.NewMockUserRepository()
-	mockEmailSender := &MockEmailSender{}
 
 	services := &model.Repositories{
-		UserRepo:    mockUserRepo,
-		EmailSender: mockEmailSender,
+		UserRepo: mockUserRepo,
 	}
 
 	// Create test data
@@ -485,11 +481,9 @@ func TestRunTelegramLoginNodeNoCreateUser(t *testing.T) {
 func TestRunTelegramLoginNodeRedirect(t *testing.T) {
 	// Setup
 	mockUserRepo := repository.NewMockUserRepository()
-	mockEmailSender := &MockEmailSender{}
 
 	services := &model.Repositories{
-		UserRepo:    mockUserRepo,
-		EmailSender: mockEmailSender,
+		UserRepo: mockUserRepo,
 	}
 
 	// Create node and state

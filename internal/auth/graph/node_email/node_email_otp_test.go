@@ -70,8 +70,10 @@ func TestRunEmailOTPNode(t *testing.T) {
 
 	// Create mock repository
 	mockUserRepo := repository.NewMockUserRepository()
+	mockEmailSender := repository.NewMockEmailSender()
 	services := &model.Repositories{
-		UserRepo: mockUserRepo,
+		UserRepo:    mockUserRepo,
+		EmailSender: mockEmailSender,
 	}
 
 	// Create test node
@@ -88,6 +90,9 @@ func TestRunEmailOTPNode(t *testing.T) {
 		},
 		User: testUser,
 	}
+
+	// Mock SendEmail call for initial OTP generation
+	mockEmailSender.On("SendEmail", mock.AnythingOfType("*model.SendEmailParams")).Return(nil)
 
 	// Test 1: Initial state - should return prompt
 	result, err := RunEmailOTPNode(session, node, map[string]string{}, services)
@@ -132,6 +137,7 @@ func TestRunEmailOTPNode(t *testing.T) {
 
 	// Verify all mock expectations were met
 	mockUserRepo.AssertExpectations(t)
+	mockEmailSender.AssertExpectations(t)
 }
 
 func TestRunEmailOTPNode_NoUser(t *testing.T) {
@@ -139,8 +145,10 @@ func TestRunEmailOTPNode_NoUser(t *testing.T) {
 
 	// Create mock repository
 	mockUserRepo := repository.NewMockUserRepository()
+	mockEmailSender := repository.NewMockEmailSender()
 	services := &model.Repositories{
-		UserRepo: mockUserRepo,
+		UserRepo:    mockUserRepo,
+		EmailSender: mockEmailSender,
 	}
 
 	// Create test node
@@ -160,6 +168,9 @@ func TestRunEmailOTPNode_NoUser(t *testing.T) {
 
 	// Mock the GetByAttributeIndex call that TryLoadUserFromContext will make
 	mockUserRepo.On("GetByAttributeIndex", mock.Anything, model.AttributeTypeEmail, "newuser@example.com").Return(nil, nil)
+
+	// Mock SendEmail call for initial OTP generation
+	mockEmailSender.On("SendEmail", mock.AnythingOfType("*model.SendEmailParams")).Return(nil)
 
 	// Test 1: Initial state - should return prompt
 	result, err := RunEmailOTPNode(session, node, map[string]string{}, services)
@@ -187,6 +198,7 @@ func TestRunEmailOTPNode_NoUser(t *testing.T) {
 
 	// Verify all mock expectations were met
 	mockUserRepo.AssertExpectations(t)
+	mockEmailSender.AssertExpectations(t)
 }
 
 func TestRunEmailOTPNode_AccountLocked(t *testing.T) {
@@ -217,8 +229,10 @@ func TestRunEmailOTPNode_AccountLocked(t *testing.T) {
 
 	// Create mock repository
 	mockUserRepo := repository.NewMockUserRepository()
+	mockEmailSender := repository.NewMockEmailSender()
 	services := &model.Repositories{
-		UserRepo: mockUserRepo,
+		UserRepo:    mockUserRepo,
+		EmailSender: mockEmailSender,
 	}
 
 	// Create test node
@@ -236,6 +250,9 @@ func TestRunEmailOTPNode_AccountLocked(t *testing.T) {
 		User: testUser,
 	}
 
+	// Note: No SendEmail mock expectation because when account is locked,
+	// the sendEmailOTP function is not called (isLocked = true)
+
 	// Test: Should fail silently when account is locked (no OTP sent)
 	result, err := RunEmailOTPNode(session, node, map[string]string{}, services)
 	assert.NoError(t, err)
@@ -248,4 +265,5 @@ func TestRunEmailOTPNode_AccountLocked(t *testing.T) {
 
 	// Verify all mock expectations were met
 	mockUserRepo.AssertExpectations(t)
+	mockEmailSender.AssertExpectations(t)
 }

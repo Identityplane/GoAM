@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/internal/service/email"
 	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
@@ -47,6 +48,7 @@ func InitServices(connections DatabaseConnections) *services_interface.Services 
 		TemplatesService:           NewTemplatesService(),
 		AdminAuthzService:          NewAdminAuthzService(),
 		SimpleAuthService:          NewSimpleAuthService(),
+		EmailService:               email.NewDefaultEmailService(),
 	}
 
 	return services

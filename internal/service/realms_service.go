@@ -64,7 +64,9 @@ func (s *realmServiceImpl) GetRealm(tenant, realm string) (*services_interface.L
 
 	// Load the realm with repo
 	userRepo := repository.NewUserRepository(tenant, realm, s.userDb, s.userAttributeDb)
-	emailSender := repository.NewDefaultEmailSender()
+	emailService := services.EmailService
+	emailSender := repository.NewEmailSender(tenant, realm, emailService)
+
 	repos := &model.Repositories{
 		UserRepo:    userRepo,
 		EmailSender: emailSender,
@@ -88,7 +90,7 @@ func (s *realmServiceImpl) GetAllRealms() (map[string]*services_interface.Loaded
 
 		// Load the realm with repo
 		userRepo := repository.NewUserRepository(realmConfig.Tenant, realmConfig.Realm, s.userDb, s.userAttributeDb)
-		emailSender := repository.NewDefaultEmailSender()
+		emailSender := repository.NewEmailSender(realmConfig.Tenant, realmConfig.Realm, services.EmailService)
 		repos := &model.Repositories{
 			UserRepo:    userRepo,
 			EmailSender: emailSender,

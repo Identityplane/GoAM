@@ -72,6 +72,12 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: yubikey-only.yaml
+  email-otp:
+    route: /email-otp
+    active: yes
+    debug_allowed: yes
+    definition_location: email-otp.yaml
+
 
 applications:
   customers-app:

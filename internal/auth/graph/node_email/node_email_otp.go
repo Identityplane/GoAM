@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_utils"
-	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
@@ -186,52 +185,18 @@ func generateOTP() string {
 
 // sendEmailOTP sends an email with the OTP to the email address
 func sendEmailOTP(email string, otp string, node *model.GraphNode, services *model.Repositories) error {
-	log := logger.GetGoamLogger()
 
-	// As a mock we just log the OTP for now
-	log.Info().Str("email", email).Str("otp", otp).Msg("otp sent")
-
-	smtpServer := node.CustomConfig["smtp_server"]
-	smtpPort := node.CustomConfig["smtp_port"]
-	smtpUsername := node.CustomConfig["smtp_username"]
-	smtpPassword := node.CustomConfig["smtp_password"]
-	smtpSenderEmail := node.CustomConfig["smtp_sender_email"]
-
-	if smtpServer == "" || smtpPort == "" || smtpUsername == "" || smtpPassword == "" || smtpSenderEmail == "" {
-		log.Error().Msg("smtp server, port, username, password, and sender email must be provided in the custom config. otherwise the email will not be sent and fail silently")
-		return nil
+	emailParams := &model.SendEmailParams{
+		Template: "email-otp",
+		To: []model.EmailAddress{
+			{Email: email},
+		},
+		Params: map[string]any{
+			"otp": otp,
+		},
 	}
 
-	body, subject, err := generateEmailBody(otp)
-	if err != nil {
-		log.Error().Err(err).Msg("error generating email body")
-		return errors.New("error generating email body")
-	}
-
-	err = services.EmailSender.SendEmail(subject, body, email, smtpServer, smtpPort, smtpUsername, smtpPassword, smtpSenderEmail)
-	if err != nil {
-		log.Error().Err(err).Msg("error sending email")
-		return errors.New("error sending email")
-	}
+	services.EmailSender.SendEmail(emailParams)
 
 	return nil
 }
-
-// generateEmailBody generates the email body and subject
-func generateEmailBody(otp string) (string, string, error) {
-
-	body := fmt.Sprintf(defaultEmailBodyTemplate, otp)
-	subject := defaultEmailSubject
-
-	return body, subject, nil
-}
-
-const defaultEmailBodyTemplate = `Subject: Verify your identity with OTP
-Please use the verification code below to confirm your identity.
-
-
-Verification code:
-
-%s`
-
-const defaultEmailSubject = "Verify your identity"
