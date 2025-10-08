@@ -138,8 +138,11 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session *mod
 		flowNode = ctx.UserValue("node").(string)
 	}
 
+	// Load the inputs from the request
+	input := extractPromptsFromRequest(ctx, flow.Definition, session.Current)
+
 	// if we have a node in the url we check if it is the current node
-	if flowNode != "" {
+	if len(input) == 0 && len(session.History) > 0 {
 		if flowNode != session.Current {
 
 			// If it is not the current node we detect an invalid node transition which could be because of
@@ -166,9 +169,6 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session *mod
 	if flow.Definition == nil {
 		return nil, fmt.Errorf("flow definiton not found")
 	}
-
-	// Load the inputs from the request
-	input := extractPromptsFromRequest(ctx, flow.Definition, session.Current)
 
 	// Clear the error message if present
 	session.Error = nil

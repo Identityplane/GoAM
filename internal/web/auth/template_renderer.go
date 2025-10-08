@@ -45,6 +45,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	tmpl, err := templatesService.GetTemplates(tenant, realm, state.FlowId, currentNode.Use)
 
 	if err != nil {
+		log.Warn().Err(err).Msg("Error loading template")
 		RenderError(ctx, "Error loading template: "+err.Error(), state, baseUrl)
 		return
 	}

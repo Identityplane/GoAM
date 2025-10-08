@@ -17,6 +17,8 @@ export function initEmailOTP(): void {
     return;
   }
 
+  initResendCountdown();
+
   // Create enhanced version
   const otpInputs = document.createElement('div');
   otpInputs.className = 'otp-inputs';
@@ -117,3 +119,42 @@ export function simulatePaste(input: OTPInput, value: string): void {
   });
   input.dispatchEvent(pasteEvent);
 } 
+
+function initResendCountdown(): void {
+  const resendButton = document.getElementById('resend-otp-button') as HTMLButtonElement;
+  
+  if (!resendButton) {
+    return; // Button doesn't exist or countdown not needed
+  }
+
+  const resendInSeconds = parseInt(resendButton.getAttribute('data-resend-in-seconds') || '0');
+  
+  if (resendInSeconds <= 0) {
+    return; // No countdown needed
+  }
+
+  let remainingSeconds = resendInSeconds;
+  
+  function updateButtonText(): void {
+    if (remainingSeconds > 0) {
+      resendButton.textContent = `Resend in (${remainingSeconds})`;
+      resendButton.disabled = true;
+      remainingSeconds--;
+    } else {
+      resendButton.textContent = 'Resend';
+      resendButton.disabled = false;
+      return; // Stop the countdown
+    }
+  }
+
+  // Initial update
+  updateButtonText();
+  
+  // Update every second
+  const countdownInterval = setInterval(() => {
+    updateButtonText();
+    if (remainingSeconds < 0) {
+      clearInterval(countdownInterval);
+    }
+  }, 1000);
+}
