@@ -6,33 +6,28 @@ nodes:
     use: init
     custom_config: {}
     next:
-      start: askEmail
-      
-  askEmail:
-    name: askEmail
-    use: askEmail
-    custom_config:
-      message: Please register your account
-    next:
-      submitted: emailOTP
+      start: emailOTP
 
   emailOTP:
     name: emailOTP
     use: emailOTP
-    custom_config: {}
+    custom_config:
+      init_user: true
+      ask_email: true
     next:
-      
+      success-registered-email: successResult
+      success-unkown-email: successResult
   
   failureResult:
     name: failureResult
     use: failureResult
     custom_config:
-      message: Failed to create user. Email may already exist.
+      message: "Failed to login with Email OTP"
     next: {}
     
   successResult:
     name: successResult
     use: successResult
     custom_config:
-      message: Registration successful!
+      message: Login with Email OTP successful
     next: {}
