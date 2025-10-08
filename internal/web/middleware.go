@@ -68,12 +68,17 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			ctx.Response.Header.Set("Server-Timing", fmt.Sprintf("req;dur=%d", durationMs))
 		}
 
-		event := log.Info()
+		logginDisabled := ctx.UserValue("disable_request_logging")
+		if logginDisabled != nil {
+			return
+		}
 
 		// If the request is /healthz or /readyz we don't log the request
 		if path == "/healthz" || path == "/readyz" {
 			return
 		}
+
+		event := log.Info()
 
 		// Log response details
 		event.
@@ -169,6 +174,13 @@ func securityHeaders(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			ctx.Response.Header.Set("Content-Security-Policy", "default-src 'none';")
 		}
 
+	}
+}
+
+func DisableRequestLogging(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		ctx.SetUserValue("disable_request_logging", true)
+		next(ctx)
 	}
 }
 

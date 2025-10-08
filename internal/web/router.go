@@ -77,12 +77,12 @@ func New() *router.Router {
 	r.GET("/{tenant}/{realm}/debug/{flow}/graph.svg", adminMiddleware(debug.HandleFlowGraphSVG))
 
 	// Static files
-	r.GET("/{tenant}/{realm}/static/{filename}", WrapMiddleware(StaticHandler))
-	r.GET("/{tenant}/{realm}/assets/{filename}", WrapMiddleware(auth.HandleStaticAssets))
+	r.GET("/{tenant}/{realm}/static/{filename}", DisableRequestLogging(WrapMiddleware(StaticHandler)))
+	r.GET("/{tenant}/{realm}/assets/{filename}", DisableRequestLogging(WrapMiddleware(auth.HandleStaticAssets)))
 
 	// Health endpoints
-	r.GET("/healthz", WrapMiddleware(handleLiveness))
-	r.GET("/readyz", WrapMiddleware(handleReadiness))
+	r.GET("/healthz", DisableRequestLogging(WrapMiddleware(handleLiveness)))
+	r.GET("/readyz", DisableRequestLogging(WrapMiddleware(handleReadiness)))
 	r.GET("/info", WrapMiddleware(handleInfo))
 
 	// Swagger UI
