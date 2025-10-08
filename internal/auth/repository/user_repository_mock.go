@@ -16,8 +16,8 @@ type MockUserRepository struct {
 }
 
 func (m *MockUserRepository) NewUserModel(state *model.AuthenticationSession) (*model.User, error) {
-	m.Called(state)
-	return nil, nil
+	args := m.Called(state)
+	return args.Get(0).(*model.User), args.Error(1)
 }
 
 func (m *MockUserRepository) GetByID(ctx context.Context, id string) (*model.User, error) {
@@ -123,7 +123,7 @@ func (t *TestUserRepository) Close() error {
 func NewMockUserRepository() *MockUserRepository {
 
 	mockUserRepo := new(MockUserRepository)
-	mockUserRepo.On("NewUserModel").Maybe().Return(&model.User{
+	mockUserRepo.On("NewUserModel", mock.Anything).Maybe().Return(&model.User{
 		ID:     uuid.NewString(),
 		Tenant: "acme",
 		Realm:  "customers",

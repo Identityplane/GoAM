@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_utils"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
@@ -129,6 +130,20 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 				if err != nil {
 					return model.NewNodeResultWithError(err)
 				}
+
+				// add a new email attribute with the verified email
+				now := time.Now()
+				emailAttribute := &model.UserAttribute{
+					Type:  model.AttributeTypeEmail,
+					Index: lib.StringPtr(email),
+					Value: model.EmailAttributeValue{
+						Email:      email,
+						Verified:   true,
+						VerifiedAt: &now,
+					},
+				}
+				user.AddAttribute(emailAttribute)
+
 				state.User = user
 			}
 
