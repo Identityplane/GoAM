@@ -13,6 +13,14 @@ import (
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
+const (
+	EMAIL_OTP_OPTION_MAX_ATTEMPTS = "max_attempts"
+	EMAIL_OTP_OPTION_INIT_USER    = "init_user"
+	EMAIL_OTP_OPTION_ASK_EMAIL    = "ask_email"
+
+	MSG_INVALID_OTP = "Invalid OTP"
+)
+
 var EmailOTPNode = &model.NodeDefinition{
 	Name:                 "emailOTP",
 	PrettyName:           "Email OTP Verification",
@@ -20,154 +28,109 @@ var EmailOTPNode = &model.NodeDefinition{
 	Category:             "Multi-Factor Authentication",
 	Type:                 model.NodeTypeQueryWithLogic,
 	RequiredContext:      []string{"email"},
-	PossiblePrompts:      map[string]string{"otp": "number"},
+	PossiblePrompts:      map[string]string{"otp": "number", "option": "resend", "email": "email"},
 	OutputContext:        []string{"emailOTP", "email_verified"},
-	PossibleResultStates: []string{"success", "failure", "locked"},
+	PossibleResultStates: []string{"success-registered-email", "success-unkown-email"},
 	CustomConfigOptions: map[string]string{
-		"smtp_server":       "The SMTP server address used to send OTP emails",
-		"smtp_port":         "The port number for the SMTP server",
-		"smtp_username":     "The username for authenticating with the SMTP server",
-		"smtp_password":     "The password for authenticating with the SMTP server",
-		"smtp_sender_email": "The email address that will appear as the sender of the OTP email",
+		EMAIL_OTP_OPTION_MAX_ATTEMPTS: "Maximum number of failed attempts before locking the user (default: 10)",
+		EMAIL_OTP_OPTION_INIT_USER:    "If true, the node will initialize the user if no user is found in the context. Default false",
+		EMAIL_OTP_OPTION_ASK_EMAIL:    "If true, the node will ask for an email before sending the OTP. Default false",
 	},
 	Run: RunEmailOTPNode,
 }
 
 func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
-	// Try to load the user from the context, if we have a user we count the failed attempts
-	user, err := node_utils.TryLoadUserFromContext(state, services)
-	if err != nil {
-		return model.NewNodeResultWithError(err)
-	}
+	askEmail := node.CustomConfig[EMAIL_OTP_OPTION_ASK_EMAIL] == "true"
 
-	// First we need to identiy the email address. For that we load the email from context
-	// or with second priority from the user attributes
-	email := state.Context["email"]
-	if email == "" {
+	// If we ask for an email then ask for it if not in the context
+	if askEmail {
 
-		if user != nil {
+		if input["email"] != "" {
+			state.Context["email"] = input["email"]
+		}
 
-			emailValue, _, err := model.GetAttribute[model.EmailAttributeValue](user, model.AttributeTypeEmail)
-			if err != nil {
-				return model.NewNodeResultWithError(errors.New("could not load email from user attributes"))
-			}
-
-			email = emailValue.Email
+		if state.Context["email"] == "" {
+			return model.NewNodeResultWithPrompts(map[string]string{"email": "email"})
 		}
 	}
 
-	// If we still don't have an email we fail
+	// Get the email address that we are using for this node
+	email, user, error := getEmailAddress(state, services)
+	if error != nil {
+		return model.NewNodeResultWithError(error)
+	}
+
+	// If we don't have an email we fail
 	if email == "" {
 		return model.NewNodeResultWithError(errors.New("email must be provided before running this node"))
 	}
 
 	// Max attempts for the OTP
+
 	mfa_max_attempts := 10
-	if v, ok := node.CustomConfig["mfa_max_attempts"]; ok {
+	if v, ok := node.CustomConfig[EMAIL_OTP_OPTION_MAX_ATTEMPTS]; ok {
 		mfa_max_attempts, _ = strconv.Atoi(v)
 	}
 
+	// Input otp from the user
 	otp := input["otp"]
-	if otp == "" {
 
-		isLocked := false
+	// OTP challenge stored on the server
+	otpChallange := state.Context["email_otp"]
 
-		// If we have a have a user from the context and it has an email attibute we check if it is locked
-		// if it is locked we dont send a otp and fail silently
-		if user != nil {
-			emailValue, _, err := model.GetAttribute[model.EmailAttributeValue](user, model.AttributeTypeEmail)
-			if err != nil {
-				return model.NewNodeResultWithError(errors.New("could not load email from user attributes"))
-			}
+	// If we have no OTP challenge we generate a new one
+	if otpChallange == "" {
 
-			if emailValue != nil && emailValue.OtpLocked {
-				isLocked = true
-			}
-		}
+		otpChallange := generateOTP()
+		sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts)
+		state.Context["email_otp"] = otpChallange
 
-		otp = generateOTP()
+		return otpPrompt(askEmail, email)
+	} else if input["option"] == "resend" {
 
-		if !isLocked {
-			sendEmailOTP(email, otp, node, services)
-		}
-
-		state.Context["email_otp"] = otp
-		return model.NewNodeResultWithPrompts(map[string]string{"otp": "number"})
+		sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts)
+		return otpPrompt(askEmail, email)
+	} else if otp == "" {
+		return otpPrompt(askEmail, email)
 	}
 
 	// If we have an opt we verify it
 	isValid := (otp == state.Context["email_otp"])
 
-	if !isValid && user != nil {
-
-		emailValue, attribute, err := model.GetAttribute[model.EmailAttributeValue](user, model.AttributeTypeEmail)
-		if err != nil {
-			return model.NewNodeResultWithError(errors.New("could not load email from user attributes"))
-		}
-
-		// Create new email attribute value
-		newEmailValue := model.EmailAttributeValue{
-			Email:             emailValue.Email,
-			Verified:          emailValue.Verified,
-			VerifiedAt:        emailValue.VerifiedAt,
-			OtpFailedAttempts: emailValue.OtpFailedAttempts + 1,
-			OtpLocked:         emailValue.OtpFailedAttempts+1 >= mfa_max_attempts,
-		}
-
-		// Update the email attribute in the user's UserAttributes slice
-		for i, attr := range user.UserAttributes {
-			if attr.ID == attribute.ID {
-				user.UserAttributes[i].Value = newEmailValue
-				// Update the attribute reference to point to the updated one
-				attribute = &user.UserAttributes[i]
-				break
-			}
-		}
-
-		// save the updated email attribute
-		services.UserRepo.UpdateUserAttribute(context.Background(), attribute)
-	}
-
-	if isValid && user != nil {
-		emailValue, attribute, err := model.GetAttribute[model.EmailAttributeValue](user, model.AttributeTypeEmail)
-		if err != nil {
-			return model.NewNodeResultWithError(errors.New("could not load email from user attributes"))
-		}
-
-		// Create new email attribute value
-		now := time.Now()
-		newEmailValue := model.EmailAttributeValue{
-			Email:             emailValue.Email,
-			Verified:          true,
-			VerifiedAt:        &now,
-			OtpFailedAttempts: 0,
-			OtpLocked:         false,
-		}
-
-		// Update the email attribute in the user's UserAttributes slice
-		for i, attr := range user.UserAttributes {
-			if attr.ID == attribute.ID {
-				user.UserAttributes[i].Value = newEmailValue
-				// Update the attribute reference to point to the updated one
-				attribute = &user.UserAttributes[i]
-				break
-			}
-		}
-
-		// save the updated email attribute
-		services.UserRepo.UpdateUserAttribute(context.Background(), attribute)
-	}
-
-	// if the otp is wrong we return the same otp prompt again but increase the mfa counter
 	if !isValid {
-		state.Context["error"] = "Invalid OTP"
-		state.Context["email"] = email
-		state.Context["email_verified"] = "true"
-		return model.NewNodeResultWithPrompts(map[string]string{"otp": "number"})
-	}
 
-	return model.NewNodeResultWithCondition("success")
+		state.Context["error"] = MSG_INVALID_OTP
+		err := increaseOTPFailedAttempts(email, user, services)
+		if err != nil {
+			return model.NewNodeResultWithError(err)
+		}
+
+		// We ask again for the OTP but dont send a new email
+		return otpPrompt(askEmail, email)
+	} else {
+
+		err := registerSucessfullVerification(email, user, services)
+		if err != nil {
+			return model.NewNodeResultWithError(err)
+		}
+
+		if user != nil {
+			return model.NewNodeResultWithCondition("success-registered-email")
+		} else {
+
+			if node.CustomConfig[EMAIL_OTP_OPTION_INIT_USER] == "true" {
+				user, err := services.UserRepo.NewUserModel(state)
+				if err != nil {
+					return model.NewNodeResultWithError(err)
+				}
+				state.User = user
+			}
+
+			return model.NewNodeResultWithCondition("success-unkown-email")
+		}
+
+	}
 }
 
 // generateOTP generates a random 6 digit OTP
@@ -184,7 +147,20 @@ func generateOTP() string {
 }
 
 // sendEmailOTP sends an email with the OTP to the email address
-func sendEmailOTP(email string, otp string, node *model.GraphNode, services *model.Repositories) error {
+func sendEmailOTP(email string, otp string, user *model.User, services *model.Repositories, maxFailedAttempts int) error {
+
+	if user != nil {
+		// Check if the email attribute is locked or the maximum number of failed attempts is reached
+		emailValue, _, err := model.GetAttribute[model.EmailAttributeValue](user, model.AttributeTypeEmail)
+		if err != nil {
+			return err
+		}
+
+		if emailValue.OtpLocked || emailValue.OtpFailedAttempts >= maxFailedAttempts {
+			// Silently return but log the attempt
+			return nil
+		}
+	}
 
 	emailParams := &model.SendEmailParams{
 		Template: "email-otp",
@@ -199,4 +175,102 @@ func sendEmailOTP(email string, otp string, node *model.GraphNode, services *mod
 	services.EmailSender.SendEmail(emailParams)
 
 	return nil
+}
+
+func getEmailAddress(state *model.AuthenticationSession, services *model.Repositories) (string, *model.User, error) {
+	// First we need to identiy the email address. For that we load the email from context
+	// or with second priority from the user attributes
+
+	// Try to load the user from the context, if we have a user we count the failed attempts
+	user, err := node_utils.TryLoadUserFromContext(state, services)
+	if err != nil {
+		return "", nil, err
+	}
+
+	email := state.Context["email"]
+	if email == "" {
+
+		if user != nil {
+
+			emailValue, _, err := model.GetAttribute[model.EmailAttributeValue](user, model.AttributeTypeEmail)
+			if err != nil {
+				return "", nil, errors.New("could not load email from user attributes")
+			}
+
+			email = emailValue.Email
+		}
+	}
+
+	return email, user, nil
+}
+
+func increaseOTPFailedAttempts(email string, user *model.User, services *model.Repositories) error {
+
+	if user != nil {
+		// If this email is registered to a user as primary email we increase the failed attempts for the attribute
+
+		emailValue, attribute, err := model.GetAttribute[model.EmailAttributeValue](user, model.AttributeTypeEmail)
+		if err != nil {
+			return err
+		}
+
+		emailValue.OtpFailedAttempts++
+		attribute.Value = emailValue
+
+		err = services.UserRepo.UpdateUserAttribute(context.Background(), attribute)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	} else {
+
+		// Otherwise we increase the failed attempts for this email
+		// TODO implement
+		return nil
+	}
+}
+
+func registerSucessfullVerification(email string, user *model.User, services *model.Repositories) error {
+
+	now := time.Now()
+
+	if user != nil {
+		// If this email is registered to a user we set the verified flag to true and reset the number of failed attempts
+
+		emailValue, attribute, err := model.GetAttribute[model.EmailAttributeValue](user, model.AttributeTypeEmail)
+		if err != nil {
+			return err
+		}
+
+		emailValue.OtpFailedAttempts = 0
+		emailValue.OtpLocked = false
+
+		if !emailValue.Verified {
+			emailValue.Verified = true
+			emailValue.VerifiedAt = &now
+		}
+
+		attribute.Value = emailValue
+
+		err = services.UserRepo.UpdateUserAttribute(context.Background(), attribute)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	} else {
+
+		// If this does not belong to a user we reset the failed attempts for this email
+		// TODO implement
+		return nil
+	}
+}
+
+func otpPrompt(askEmail bool, email string) (*model.NodeResult, error) {
+	if askEmail {
+		return model.NewNodeResultWithPrompts(map[string]string{"otp": "number", "email": email})
+	} else {
+		return model.NewNodeResultWithPrompts(map[string]string{"otp": "number"})
+	}
 }
