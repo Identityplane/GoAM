@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"time"
@@ -16,9 +17,10 @@ import (
 const (
 	EMAIL_OTP_OPTION_MAX_ATTEMPTS = "max_attempts"
 	EMAIL_OTP_OPTION_INIT_USER    = "init_user"
-	EMAIL_OTP_OPTION_ASK_EMAIL    = "ask_email"
+	EMAIL_RESEND_IN_SECONDS       = "resend_in_seconds"
 
-	MSG_INVALID_OTP = "Invalid OTP"
+	MSG_INVALID_OTP     = "Invalid OTP"
+	MSG_RESEND_TOO_SOON = "You cannot resent the OTP yet"
 )
 
 var EmailOTPNode = &model.NodeDefinition{
@@ -34,31 +36,17 @@ var EmailOTPNode = &model.NodeDefinition{
 	CustomConfigOptions: map[string]string{
 		EMAIL_OTP_OPTION_MAX_ATTEMPTS: "Maximum number of failed attempts before locking the user (default: 10)",
 		EMAIL_OTP_OPTION_INIT_USER:    "If true, the node will initialize the user if no user is found in the context. Default false",
-		EMAIL_OTP_OPTION_ASK_EMAIL:    "If true, the node will ask for an email before sending the OTP. Default false",
+		EMAIL_RESEND_IN_SECONDS:       "The number of seconds to wait before resending the OTP. Default 30",
 	},
 	Run: RunEmailOTPNode,
 }
 
 func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 
-	askEmail := node.CustomConfig[EMAIL_OTP_OPTION_ASK_EMAIL] == "true"
-
-	// If we ask for an email then ask for it if not in the context
-	if askEmail {
-
-		if input["email"] != "" {
-			state.Context["email"] = input["email"]
-		}
-
-		if state.Context["email"] == "" {
-			return model.NewNodeResultWithPrompts(map[string]string{"email": "email"})
-		}
-	}
-
 	// Get the email address that we are using for this node
-	email, user, error := getEmailAddress(state, services)
-	if error != nil {
-		return model.NewNodeResultWithError(error)
+	email, user, err := getEmailAddress(state, services)
+	if err != nil {
+		return model.NewNodeResultWithError(err)
 	}
 
 	// If we don't have an email we fail
@@ -67,10 +55,18 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 	}
 
 	// Max attempts for the OTP
-
 	mfa_max_attempts := 10
 	if v, ok := node.CustomConfig[EMAIL_OTP_OPTION_MAX_ATTEMPTS]; ok {
 		mfa_max_attempts, _ = strconv.Atoi(v)
+	}
+	resendInSeconds := 30
+	if node.CustomConfig[EMAIL_RESEND_IN_SECONDS] != "" {
+
+		var err error
+		resendInSeconds, err = strconv.Atoi(node.CustomConfig[EMAIL_RESEND_IN_SECONDS])
+		if err != nil {
+			return model.NewNodeResultWithError(err)
+		}
 	}
 
 	// Input otp from the user
@@ -83,16 +79,25 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 	if otpChallange == "" {
 
 		otpChallange := generateOTP()
-		sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts)
+		sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts, state, resendInSeconds)
 		state.Context["email_otp"] = otpChallange
 
-		return otpPrompt(askEmail, email)
+		return otpPrompt(email, state)
 	} else if input["option"] == "resend" {
 
-		sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts)
-		return otpPrompt(askEmail, email)
+		resendAt, err := time.Parse(time.RFC3339, state.Context["resend_at"])
+
+		if err != nil || time.Now().After(resendAt) {
+
+			sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts, state, resendInSeconds)
+			state.Context["message"] = ""
+		} else {
+			state.Context["message"] = MSG_RESEND_TOO_SOON
+		}
+
+		return otpPrompt(email, state)
 	} else if otp == "" {
-		return otpPrompt(askEmail, email)
+		return otpPrompt(email, state)
 	}
 
 	// If we have an opt we verify it
@@ -100,14 +105,14 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 
 	if !isValid {
 
-		state.Context["error"] = MSG_INVALID_OTP
+		state.Context["message"] = MSG_INVALID_OTP
 		err := increaseOTPFailedAttempts(email, user, services)
 		if err != nil {
 			return model.NewNodeResultWithError(err)
 		}
 
 		// We ask again for the OTP but dont send a new email
-		return otpPrompt(askEmail, email)
+		return otpPrompt(email, state)
 	} else {
 
 		err := registerSucessfullVerification(email, user, services)
@@ -147,7 +152,7 @@ func generateOTP() string {
 }
 
 // sendEmailOTP sends an email with the OTP to the email address
-func sendEmailOTP(email string, otp string, user *model.User, services *model.Repositories, maxFailedAttempts int) error {
+func sendEmailOTP(email string, otp string, user *model.User, services *model.Repositories, maxFailedAttempts int, state *model.AuthenticationSession, resendInSeconds int) error {
 
 	if user != nil {
 		// Check if the email attribute is locked or the maximum number of failed attempts is reached
@@ -171,6 +176,9 @@ func sendEmailOTP(email string, otp string, user *model.User, services *model.Re
 			"otp": otp,
 		},
 	}
+
+	resendAt := time.Now().Add(time.Duration(resendInSeconds) * time.Second)
+	state.Context["resend_at"] = resendAt.Format(time.RFC3339)
 
 	services.EmailSender.SendEmail(emailParams)
 
@@ -267,10 +275,15 @@ func registerSucessfullVerification(email string, user *model.User, services *mo
 	}
 }
 
-func otpPrompt(askEmail bool, email string) (*model.NodeResult, error) {
-	if askEmail {
-		return model.NewNodeResultWithPrompts(map[string]string{"otp": "number", "email": email})
-	} else {
-		return model.NewNodeResultWithPrompts(map[string]string{"otp": "number"})
+func otpPrompt(email string, state *model.AuthenticationSession) (*model.NodeResult, error) {
+
+	// Check how long the user needs to wait until they can request to resent the otp
+	resendAt, err := time.Parse(time.RFC3339, state.Context["resend_at"])
+	if err != nil {
+		resendAt = time.Now()
 	}
+
+	secondToResend := int(math.Max(0, time.Until(resendAt).Seconds()))
+
+	return model.NewNodeResultWithPrompts(map[string]string{"otp": "number", "email": email, "resend_in_seconds": strconv.Itoa(secondToResend)})
 }

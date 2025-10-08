@@ -1,31 +1,10 @@
 {{ define "content" }}
 
-{{ if index .Prompts "email" }}
-<h2>Please enter your email</h2>
-<form method="POST" class="login-form" action="{{ .LoginUri}}" id="emailForm">
-  <input type="hidden" name="step" value="{{ .NodeName }}">
-  <label for="email">Email</label>
+
+<h2>{{index .CustomConfig "title"}}</h2>
+<p>Enter the code sent to <b>{{index .Prompts "email"}}</b></p>
 
 
-  {{ if eq .Prompts.email "email" }}
-  <input type="email" name="email" id="email" placeholder="email" autocomplete="email" required />
-  {{ else }}
-  <input type="email" name="email" id="email" placeholder="email" autocomplete="email" value='{{index .Prompts "email"}}' disabled />
-  {{ end }}
-
-  {{ if eq .Prompts.email "email" }}
-  <button type="submit">Send Code</button>
-  {{ else }}
-  <h4>Enter Code</h4>
-  {{ end }}
-
-</form>
-{{ else}}
-<h2>Enter the OTP sent to your email</h2>
-<p>{{index .State.Context "message"}}</p>
-{{ end }}
-
-{{ if eq .Prompts.otp "number" }}
 <form method="POST" class="login-form" action="{{ .LoginUri}}" id="otpForm">
   
   <div class="input-group">
@@ -45,9 +24,16 @@
   <button type="submit">Login</button>
 </form>
 
+<p>{{index .State.Context "message"}}</p>
+
 <form method="POST" class="login-form" action="{{ .LoginUri}}" id="otpForm">
   <input type="hidden" name="option" value="resend">
-  <button type="submit" class="btn btn-minor">{{or (index .CustomConfig "resend-btn-text") "Resend OTP"}}</button>
+
+  {{ if eq (index .Prompts "resend_in_seconds") "0" }}
+  <button type="submit" class="btn btn-minor">Resend</button>
+  {{ else }}
+  <button type="submit" id="resend-otp-button" class="btn btn-minor" data-resend-in-seconds="{{index .Prompts "resend_in_seconds"}}" disabled>Resend in (%d)</button>
+  {{ end }}
+
 </form>
-{{ end }}
 {{ end }}

@@ -6,14 +6,22 @@ nodes:
     use: init
     custom_config: {}
     next:
-      start: emailOTP
+      start: askEmail
+      
+  askEmail:
+    name: askEmail
+    use: askEmail
+    custom_config:
+      message: Please register your account
+    next:
+      submitted: emailOTP
 
   emailOTP:
     name: emailOTP
     use: emailOTP
     custom_config:
       init_user: true
-      ask_email: true
+      resend_in_seconds: 10
     next:
       success-registered-email: successResult
       success-unkown-email: successResult

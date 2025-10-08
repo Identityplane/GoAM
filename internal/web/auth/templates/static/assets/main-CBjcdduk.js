@@ -6,6 +6,7 @@ function initEmailOTP() {
     console.error("Required form elements not found");
     return;
   }
+  initResendCountdown();
   const otpInputs = document.createElement("div");
   otpInputs.className = "otp-inputs";
   for (let i = 0; i < 6; i++) {
@@ -71,6 +72,35 @@ function initEmailOTP() {
       }
     });
   });
+}
+function initResendCountdown() {
+  const resendButton = document.getElementById("resend-otp-button");
+  if (!resendButton) {
+    return;
+  }
+  const resendInSeconds = parseInt(resendButton.getAttribute("data-resend-in-seconds") || "0");
+  if (resendInSeconds <= 0) {
+    return;
+  }
+  let remainingSeconds = resendInSeconds;
+  function updateButtonText() {
+    if (remainingSeconds > 0) {
+      resendButton.textContent = `Resend in (${remainingSeconds})`;
+      resendButton.disabled = true;
+      remainingSeconds--;
+    } else {
+      resendButton.textContent = "Resend";
+      resendButton.disabled = false;
+      return;
+    }
+  }
+  updateButtonText();
+  const countdownInterval = setInterval(() => {
+    updateButtonText();
+    if (remainingSeconds < 0) {
+      clearInterval(countdownInterval);
+    }
+  }, 1e3);
 }
 function base64urlToBuffer(base64url) {
   const padding = "=".repeat((4 - base64url.length % 4) % 4);
