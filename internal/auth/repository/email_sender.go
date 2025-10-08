@@ -1,41 +1,25 @@
 package repository
 
 import (
-	"fmt"
-	"net/smtp"
-
-	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
+	services "github.com/Identityplane/GoAM/pkg/services"
 )
 
-type DefaultEmailSender struct {
+type EmailSenderImpl struct {
+	tenant       string
+	realm        string
+	emailService services.EmailService
 }
 
-func NewDefaultEmailSender() model.EmailSender {
-	return &DefaultEmailSender{}
+func NewEmailSender(tenant, realm string, emailService services.EmailService) model.EmailSender {
+	return &EmailSenderImpl{
+		tenant:       tenant,
+		realm:        realm,
+		emailService: emailService,
+	}
 }
 
-func (s *DefaultEmailSender) SendEmail(subject, body, recipientEmail, smtpServer, smtpPort, smtpUsername, smtpPassword, smtpSenderEmail string) error {
-	log := logger.GetGoamLogger()
+func (e *EmailSenderImpl) SendEmail(email *model.SendEmailParams) error {
 
-	// Create a channel to receive the error
-	errChan := make(chan error, 1)
-
-	// Start the email sending in a goroutine
-	go func() {
-		// Connect to the remote SMTP server.
-		smtpServerString := fmt.Sprintf("%s:%s", smtpServer, smtpPort)
-		auth := smtp.PlainAuth("", smtpSenderEmail, smtpPassword, smtpServer)
-
-		err := smtp.SendMail(smtpServerString, auth, smtpSenderEmail, []string{recipientEmail}, []byte(body))
-		errChan <- err
-
-		log.Info().
-			Str("to", recipientEmail).
-			Str("subject", subject).
-			Msg("email sent")
-	}()
-
-	// Return immediately, the email will be sent in the background
-	return nil
+	return e.emailService.SendEmail(e.tenant, e.realm, email)
 }

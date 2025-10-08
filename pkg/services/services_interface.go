@@ -25,6 +25,7 @@ type Services struct {
 	CacheService               CacheService
 	AdminAuthzService          AdminAuthzService
 	TemplatesService           TemplatesService
+	EmailService               EmailService
 }
 
 // UserAdminService defines the business logic for user operations
