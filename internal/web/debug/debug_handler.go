@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph/visual"
+	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
 
 	"github.com/valyala/fasthttp"
@@ -130,6 +131,8 @@ func HandleFlowGraphSVG(ctx *fasthttp.RequestCtx) {
 	// Generate the DOT representation for the flow graph
 	dot, err := visual.RenderDOTGraph(flow.Definition)
 	if err != nil {
+
+		logger.GetRequestLogger(ctx).Warn().Err(err).Msg("Failed to generate SVG")
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		ctx.SetBodyString(fmt.Sprintf("Failed to generate SVG: %v", err))
 		return

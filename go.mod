@@ -3,6 +3,7 @@ module github.com/Identityplane/GoAM
 go 1.24.2
 
 require (
+	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/bmatcuk/doublestar v1.3.4
 	github.com/dgraph-io/ristretto/v2 v2.2.0
 	github.com/fasthttp/router v1.5.4
@@ -30,7 +31,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/PuerkitoBio/goquery v1.10.3 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

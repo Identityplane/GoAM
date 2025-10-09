@@ -51,6 +51,7 @@ func loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 		// Create a request logger
 		log := logger.CreateRequestLogger(traceID)
+		ctx.SetUserValue("log", log)
 
 		// Get ip address from request
 		userIP, ok := ctx.UserValue("remote_ip").(string)
