@@ -128,7 +128,12 @@ func HandleFlowGraphSVG(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Generate the DOT representation for the flow graph
-	dot := visual.RenderDOTGraph(flow.Definition)
+	dot, err := visual.RenderDOTGraph(flow.Definition)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		ctx.SetBodyString(fmt.Sprintf("Failed to generate SVG: %v", err))
+		return
+	}
 
 	// Prepare the SVG output buffer
 	var out bytes.Buffer

@@ -2,7 +2,6 @@ package visual
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
@@ -10,7 +9,7 @@ import (
 )
 
 // RenderDOTGraph generates a Graphviz DOT representation of a flow.
-func RenderDOTGraph(flow *model.FlowDefinition) string {
+func RenderDOTGraph(flow *model.FlowDefinition) (string, error) {
 	var b strings.Builder
 	b.WriteString("digraph Flow {\n")
 	b.WriteString(`  rankdir=LR;` + "\n")
@@ -21,7 +20,7 @@ func RenderDOTGraph(flow *model.FlowDefinition) string {
 		style := `shape=box`
 
 		if def == nil {
-			log.Panic("No node Definition found")
+			return "", fmt.Errorf("No node Definition found: " + node.Use)
 		}
 
 		switch def.Type {
@@ -44,5 +43,5 @@ func RenderDOTGraph(flow *model.FlowDefinition) string {
 	}
 
 	b.WriteString("}\n")
-	return b.String()
+	return b.String(), nil
 }
