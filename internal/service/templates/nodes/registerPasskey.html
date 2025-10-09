@@ -1,13 +1,10 @@
 {{ define "content" }}
 <form class="login-form" id="passkey-form" method="POST">
 
-  <h2>Welcometo GoAM</h2>
-  <p>{{index .CustomConfig "message"}}</p>
-
   <input type="hidden" name="step" value="{{ .NodeName }}">
   <input type="hidden" id="passkeysFinishRegistrationJson" name="passkeysFinishRegistrationJson">
   <input type="hidden" id="passkeysOptions" value='{{ .Prompts.passkeysOptions }}'>
-
   <button type="button" id="passkey-button">Register Passkey</button>
+  
 </form>
 {{ end }}

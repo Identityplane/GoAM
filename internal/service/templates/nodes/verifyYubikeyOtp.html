@@ -1,15 +1,10 @@
 {{ define "content" }}
 <form method="POST" class="login-form" action="{{ .LoginUri}}">
-  <h2>{{or (index .CustomConfig "title") "Verify Yubikey OTP"}}</h2>
-  <p>{{or (index .CustomConfig "message") "Please enter the Yubikey OTP code"}}</p>
-
   <div class="input-group">
     <input type="hidden" name="step" value="{{ .NodeName }}">
-    
     <label for="yubikeyOtpVerification">{{or (index .CustomConfig "label") "Yubikey OTP Code"}}</label>
     <input type="text" name="yubikeyOtpVerification" id="yubikeyOtpVerification" placeholder="Yubikey OTP Code" required />
   </div>
   <button type="submit">{{or (index .CustomConfig "button_text") "Validate"}}</button>
-
 </form>
 {{ end }}

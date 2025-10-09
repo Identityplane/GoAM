@@ -1,8 +1,5 @@
 {{ define "content" }}
 <form method="POST" class="login-form" action="{{ .LoginUri}}" id="hcaptcha-form">
-  <h2>Welcome to GoAM</h2>
-  <p>{{index .CustomConfig "message"}}</p>
-
   <input type="hidden" name="hcaptcha" id="hcaptcha-token">
   <div class="h-captcha" data-sitekey='{{ index .CustomConfig "hcaptcha_sitekey" }}'></div>
 </form>

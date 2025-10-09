@@ -11,14 +11,7 @@
 </head>
 
 <body>
-
-  <div class="main-content" data-node="{{ if .Node }}{{ .Node.Use }}{{ end }}" data-loginuri="{{ .LoginUri }}">
-    <div class="login-container">
-      {{ template "content" . }}
-    </div>
-  </div>
-  
-  {{ template "debug" . }}
+  {{ template "login_box" . }}
 </body>
 
 </html>
