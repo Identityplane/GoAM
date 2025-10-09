@@ -1,9 +1,6 @@
 {{ define "content" }}
 
-
-<h2>{{index .CustomConfig "title"}}</h2>
 <p>Enter the code sent to <b>{{index .Prompts "email"}}</b></p>
-
 
 <form method="POST" class="login-form" action="{{ .LoginUri}}" id="otpForm">
   

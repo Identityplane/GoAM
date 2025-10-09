@@ -1,8 +1,5 @@
 {{ define "content" }}
 <form method="POST" class="login-form" action="{{ .LoginUri}}">
-  <h2>Welcometo GoAM</h2>
-  <p>{{index .CustomConfig "message"}}</p>
-
   <div class="input-group">
     <input type="hidden" name="step" value="{{ .NodeName }}">
     <label for="username">Username</label>
@@ -13,6 +10,5 @@
   {{ if index .CustomConfig "showRegisterLink" }}
     <p class="register-link">Don't have an account? <a href="/register">Sign up</a></p>
   {{ end }}
-
 </form>
 {{ end }}

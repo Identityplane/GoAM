@@ -1,8 +1,5 @@
 {{ define "content" }}
 <form method="POST" id="telegramLoginForm" action="{{ .LoginUri}}">
-  <h2>Telegram Login</h2>
-  <p>{{index .CustomConfig "message"}}</p>  
-
   <input type="hidden" name="step" value="{{ .NodeName }}">
   <input type="hidden" name="tgAuthResult" id="tgAuthResult">
 </form>

@@ -1,18 +1,13 @@
 {{ define "content" }}
 <form class="login-form" id="onboarding-with-passkey-form" method="POST" action="{{ .LoginUri}}">
 
-  <h2>Welcometo GoAM</h2>
-  <p>{{index .CustomConfig "message"}}</p>
-
     <input type="email" name="email" id="email" placeholder="Email" required>
-
     <input type="hidden" name="step" value="{{ .NodeName }}">
     <input type="hidden" id="passkeysFinishRegistrationJson" name="passkeysFinishRegistrationJson">
     <input type="hidden" id="passkeysOptions" value='{{ .Prompts.passkeysOptions }}'>
 
     <!-- Default to password, is overwritten by the js when passkey is chosen -->
     <input type="hidden" id="action" name="option" value="password">
-
 
     <br>
     <button type="button" id="passkey-button">Register with Passkey</button>

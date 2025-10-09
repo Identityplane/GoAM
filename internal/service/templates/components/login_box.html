@@ -1,0 +1,11 @@
+{{ define "login_box" }}
+<div class="main-content" data-node="{{ if .Node }}{{ .Node.Use }}{{ end }}" data-loginuri="{{ .LoginUri }}">
+    <div class="login-container">
+      {{ template "login_box_header" . }}
+      {{ template "content" . }}
+      {{ template "text_footer" . }}
+    </div>
+</div>
+  
+{{ template "debug" . }}
+{{ end }}

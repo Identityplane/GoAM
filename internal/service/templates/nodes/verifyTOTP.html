@@ -1,15 +1,10 @@
 {{ define "content" }}
 <form method="POST" class="login-form" action="{{ .LoginUri}}">
-  <h2>Verify TOTP</h2>
-  <p>Please enter the TOTP code</p>
-
   <div class="input-group">
     <input type="hidden" name="step" value="{{ .NodeName }}">
-    
     <label for="totpVerification">TOTP Code</label>
     <input type="text" name="totpVerification" id="totpVerification" placeholder="TOTP Code" required />
   </div>
   <button type="submit">Validate</button>
-
 </form>
 {{ end }}
