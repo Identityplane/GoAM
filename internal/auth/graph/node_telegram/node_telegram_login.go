@@ -31,7 +31,7 @@ var TelegramLoginNode = &model.NodeDefinition{
 	Category:             "Social Login",
 	Type:                 model.NodeTypeQueryWithLogic,
 	RequiredContext:      []string{""},
-	PossiblePrompts:      map[string]string{"__redirect": "url", "tgAuthResult": "base64"},
+	PossiblePrompts:      map[string]string{"__redirect": "url", "tgAuthResult": "base64", "callback": "telegram"},
 	OutputContext:        []string{},
 	PossibleResultStates: []string{"existing-user", "new-user", "failure"},
 	CustomConfigOptions: map[string]string{
