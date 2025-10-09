@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/valyala/fasthttp"
 )
 
 // Initialize the global logger
@@ -115,6 +116,18 @@ func CreateRequestLogger(traceID string) zerolog.Logger {
 	return globalLogger.With().
 		Str("trace_id", traceID).
 		Logger()
+}
+
+func GetRequestLogger(ctx *fasthttp.RequestCtx) *zerolog.Logger {
+	log := ctx.UserValue("log")
+
+	zerologLogger, ok := log.(zerolog.Logger)
+
+	if !ok {
+		zerologLogger = GetGoamLogger()
+
+	}
+	return &zerologLogger
 }
 
 // SetLogLevel sets the global log level
