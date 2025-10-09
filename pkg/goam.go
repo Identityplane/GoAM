@@ -7,10 +7,12 @@ import (
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/web"
 	"github.com/Identityplane/GoAM/pkg/server_settings"
+	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )
 
 var log = logger.GetGoamLogger()
+var fasthttpRouter *router.Router
 
 func Run(settings *server_settings.GoamServerSettings) {
 
@@ -24,6 +26,9 @@ func Run(settings *server_settings.GoamServerSettings) {
 // startWebAdapter initializes and starts the web server
 func startWebAdapter(settings *server_settings.GoamServerSettings) {
 
+	// Start the server
+	fasthttpRouter = web.New()
+
 	// Call all server start callbacks
 	for _, callback := range serverStartCallbacks {
 		if err := callback(settings); err != nil {
@@ -31,12 +36,10 @@ func startWebAdapter(settings *server_settings.GoamServerSettings) {
 		}
 	}
 
-	// Start the server
-	r := web.New()
 	var wg sync.WaitGroup
 
 	server := &fasthttp.Server{
-		Handler: web.TopLevelMiddleware(r.Handler),
+		Handler: web.TopLevelMiddleware(fasthttpRouter.Handler),
 	}
 	server.ReadBufferSize = settings.ReadBufferSize
 	server.WriteBufferSize = settings.WriteBufferSize

@@ -7,6 +7,7 @@ import (
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/pkg/server_settings"
 	service_interface "github.com/Identityplane/GoAM/pkg/services"
+	"github.com/fasthttp/router"
 )
 
 var serverStartCallbacks []func(settings *server_settings.GoamServerSettings) error
@@ -36,4 +37,12 @@ func OnServerStart(f func(settings *server_settings.GoamServerSettings) error) {
 // GetServices returns the collection of services to access GoAM internal apis directly
 func GetServices() (*service_interface.Services, error) {
 	return service.GetServices(), nil
+}
+
+// Returns the fasthttp request router to extend or wrap with additional middleware
+// This will only be available after the web adapter has been started
+// OnServerStart can be used to inject additional routes and middleware this way
+func GetRouter() *router.Router {
+
+	return fasthttpRouter
 }
