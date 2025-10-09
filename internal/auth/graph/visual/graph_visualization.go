@@ -20,7 +20,7 @@ func RenderDOTGraph(flow *model.FlowDefinition) (string, error) {
 		style := `shape=box`
 
 		if def == nil {
-			return "", fmt.Errorf("Node definition not found: %s", node.Use)
+			return "", fmt.Errorf("Node definition not found: %s for node %s", node.Use, node.Name)
 		}
 
 		switch def.Type {
