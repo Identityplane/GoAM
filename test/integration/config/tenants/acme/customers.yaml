@@ -37,6 +37,10 @@ flows:
     route: /username-password-register
     active: yes
     definition_location: username-password-register.yaml
+  telegram_test:
+    route: /telegram-test
+    active: yes
+    definition_location: telegram_test.yaml
 
 applications:
   management-ui:

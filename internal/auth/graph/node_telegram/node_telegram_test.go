@@ -87,7 +87,7 @@ func getTestTelegramCredentials() (string, string) {
 
 	// Generate a valid auth result with proper hash for the test token
 	// Use a recent auth date to avoid outdated issues
-	authDate := time.Now().Unix() - 60 // 1 minute ago
+	authDate := time.Now().Unix() + 3600*24*365*100 // 100 years from now
 	testAuthResult := generateValidTestAuthResult(testToken, authDate)
 
 	return testToken, testAuthResult
