@@ -13,6 +13,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_utils"
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -178,6 +179,7 @@ func sendEmailOTP(email string, otp string, user *model.User, services *model.Re
 
 		if emailValue.OtpLocked || emailValue.OtpFailedAttempts >= maxFailedAttempts {
 			// Silently return but log the attempt
+			log.Info().Msgf("Sending email OTP failed. Email locked or max failed attempts reached")
 			return nil
 		}
 	}
