@@ -18,23 +18,27 @@ func RenderDOTGraph(flow *model.FlowDefinition) (string, error) {
 	for name, node := range flow.Nodes {
 		def := graph.GetNodeDefinitionByName(node.Use)
 		style := `shape=box`
+		label := ""
 
 		if def == nil {
-			return "", fmt.Errorf("Node definition not found: %s for node %s", node.Use, node.Name)
+			style = `shape=ellipse, style=filled, fillcolor=lightred`
+			label = fmt.Sprintf("%s\n[%s] (not found)", node.Name, node.Use)
+		} else {
+
+			switch def.Type {
+			case model.NodeTypeInit:
+				style = `shape=diamond, style=filled, fillcolor=lightgreen`
+			case model.NodeTypeLogic:
+				style = `shape=ellipse, style=filled, fillcolor=lightyellow`
+			case model.NodeTypeQuery:
+				style = `shape=rect, style=filled, fillcolor=lightblue`
+			case model.NodeTypeResult:
+				style = `shape=doublecircle, style=filled, fillcolor=lightgray`
+			}
+
+			label = fmt.Sprintf("%s\n[%s]", node.Name, node.Use)
 		}
 
-		switch def.Type {
-		case model.NodeTypeInit:
-			style = `shape=diamond, style=filled, fillcolor=lightgreen`
-		case model.NodeTypeLogic:
-			style = `shape=ellipse, style=filled, fillcolor=lightyellow`
-		case model.NodeTypeQuery:
-			style = `shape=rect, style=filled, fillcolor=lightblue`
-		case model.NodeTypeResult:
-			style = `shape=doublecircle, style=filled, fillcolor=lightgray`
-		}
-
-		label := fmt.Sprintf("%s\n[%s]", node.Name, node.Use)
 		b.WriteString(fmt.Sprintf(`  "%s" [label="%s", %s];`+"\n", name, label, style))
 
 		for cond, next := range node.Next {

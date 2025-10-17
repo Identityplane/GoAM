@@ -73,6 +73,12 @@ func Init(cfg Config) (*pgxpool.Pool, error) {
 }
 
 func setupTestDB(t *testing.T) (*pgxpool.Pool, error) {
+
+	if testing.Short() {
+		t.Skip("skipping test with testcontainers in short mode")
+		return nil, nil
+	}
+
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:15",
