@@ -82,26 +82,32 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 
 	// Create the view data
 	view := &service.ViewData{
-		Title:         state.Current,
-		NodeName:      state.Current,
-		Prompts:       prompts,
-		Debug:         debug,
-		Error:         resolveErrorMessage(state),
-		State:         state,
-		StateJSON:     stateJSON,
-		FlowName:      currentGraphNode.Name,
-		Node:          resultNode,
-		Message:       customMessage,
-		StylePath:     stylePath,
-		ScriptPath:    scriptPath,
-		CustomConfig:  CustomConfig,
-		Tenant:        ctx.UserValue("tenant").(string),
-		Realm:         ctx.UserValue("realm").(string),
-		FlowPath:      flowPath,
-		LoginUri:      loginUri,
-		AssetsJSPath:  baseUrl + "/" + AssetsJSName,
-		AssetsCSSPath: baseUrl + "/" + AssetsCSSName,
-		CspNonce:      cspNonce,
+		Title:        state.Current,
+		NodeName:     state.Current,
+		Prompts:      prompts,
+		Debug:        debug,
+		Error:        resolveErrorMessage(state),
+		State:        state,
+		StateJSON:    stateJSON,
+		FlowName:     currentGraphNode.Name,
+		Node:         resultNode,
+		Message:      customMessage,
+		StylePath:    stylePath,
+		ScriptPath:   scriptPath,
+		CustomConfig: CustomConfig,
+		Tenant:       ctx.UserValue("tenant").(string),
+		Realm:        ctx.UserValue("realm").(string),
+		FlowPath:     flowPath,
+		LoginUri:     loginUri,
+		StaticPath:   baseUrl + "/static",
+		AssetsJSPath: baseUrl + "/" + AssetsJSName,
+		AssetsCSSPath: func() string {
+			if AssetsCSSName != "" {
+				return baseUrl + "/" + AssetsCSSName
+			}
+			return ""
+		}(),
+		CspNonce: cspNonce,
 	}
 
 	// Execute the template

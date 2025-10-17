@@ -48,9 +48,12 @@ func InitAssets() error {
 		return fmt.Errorf("failed to read JS asset: %w", err)
 	}
 
-	AssetsCSSContent, err = templatesFS.ReadFile("templates/static/" + AssetsCSSName)
-	if err != nil {
-		return fmt.Errorf("failed to read CSS asset: %w", err)
+	// Only load CSS if it exists in the manifest
+	if AssetsCSSName != "" {
+		AssetsCSSContent, err = templatesFS.ReadFile("templates/static/" + AssetsCSSName)
+		if err != nil {
+			return fmt.Errorf("failed to read CSS asset: %w", err)
+		}
 	}
 
 	return nil
@@ -70,6 +73,10 @@ func HandleStaticAssets(ctx *fasthttp.RequestCtx) {
 		content = AssetsJSContent
 		contentType = "text/javascript"
 	} else if strings.HasSuffix(filename, ".css") {
+		if AssetsCSSContent == nil {
+			ctx.SetStatusCode(fasthttp.StatusNotFound)
+			return
+		}
 		content = AssetsCSSContent
 		contentType = "text/css"
 	} else {

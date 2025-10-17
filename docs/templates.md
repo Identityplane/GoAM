@@ -89,6 +89,7 @@ type ViewData struct {
     LoginUri      string
     AssetsJSPath  string
     AssetsCSSPath string
+    StaticPath    string
     CspNonce      string
 }
 ```

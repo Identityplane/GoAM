@@ -6,13 +6,13 @@ import { initRegisterPasskey } from './lib/nodes/registerPasskey.js'
 import { initOnboardingWithPasskey } from './lib/nodes/onboardingWithPasskey.js'
 import { initTelegramLogin } from './lib/nodes/telegramLogin.js'
 import { initNodeHistory } from './lib/node_history.js'
+import { initTranslator } from './lib/translator.js'
 // Node-specific initialization
 
 const nodeHandlers = {
     'emailOTP': initEmailOTP,
     'passwordOrSocialLogin': initPasswordOrSocialLogin,
     'hcaptcha': initHcaptcha,
-
     'verifyPasskey': initVerifyPasskey,
     'registerPasskey': initRegisterPasskey,
     'onboardingWithPasskey': initOnboardingWithPasskey,
@@ -23,6 +23,10 @@ const nodeHandlers = {
 // Initialize based on the current node
 document.addEventListener('DOMContentLoaded', function () {
 
+    console.log('DOMContentLoaded')
+    initNodeHistory()
+    initTranslator()
+    
     const mainContent = document.querySelector('.main-content')
     if (mainContent) {
         const nodeName = mainContent.dataset.node
@@ -32,5 +36,5 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('Initialized node:', nodeName)
         }
     }
-    initNodeHistory()
+
 })
