@@ -34,6 +34,7 @@ type ViewData struct {
 	FlowPath      string
 	LoginUri      string
 	AssetsJSPath  string
+	StaticPath    string
 	AssetsCSSPath string
 	CspNonce      string
 }

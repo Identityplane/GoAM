@@ -16,7 +16,9 @@ export default defineConfig({
       output: {
         entryFileNames: 'assets/main-[hash].js',
         chunkFileNames: 'assets/chunks/[name]-[hash].js',
-        assetFileNames: 'assets/main-[hash][extname]'
+        assetFileNames: 'assets/main-[hash][extname]',
+        format: 'umd',
+        name: 'GoAM'
       }
     }
   },
@@ -31,13 +33,13 @@ export default defineConfig({
         const jsFile = files.find(f => f.startsWith('main-') && f.endsWith('.js'))
         const cssFile = files.find(f => f.startsWith('main-') && f.endsWith('.css'))
 
-        if (!jsFile || !cssFile) {
-          throw new Error('Could not find generated JS or CSS files')
+        if (!jsFile) {
+          throw new Error('Could not find generated JS file')
         }
 
         const manifest = {
           js: `assets/${jsFile}`,
-          css: `assets/${cssFile}`
+          css: cssFile ? `assets/${cssFile}` : null
         }
 
         // Write manifest to dist directory

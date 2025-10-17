@@ -5,12 +5,20 @@
 
 <head>
   <title>{{ .Title }}</title>
+
+  <script nonce="{{ .CspNonce }}" src="https://unpkg.com/@andreasremdt/simple-translator@latest/dist/umd/translator.min.js"></script>
+
   {{ if .AssetsCSSPath }}<link rel="stylesheet" href="{{ .AssetsCSSPath }}"> <!-- Global CSS -->{{ end }}
   <script defer src="{{ .AssetsJSPath }}" nonce="{{ .CspNonce }}"></script> <!-- Global JS -->
+
   <link rel="stylesheet" href="{{ .StylePath }}"> <!-- Realm specific CSS takes precedence -->
+  <link rel="prefetch" i18n="en-US" href="{{ .StaticPath }}/en-US.json">
+  <link rel="prefetch" i18n="de-DE" href="{{ .StaticPath }}/de-DE.json">
 </head>
 
 <body>
+
+  <h2 data-i18n="header.title">Test</h2>
   {{ template "login_box" . }}
 </body>
 
