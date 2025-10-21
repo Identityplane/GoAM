@@ -24,7 +24,6 @@ const nodeHandlers = {
 document.addEventListener('DOMContentLoaded', function () {
 
     console.log('DOMContentLoaded')
-    initNodeHistory()
     initTranslator()
     
     const mainContent = document.querySelector('.main-content')
@@ -37,4 +36,5 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    initNodeHistory()
 })
