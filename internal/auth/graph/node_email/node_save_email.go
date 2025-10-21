@@ -84,7 +84,7 @@ func RunSaveEmailNode(state *model.AuthenticationSession, node *model.GraphNode,
 			Index: &email,
 		})
 
-		user.UserAttributes = append(user.UserAttributes, *attribute)
+		user.UserAttributes = append(user.UserAttributes, attribute)
 	}
 
 	return model.NewNodeResultWithCondition("success")

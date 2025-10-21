@@ -23,6 +23,10 @@ const (
 
 	MSG_INVALID_OTP     = "Invalid OTP"
 	MSG_RESEND_TOO_SOON = "You cannot resent the OTP yet"
+
+	CONDITION_SUCCESS_REGISTERED_EMAIL   = "success-registered-email"   // The email belongs to the user and was verified
+	CONDITION_SUCCESS_NEW_EMAIL_FOR_USER = "success-new-email-for-user" // The email is not yet linked to a user
+	CONDITION_SUCCESS_UNKNOW_EMAIL       = "success-unkown-email"       // There was no user found that has this email address
 )
 
 var EmailOTPNode = &model.NodeDefinition{
@@ -117,13 +121,22 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 		return otpPrompt(email, state)
 	} else {
 
-		err := registerSucessfullVerification(email, user, services)
-		if err != nil {
-			return model.NewNodeResultWithError(err)
-		}
-
 		if user != nil {
-			return model.NewNodeResultWithCondition("success-registered-email")
+
+			if user.HasEmailAddress(email) {
+
+				// If the email is registered to the user we register the verification
+				err := registerSucessfullVerification(email, user, services)
+				if err != nil {
+					return model.NewNodeResultWithError(err)
+				}
+
+				return model.NewNodeResultWithCondition(CONDITION_SUCCESS_REGISTERED_EMAIL)
+			} else {
+
+				return model.NewNodeResultWithCondition(CONDITION_SUCCESS_NEW_EMAIL_FOR_USER)
+			}
+
 		} else {
 
 			if node.CustomConfig[EMAIL_OTP_OPTION_INIT_USER] == "true" {
@@ -148,7 +161,7 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 				state.User = user
 			}
 
-			return model.NewNodeResultWithCondition("success-unkown-email")
+			return model.NewNodeResultWithCondition(CONDITION_SUCCESS_UNKNOW_EMAIL)
 		}
 
 	}
@@ -177,7 +190,8 @@ func sendEmailOTP(email string, otp string, user *model.User, services *model.Re
 			return err
 		}
 
-		if emailValue.OtpLocked || emailValue.OtpFailedAttempts >= maxFailedAttempts {
+		// If the user has a email attribute we check the otp locked and failed attempts
+		if emailValue != nil && (emailValue.OtpLocked || emailValue.OtpFailedAttempts >= maxFailedAttempts) {
 			// Silently return but log the attempt
 			log.Info().Msgf("Sending email OTP failed. Email locked or max failed attempts reached")
 			return nil
@@ -261,11 +275,17 @@ func registerSucessfullVerification(email string, user *model.User, services *mo
 	now := time.Now()
 
 	if user != nil {
-		// If this email is registered to a user we set the verified flag to true and reset the number of failed attempts
 
+		// If this email is registered to a user we set the verified flag to true and reset the number of failed attempts
 		emailValue, attribute, err := model.GetAttribute[model.EmailAttributeValue](user, model.AttributeTypeEmail)
 		if err != nil {
 			return err
+		}
+
+		// If the email attribute is nil we create a new one
+		if emailValue == nil || attribute == nil {
+			// If the user does not have an email attribute we dont create a new one but return directly
+			return nil
 		}
 
 		emailValue.OtpFailedAttempts = 0
@@ -277,7 +297,6 @@ func registerSucessfullVerification(email string, user *model.User, services *mo
 		}
 
 		attribute.Value = emailValue
-
 		err = services.UserRepo.UpdateUserAttribute(context.Background(), attribute)
 		if err != nil {
 			return err

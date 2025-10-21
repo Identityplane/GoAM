@@ -53,7 +53,7 @@ func HandleListUserAttributes(ctx *fasthttp.RequestCtx) {
 
 	// If no attributes, return empty array (not nil)
 	if len(attributes) == 0 {
-		attributes = []model.UserAttribute{}
+		attributes = []*model.UserAttribute{}
 	}
 
 	// Marshal response to JSON with pretty printing

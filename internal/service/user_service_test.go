@@ -304,7 +304,7 @@ func createTestUser(id, email, firstName, lastName string) *model.User {
 		Status:    "active",
 		CreatedAt: now,
 		UpdatedAt: now,
-		UserAttributes: []model.UserAttribute{
+		UserAttributes: []*model.UserAttribute{
 			{
 				ID:    uuid.NewString(),
 				Type:  "email",
@@ -337,10 +337,10 @@ func createTestUser(id, email, firstName, lastName string) *model.User {
 }
 
 // Helper function to find attribute by type
-func findAttributeByType(attributes []model.UserAttribute, attrType string) *model.UserAttribute {
+func findAttributeByType(attributes []*model.UserAttribute, attrType string) *model.UserAttribute {
 	for i := range attributes {
 		if attributes[i].Type == attrType {
-			return &attributes[i]
+			return attributes[i]
 		}
 	}
 	return nil

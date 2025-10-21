@@ -86,7 +86,7 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 			if attr.ID == attribute.ID {
 				user.UserAttributes[i].Value = passwordValue
 				// Update the attribute reference to point to the updated one
-				attribute = &user.UserAttributes[i]
+				attribute = user.UserAttributes[i]
 				break
 			}
 		}
@@ -115,7 +115,7 @@ func RunValidateUsernamePasswordNode(state *model.AuthenticationSession, node *m
 		if attr.ID == attribute.ID {
 			user.UserAttributes[i].Value = passwordValue
 			// Update the attribute reference to point to the updated one
-			attribute = &user.UserAttributes[i]
+			attribute = user.UserAttributes[i]
 			break
 		}
 	}

@@ -25,7 +25,7 @@ func TestRun_SimpleFlow(t *testing.T) {
 		Tenant:         "acme",
 		Realm:          "customers",
 		Status:         "active",
-		UserAttributes: []model.UserAttribute{},
+		UserAttributes: []*model.UserAttribute{},
 	}
 
 	// Add username attribute

@@ -35,7 +35,7 @@ type UserJson struct {
 
 type UserWithAttributesJson struct {
 	UserJson
-	UserAttributes []model.UserAttribute `json:"user_attributes"`
+	UserAttributes []*model.UserAttribute `json:"user_attributes"`
 }
 
 // @Summary List users
@@ -433,6 +433,6 @@ func UserToUserJson(ctx *fasthttp.RequestCtx, user *model.User) UserJson {
 func UserToUserWithAttributesJson(ctx *fasthttp.RequestCtx, user *model.User) UserWithAttributesJson {
 	return UserWithAttributesJson{
 		UserJson:       UserToUserJson(ctx, user),
-		UserAttributes: user.UserAttributes,
+		UserAttributes: user.UserAttributes[:],
 	}
 }

@@ -26,7 +26,7 @@ func TestRunPasskeyRegisterNode_GenerateOptions(t *testing.T) {
 		Tenant:         "acme",
 		Realm:          "customers",
 		Status:         "active",
-		UserAttributes: []model.UserAttribute{},
+		UserAttributes: []*model.UserAttribute{},
 	}
 
 	// Add username attribute using the proper method
@@ -135,7 +135,7 @@ func TestRunPasskeyRegisterNode_InvalidCredentialResponse(t *testing.T) {
 		Tenant:         "acme",
 		Realm:          "customers",
 		Status:         "active",
-		UserAttributes: []model.UserAttribute{},
+		UserAttributes: []*model.UserAttribute{},
 	}
 
 	// Add username attribute using the proper method

@@ -493,7 +493,7 @@ func TemplateTestCreateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		Tenant: testTenant,
 		Realm:  testRealm,
 		Status: "active",
-		UserAttributes: []model.UserAttribute{
+		UserAttributes: []*model.UserAttribute{
 			{
 				UserID: testUserID,
 				Tenant: testTenant,
@@ -614,7 +614,7 @@ func TemplateTestUpdateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		Tenant: testTenant,
 		Realm:  testRealm,
 		Status: "active",
-		UserAttributes: []model.UserAttribute{
+		UserAttributes: []*model.UserAttribute{
 			{
 				UserID: testUserID,
 				Tenant: testTenant,
@@ -666,7 +666,7 @@ func TemplateTestUpdateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		Tenant: testTenant,
 		Realm:  testRealm,
 		Status: "suspended", // Change user status
-		UserAttributes: []model.UserAttribute{
+		UserAttributes: []*model.UserAttribute{
 			// Update existing email attribute
 			{
 				ID:     createdUser.UserAttributes[0].ID,
@@ -741,7 +741,7 @@ func TemplateTestUpdateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		var primaryEmailAttr *model.UserAttribute
 		for _, attr := range emailAttrs {
 			if attr.Index != nil && *attr.Index == "primary@example.com" {
-				primaryEmailAttr = &attr
+				primaryEmailAttr = attr
 				break
 			}
 		}
@@ -763,7 +763,7 @@ func TemplateTestUpdateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		var phoneAttr *model.UserAttribute
 		for _, attr := range phoneAttrs {
 			if attr.Index != nil && *attr.Index == "+1234567890" {
-				phoneAttr = &attr
+				phoneAttr = attr
 				break
 			}
 		}
@@ -784,7 +784,7 @@ func TemplateTestUpdateUserWithAttributes(t *testing.T, db UserAttributeDB) {
 		var workEmailAttr *model.UserAttribute
 		for _, attr := range emailAttrs {
 			if attr.Index != nil && *attr.Index == "work@example.com" {
-				workEmailAttr = &attr
+				workEmailAttr = attr
 				break
 			}
 		}
@@ -838,7 +838,7 @@ func TemplateTestIndexUniqueConstraint(t *testing.T, db UserAttributeDB) {
 	testUserID := "123e4567-e89b-12d3-a456-426614174002" // Use a different UUID for this test
 
 	// Create a user with a unique email attribute
-	uniqueEmailAttr := model.UserAttribute{
+	uniqueEmailAttr := &model.UserAttribute{
 		UserID: testUserID,
 		Tenant: testTenant,
 		Realm:  testRealm,
@@ -852,7 +852,7 @@ func TemplateTestIndexUniqueConstraint(t *testing.T, db UserAttributeDB) {
 		UpdatedAt: time.Now(),
 	}
 
-	passwordAttr := model.UserAttribute{
+	passwordAttr := &model.UserAttribute{
 		UserID: testUserID,
 		Tenant: testTenant,
 		Realm:  testRealm,
@@ -870,7 +870,7 @@ func TemplateTestIndexUniqueConstraint(t *testing.T, db UserAttributeDB) {
 		Tenant: testTenant,
 		Realm:  testRealm,
 		Status: "active",
-		UserAttributes: []model.UserAttribute{
+		UserAttributes: []*model.UserAttribute{
 			uniqueEmailAttr,
 			passwordAttr,
 		},
@@ -880,7 +880,7 @@ func TemplateTestIndexUniqueConstraint(t *testing.T, db UserAttributeDB) {
 	t.Run("UniqueEmailIndex", func(t *testing.T) {
 
 		// Try to create a user with a duplicate email index
-		duplicateEmailAttr := model.UserAttribute{
+		duplicateEmailAttr := &model.UserAttribute{
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
@@ -898,7 +898,7 @@ func TemplateTestIndexUniqueConstraint(t *testing.T, db UserAttributeDB) {
 			Tenant: testTenant,
 			Realm:  testRealm,
 			Status: "active",
-			UserAttributes: []model.UserAttribute{
+			UserAttributes: []*model.UserAttribute{
 				duplicateEmailAttr,
 			},
 		})
@@ -908,7 +908,7 @@ func TemplateTestIndexUniqueConstraint(t *testing.T, db UserAttributeDB) {
 
 	t.Run("NullIndex Dublication Allowed", func(t *testing.T) {
 
-		passwordAttr := model.UserAttribute{
+		passwordAttr := &model.UserAttribute{
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
@@ -921,7 +921,7 @@ func TemplateTestIndexUniqueConstraint(t *testing.T, db UserAttributeDB) {
 			UpdatedAt: time.Now(),
 		}
 
-		anotherEmailAttr := model.UserAttribute{
+		anotherEmailAttr := &model.UserAttribute{
 			UserID: testUserID,
 			Tenant: testTenant,
 			Realm:  testRealm,
@@ -941,7 +941,7 @@ func TemplateTestIndexUniqueConstraint(t *testing.T, db UserAttributeDB) {
 			Tenant: testTenant,
 			Realm:  testRealm,
 			Status: "active",
-			UserAttributes: []model.UserAttribute{
+			UserAttributes: []*model.UserAttribute{
 				passwordAttr,
 				anotherEmailAttr,
 			},
