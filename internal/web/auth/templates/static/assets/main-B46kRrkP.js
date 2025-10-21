@@ -926,8 +926,7 @@
       if (!response.ok) {
         throw new Error(`Failed to fetch translation file: ${response.status} ${response.statusText}`);
       }
-      const data = await response.json();
-      return data;
+      return await response.json();
     } catch (error) {
       console.error("Error loading translation file:", error);
       try {
@@ -950,7 +949,6 @@
   };
   document.addEventListener("DOMContentLoaded", function() {
     console.log("DOMContentLoaded");
-    initNodeHistory();
     initTranslator();
     const mainContent = document.querySelector(".main-content");
     if (mainContent) {
@@ -961,5 +959,6 @@
         console.log("Initialized node:", nodeName);
       }
     }
+    initNodeHistory();
   });
 }));
