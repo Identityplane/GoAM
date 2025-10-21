@@ -51,7 +51,7 @@ type UserAdminService interface {
 // UserAttributeService defines the business logic for user attribute operations
 type UserAttributeService interface {
 	// List all attributes for a user
-	ListUserAttributes(ctx context.Context, tenant, realm, userID string) ([]model.UserAttribute, error)
+	ListUserAttributes(ctx context.Context, tenant, realm, userID string) ([]*model.UserAttribute, error)
 	// Get a specific attribute by ID
 	GetUserAttributeByID(ctx context.Context, tenant, realm, attributeID string) (*model.UserAttribute, error)
 	// Create a new attribute for a user

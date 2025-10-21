@@ -75,7 +75,7 @@ func TestRunCheckUsernameAvailableNode_UsernameTaken(t *testing.T) {
 		Status:    "active",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		UserAttributes: []model.UserAttribute{
+		UserAttributes: []*model.UserAttribute{
 			{
 				ID:        uuid.NewString(),
 				UserID:    uuid.NewString(),

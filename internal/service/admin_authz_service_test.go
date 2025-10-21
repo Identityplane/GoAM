@@ -21,7 +21,7 @@ func TestGetEntitlements(t *testing.T) {
 			name: "single entitlement",
 			user: &model.User{
 				ID: "test-user",
-				UserAttributes: []model.UserAttribute{
+				UserAttributes: []*model.UserAttribute{
 					{
 						ID:     "attr1",
 						UserID: "test-user",
@@ -63,7 +63,7 @@ func TestGetEntitlements(t *testing.T) {
 			name: "multiple entitlement sets",
 			user: &model.User{
 				ID: "test-user",
-				UserAttributes: []model.UserAttribute{
+				UserAttributes: []*model.UserAttribute{
 					{
 						ID:     "attr1",
 						UserID: "test-user",
@@ -114,7 +114,7 @@ func TestGetEntitlements(t *testing.T) {
 			name: "empty entitlements",
 			user: &model.User{
 				ID:             "test-user",
-				UserAttributes: []model.UserAttribute{},
+				UserAttributes: []*model.UserAttribute{},
 			},
 			want:        []services_interface.AuthzEntitlement{},
 			description: "should return empty slice for user with no entitlements",
@@ -123,7 +123,7 @@ func TestGetEntitlements(t *testing.T) {
 			name: "no entitlement attributes",
 			user: &model.User{
 				ID: "test-user",
-				UserAttributes: []model.UserAttribute{
+				UserAttributes: []*model.UserAttribute{
 					{
 						ID:     "attr1",
 						UserID: "test-user",
@@ -176,7 +176,7 @@ func TestCheckAccess(t *testing.T) {
 			name: "exact match",
 			user: &model.User{
 				ID: "test-user",
-				UserAttributes: []model.UserAttribute{
+				UserAttributes: []*model.UserAttribute{
 					{
 						ID:     "attr1",
 						UserID: "test-user",
@@ -204,7 +204,7 @@ func TestCheckAccess(t *testing.T) {
 			name: "wildcard resource match",
 			user: &model.User{
 				ID: "test-user",
-				UserAttributes: []model.UserAttribute{
+				UserAttributes: []*model.UserAttribute{
 					{
 						ID:     "attr1",
 						UserID: "test-user",
@@ -232,7 +232,7 @@ func TestCheckAccess(t *testing.T) {
 			name: "wildcard action match",
 			user: &model.User{
 				ID: "test-user",
-				UserAttributes: []model.UserAttribute{
+				UserAttributes: []*model.UserAttribute{
 					{
 						ID:     "attr1",
 						UserID: "test-user",
@@ -260,7 +260,7 @@ func TestCheckAccess(t *testing.T) {
 			name: "deny takes precedence",
 			user: &model.User{
 				ID: "test-user",
-				UserAttributes: []model.UserAttribute{
+				UserAttributes: []*model.UserAttribute{
 					{
 						ID:     "attr1",
 						UserID: "test-user",
@@ -294,7 +294,7 @@ func TestCheckAccess(t *testing.T) {
 			name: "no match",
 			user: &model.User{
 				ID: "test-user",
-				UserAttributes: []model.UserAttribute{
+				UserAttributes: []*model.UserAttribute{
 					{
 						ID:     "attr1",
 						UserID: "test-user",
@@ -331,7 +331,7 @@ func TestCheckAccess(t *testing.T) {
 			name: "empty entitlements",
 			user: &model.User{
 				ID:             "test-user",
-				UserAttributes: []model.UserAttribute{},
+				UserAttributes: []*model.UserAttribute{},
 			},
 			resource:    "/acme/customers/users/123",
 			action:      "GET",

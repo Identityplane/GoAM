@@ -61,7 +61,7 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 			ID:     "user2",
 			Tenant: "acme",
 			Realm:  "customers",
-			UserAttributes: []UserAttribute{
+			UserAttributes: []*UserAttribute{
 				{
 					ID:        "attr1",
 					UserID:    "user2",
@@ -120,7 +120,7 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 			ID:     "user3",
 			Tenant: "acme",
 			Realm:  "customers",
-			UserAttributes: []UserAttribute{
+			UserAttributes: []*UserAttribute{
 				{
 					ID:        "attr3",
 					UserID:    "user3",
@@ -165,7 +165,7 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 			ID:     "user4",
 			Tenant: "acme",
 			Realm:  "customers",
-			UserAttributes: []UserAttribute{
+			UserAttributes: []*UserAttribute{
 				{
 					ID:        "attr5",
 					UserID:    "user4",
@@ -215,7 +215,7 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 			ID:     "user5",
 			Tenant: "acme",
 			Realm:  "customers",
-			UserAttributes: []UserAttribute{
+			UserAttributes: []*UserAttribute{
 				{
 					ID:        "attr7",
 					UserID:    "user5",
@@ -270,7 +270,7 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 			ID:     "user6",
 			Tenant: "acme",
 			Realm:  "customers",
-			UserAttributes: []UserAttribute{
+			UserAttributes: []*UserAttribute{
 				{
 					ID:        "attr9",
 					UserID:    "user6",

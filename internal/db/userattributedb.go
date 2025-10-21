@@ -12,7 +12,7 @@ type UserAttributeDB interface {
 	CreateUserAttribute(ctx context.Context, attribute model.UserAttribute) error
 
 	// Get all attributes for a user (without detailed values)
-	ListUserAttributes(ctx context.Context, tenant, realm, userID string) ([]model.UserAttribute, error)
+	ListUserAttributes(ctx context.Context, tenant, realm, userID string) ([]*model.UserAttribute, error)
 
 	// Get a specific user attribute by ID with full details
 	GetUserAttributeByID(ctx context.Context, tenant, realm, attributeID string) (*model.UserAttribute, error)

@@ -25,12 +25,12 @@ type User struct {
 	LastLoginAt *time.Time `json:"last_login_at,omitempty" db:"last_login_at" example:"2024-01-01T00:00:00Z"`
 
 	// Attributes
-	UserAttributes []UserAttribute `json:"user_attributes,omitempty"`
+	UserAttributes []*UserAttribute `json:"user_attributes,omitempty"`
 }
 
 // GetAttributesByType returns all attributes of a specific type for the user
-func (u *User) GetAttributesByType(attrType string) []UserAttribute {
-	var filtered []UserAttribute
+func (u *User) GetAttributesByType(attrType string) []*UserAttribute {
+	var filtered []*UserAttribute
 	for _, attr := range u.UserAttributes {
 		if attr.Type == attrType {
 			filtered = append(filtered, attr)
@@ -56,7 +56,12 @@ func GetAttribute[T any](u *User, attrType string) (*T, *UserAttribute, error) {
 
 	// Try to convert the value to the target type
 	if converted, ok := attr.Value.(T); ok {
-		return &converted, &attr, nil
+		return &converted, attr, nil
+	}
+
+	// Check if attr.Value is a pointer to T
+	if converted, ok := attr.Value.(*T); ok {
+		return converted, attr, nil
 	}
 
 	// If direct conversion fails, try to convert from map[string]interface{} (for database stored values)
@@ -72,7 +77,7 @@ func GetAttribute[T any](u *User, attrType string) (*T, *UserAttribute, error) {
 			return nil, nil, fmt.Errorf("failed to unmarshal attribute value to %T: %w", result, err)
 		}
 
-		return &result, &attr, nil
+		return &result, attr, nil
 	}
 
 	return nil, nil, fmt.Errorf("failed to convert attribute value from %T to %T", attr.Value, *new(T))
@@ -94,7 +99,7 @@ func GetAttributes[T any](u *User, attrType string) ([]T, []*UserAttribute, erro
 		// Try to convert the value to the target type
 		if converted, ok := attr.Value.(T); ok {
 			result = append(result, converted)
-			attributes = append(attributes, &attr)
+			attributes = append(attributes, attr)
 			continue
 		}
 
@@ -112,7 +117,7 @@ func GetAttributes[T any](u *User, attrType string) ([]T, []*UserAttribute, erro
 			}
 
 			result = append(result, converted)
-			attributes = append(attributes, &attr)
+			attributes = append(attributes, attr)
 			continue
 		}
 
@@ -131,7 +136,7 @@ func (u *User) AddAttribute(attr *UserAttribute) {
 	attr.UserID = u.ID
 
 	// Add the attribute to the user
-	u.UserAttributes = append(u.UserAttributes, *attr)
+	u.UserAttributes = append(u.UserAttributes, attr)
 }
 
 // UserStats represents user statistics
@@ -193,4 +198,41 @@ func (u *User) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+func (u *User) HasEmailAddress(email string) bool {
+	emailValues, _, err := GetAttributes[EmailAttributeValue](u, AttributeTypeEmail)
+	if err != nil {
+		return false
+	}
+	for _, emailValue := range emailValues {
+		if emailValue.Email == email {
+			return true
+		}
+	}
+	return false
+}
+
+func (u *User) GetEmailAddress() string {
+	emailValues, _, err := GetAttributes[EmailAttributeValue](u, AttributeTypeEmail)
+	if err != nil {
+		return ""
+	}
+	return emailValues[0].Email
+}
+
+func (u *User) GetEmailAddressAttributeForEmail(email string) (*EmailAttributeValue, *UserAttribute, error) {
+	_, attributes, err := GetAttributes[EmailAttributeValue](u, AttributeTypeEmail)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Find the first matching email address
+	for _, attribute := range attributes {
+		emailValue, ok := attribute.Value.(EmailAttributeValue)
+
+		if ok && emailValue.Email == email {
+			return &emailValue, attribute, nil
+		}
+	}
+	return nil, nil, fmt.Errorf("email address not found")
 }

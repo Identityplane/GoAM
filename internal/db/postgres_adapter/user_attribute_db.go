@@ -71,7 +71,7 @@ func (p *PostgresUserAttributeDB) CreateUserAttribute(ctx context.Context, attri
 	return nil
 }
 
-func (p *PostgresUserAttributeDB) ListUserAttributes(ctx context.Context, tenant, realm, userID string) ([]model.UserAttribute, error) {
+func (p *PostgresUserAttributeDB) ListUserAttributes(ctx context.Context, tenant, realm, userID string) ([]*model.UserAttribute, error) {
 	rows, err := p.db.Query(ctx, `
 		SELECT id, user_id, tenant, realm, index_value, type, value,
 		       created_at, updated_at
@@ -85,13 +85,13 @@ func (p *PostgresUserAttributeDB) ListUserAttributes(ctx context.Context, tenant
 	defer rows.Close()
 
 	// Initialize with empty slice instead of nil slice
-	attributes := make([]model.UserAttribute, 0)
+	attributes := make([]*model.UserAttribute, 0)
 	for rows.Next() {
 		attr, err := p.scanUserAttributeFromRow(rows)
 		if err != nil {
 			return nil, err
 		}
-		attributes = append(attributes, *attr)
+		attributes = append(attributes, attr)
 	}
 
 	if err = rows.Err(); err != nil {
@@ -255,13 +255,13 @@ func (p *PostgresUserAttributeDB) GetUserWithAttributes(ctx context.Context, ten
 
 	// Parse the JSONB attributes
 	if len(userAttributesJSONB) > 0 {
-		var attributes []model.UserAttribute
+		var attributes []*model.UserAttribute
 		if err := json.Unmarshal(userAttributesJSONB, &attributes); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal user attributes: %w", err)
 		}
 		user.UserAttributes = attributes
 	} else {
-		user.UserAttributes = []model.UserAttribute{}
+		user.UserAttributes = []*model.UserAttribute{}
 	}
 
 	return &user, nil
@@ -334,13 +334,13 @@ func (p *PostgresUserAttributeDB) GetUserByAttributeIndexWithAttributes(ctx cont
 
 	// Parse the JSONB attributes
 	if len(userAttributesJSONB) > 0 {
-		var attributes []model.UserAttribute
+		var attributes []*model.UserAttribute
 		if err := json.Unmarshal(userAttributesJSONB, &attributes); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal user attributes: %w", err)
 		}
 		user.UserAttributes = attributes
 	} else {
-		user.UserAttributes = []model.UserAttribute{}
+		user.UserAttributes = []*model.UserAttribute{}
 	}
 
 	return &user, nil
@@ -396,7 +396,7 @@ func (p *PostgresUserAttributeDB) CreateUserWithAttributes(ctx context.Context, 
 
 	// Create each attribute
 	for i := range user.UserAttributes {
-		attribute := &user.UserAttributes[i]
+		attribute := user.UserAttributes[i]
 
 		// Set the user_id if not already set
 		if attribute.UserID == "" {
@@ -502,7 +502,7 @@ func (p *PostgresUserAttributeDB) UpdateUserWithAttributes(ctx context.Context, 
 
 	// Process each attribute in the updated user
 	for i := range user.UserAttributes {
-		attribute := &user.UserAttributes[i]
+		attribute := user.UserAttributes[i]
 
 		// Set the user_id if not already set
 		if attribute.UserID == "" {

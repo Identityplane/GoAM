@@ -24,7 +24,7 @@ func TestRunCheckUserHasPasskeyNode_UserHasPasskey(t *testing.T) {
 		Tenant:         "acme",
 		Realm:          "customers",
 		Status:         "active",
-		UserAttributes: []model.UserAttribute{},
+		UserAttributes: []*model.UserAttribute{},
 	}
 
 	// Add a passkey attribute
@@ -74,7 +74,7 @@ func TestRunCheckUserHasPasskeyNode_UserNoPasskey(t *testing.T) {
 		Tenant:         "acme",
 		Realm:          "customers",
 		Status:         "active",
-		UserAttributes: []model.UserAttribute{},
+		UserAttributes: []*model.UserAttribute{},
 	}
 
 	// Add a username attribute but no passkey
@@ -155,7 +155,7 @@ func TestRunCheckUserHasPasskeyNode_UserWithMultiplePasskeys(t *testing.T) {
 		Tenant:         "acme",
 		Realm:          "customers",
 		Status:         "active",
-		UserAttributes: []model.UserAttribute{},
+		UserAttributes: []*model.UserAttribute{},
 	}
 
 	// Add multiple passkey attributes

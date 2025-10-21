@@ -26,7 +26,7 @@ func NewUserAttributeService(userAttributeDB db.UserAttributeDB, userDB db.UserD
 
 //
 
-func (s *userAttributeServiceImpl) ListUserAttributes(ctx context.Context, tenant, realm, userID string) ([]model.UserAttribute, error) {
+func (s *userAttributeServiceImpl) ListUserAttributes(ctx context.Context, tenant, realm, userID string) ([]*model.UserAttribute, error) {
 	// Verify user exists
 	user, err := s.userDB.GetUserByID(ctx, tenant, realm, userID)
 	if err != nil {
