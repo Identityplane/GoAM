@@ -117,8 +117,8 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	}
 
-	// If the result is set we clear the session
-	if newSession.Result != nil {
+	// If the result is set we clear the session unless its a debbug session
+	if newSession.Result != nil && !newSession.Debug {
 		service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, realm.Tenant, realm.Realm, session.SessionIdHash)
 	}
 
@@ -228,6 +228,11 @@ func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, realm *model.Re
 		return CreateNewAuthenticationSession(ctx, realm, flow, debug)
 	}
 
+	// If the session is already in a result state we create a new session
+	if session != nil && session.Finished() {
+		return CreateNewAuthenticationSession(ctx, realm, flow, debug)
+	}
+
 	// If the session if from a different flow we delete it and create a new one by overwriting it
 	if session != nil && session.FlowId != flow.Id {
 		service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, realm.Tenant, realm.Realm, session.SessionIdHash)
@@ -237,8 +242,6 @@ func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, realm *model.Re
 	// if the session was not debug, but now we have debug, we need to set the debug flag if debug is allowed
 	if session != nil && !session.Debug && debug && flow.DebugAllowed {
 		session.Debug = true
-	} else {
-		session.Debug = false
 	}
 
 	// If no session exists, create new one
