@@ -38,7 +38,7 @@ var EmailOTPNode = &model.NodeDefinition{
 	RequiredContext:      []string{"email"},
 	PossiblePrompts:      map[string]string{"otp": "number", "option": "resend", "email": "email"},
 	OutputContext:        []string{"emailOTP", "email_verified"},
-	PossibleResultStates: []string{"success-registered-email", "success-unkown-email"},
+	PossibleResultStates: []string{CONDITION_SUCCESS_REGISTERED_EMAIL, CONDITION_SUCCESS_NEW_EMAIL_FOR_USER, CONDITION_SUCCESS_UNKNOW_EMAIL},
 	CustomConfigOptions: map[string]string{
 		EMAIL_OTP_OPTION_MAX_ATTEMPTS: "Maximum number of failed attempts before locking the user (default: 10)",
 		EMAIL_OTP_OPTION_INIT_USER:    "If true, the node will initialize the user if no user is found in the context. Default false",
