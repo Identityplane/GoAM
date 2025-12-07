@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"slices"
 	"strings"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
@@ -73,8 +72,9 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	redirectUri = application.RedirectUris[0]
 
 	// Check if the redirect URI is trusted
-	if !slices.Contains(application.RedirectUris, oauth2request.RedirectURI) {
-		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Invalid redirect URI", oauth2request, redirectUri)
+	oauth2error := service.GetServices().OAuth2Service.ValidateRedirectUri(oauth2request, application)
+	if oauth2error != nil {
+		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri)
 		return
 	}
 
@@ -114,7 +114,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Validate and process the authorization request
-	oauth2error := service.GetServices().OAuth2Service.ValidateOAuth2AuthorizationRequest(oauth2request, tenant, realm, application, flowId)
+	oauth2error = service.GetServices().OAuth2Service.ValidateOAuth2AuthorizationRequest(oauth2request, tenant, realm, application, flowId)
 	if oauth2error != nil {
 		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri)
 		return

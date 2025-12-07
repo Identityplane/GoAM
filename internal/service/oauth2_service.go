@@ -35,9 +35,10 @@ func NewOAuth2Error(errorCode string, errorDescription string) *oauth2.OAuth2Err
 // ValidateOAuth2AuthorizationRequest validates the OAuth2 authorization request
 func (s *OAuth2Service) ValidateOAuth2AuthorizationRequest(oauth2request *model.AuthorizeRequest, tenant, realm string, application *model.Application, flowId string) *oauth2.OAuth2Error {
 
-	// validate if the redirect_uir is in the list of allowed redirect uris
-	if oauth2request.RedirectURI != "" && !slices.Contains(application.RedirectUris, oauth2request.RedirectURI) {
-		return oauth2.NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid redirect URI")
+	// Validate the redirect uri
+	oauth2error := s.ValidateRedirectUri(oauth2request, application)
+	if oauth2error != nil {
+		return oauth2error
 	}
 
 	// Check which flow is requested, we differenciate between authorization_code and authorization_code_pkce, and client_credentials
@@ -361,14 +362,13 @@ func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, logi
 
 func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, error) {
 
-	// Load the user from the database
-	user, err := GetServices().UserService.GetUserWithAttributesByID(context.Background(), session.Tenant, session.Realm, session.UserID)
-	if err != nil || user == nil {
-		return "", fmt.Errorf("internal server error. Could not get user")
+	// Load the user from the login session
+	if loginSession.User == nil {
+		return "", fmt.Errorf("internal server error. User is nil")
 	}
 
 	// TODO later we use the id token mapping but for now we just map the claims directly
-	userClaims, err := s.GetUserClaims(*user, session.Scope)
+	userClaims, err := s.GetUserClaims(*loginSession.User, session.Scope)
 	if err != nil {
 		return "", fmt.Errorf("internal server error. Could not get user claims")
 	}
@@ -608,4 +608,23 @@ func (s *OAuth2Service) IntrospectAccessToken(tenant, realm string, tokenIntrosp
 	}
 
 	return response, nil
+}
+
+func (s *OAuth2Service) ValidateRedirectUri(oauth2request *model.AuthorizeRequest, application *model.Application) *oauth2.OAuth2Error {
+
+	// If the compatibility redirect uri prefix check is enabled we need to check if the redirect uri is a prefix of the allowed redirect uris
+	if application != nil && application.Settings != nil && application.Settings.OAuth2Settings != nil && application.Settings.OAuth2Settings.CompatibilityRedirectUriPrefixCheck {
+		for _, redirectUri := range application.RedirectUris {
+			if strings.HasPrefix(oauth2request.RedirectURI, redirectUri) {
+				return nil
+			}
+		}
+	}
+
+	// validate if the redirect_uir is in the list of allowed redirect uris
+	if oauth2request.RedirectURI != "" && !slices.Contains(application.RedirectUris, oauth2request.RedirectURI) {
+		return oauth2.NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid redirect URI")
+	}
+
+	return nil
 }

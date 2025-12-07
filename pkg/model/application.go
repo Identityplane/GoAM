@@ -42,7 +42,8 @@ type Application struct {
 }
 
 type ApplicationExtensionSettings struct {
-	Cookie *CookieSpecification `json:"cookie_specification,omitempty" yaml:"cookie_specification,omitempty" db:"cookie_specification"`
+	Cookie         *CookieSpecification `json:"cookie_specification,omitempty" yaml:"cookie_specification,omitempty" db:"cookie_specification"`
+	OAuth2Settings *OAuth2Settings      `json:"oauth2_settings,omitempty" yaml:"oauth2_settings,omitempty" db:"oauth2_settings"`
 }
 
 type CookieSpecification struct {
@@ -53,4 +54,8 @@ type CookieSpecification struct {
 	HttpOnly      bool   `json:"http_only" yaml:"http_only"`
 	SameSite      string `json:"same_site" yaml:"same_site"`
 	SessionExpiry bool   `json:"session_expiry" yaml:"session_expiry"` // If true the cookie will be set without max-age and expires when the browser window is closed
+}
+
+type OAuth2Settings struct {
+	CompatibilityRedirectUriPrefixCheck bool `json:"compatibility_redirect_uri_prefix_check" yaml:"compatibility_redirect_uri_prefix_check"`
 }

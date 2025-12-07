@@ -260,6 +260,9 @@ type OAuth2Service interface {
 
 	// GetOtherJwtClaims gets the other JWT claims for a given client
 	GetOtherJwtClaims(tenant, realm, client_id string) (map[string]interface{}, error)
+
+	// Validate the redirect uri for an authorize request
+	ValidateRedirectUri(oauth2request *model.AuthorizeRequest, application *model.Application) *oauth2.OAuth2Error
 }
 
 // SimpleAuthService defines the business logic for Simple Auth operations
