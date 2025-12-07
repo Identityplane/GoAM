@@ -15,6 +15,7 @@ const (
 // Valid OAuth2 error codes as defined in RFC 6749
 const (
 	ErrorInvalidRequest          = "invalid_request"
+	ErrorInvalidGrant            = "invalid_grant"
 	ErrorUnauthorizedClient      = "unauthorized_client"
 	ErrorAccessDenied            = "access_denied"
 	ErrorUnsupportedResponseType = "unsupported_response_type"

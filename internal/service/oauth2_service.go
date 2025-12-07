@@ -284,12 +284,12 @@ func (s *OAuth2Service) processTokenRequestForRefreshTokenGrant(tenant string, r
 func (s *OAuth2Service) processTokenRequestForAuthorizationCodeGrant(tenant string, realm string, tokenRequest *oauth2.Oauth2TokenRequest, clientAuthentication *oauth2.Oauth2ClientAuthentication, application *model.Application) (*oauth2.Oauth2TokenResponse, *oauth2.OAuth2Error) {
 	session, loginSession, err := GetServices().SessionsService.LoadAndDeleteAuthCodeSession(context.Background(), tenant, realm, tokenRequest.Code)
 	if err != nil {
-		return nil, NewOAuth2Error(oauth2.ErrorAccessDenied, "Invalid authorization code")
+		return nil, NewOAuth2Error(oauth2.ErrorInvalidGrant, "Invalid authorization code")
 	}
 
 	// Check if the session is valid
 	if session == nil {
-		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid authorization code")
+		return nil, NewOAuth2Error(oauth2.ErrorInvalidGrant, "Invalid authorization code")
 	}
 
 	if loginSession == nil {
@@ -297,7 +297,7 @@ func (s *OAuth2Service) processTokenRequestForAuthorizationCodeGrant(tenant stri
 	}
 
 	if tenant != session.Tenant || realm != session.Realm || clientAuthentication.ClientID != session.ClientID {
-		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid authorization code")
+		return nil, NewOAuth2Error(oauth2.ErrorInvalidGrant, "Invalid authorization code")
 	}
 
 	if !application.Confidential {
