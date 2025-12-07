@@ -133,6 +133,12 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not get user claims")
 	}
 
+	// Get the realm
+	loadedRealm, ok := GetServices().RealmService.GetRealm(tenant, realm)
+	if !ok {
+		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not get realm")
+	}
+
 	// Create the client session
 	authCode, _, err := GetServices().SessionsService.CreateAuthCodeSession(
 		context.Background(),
@@ -155,7 +161,7 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 	response := oauth2.AuthorizationResponse{
 		Code:  authCode,
 		State: session.Oauth2SessionInformation.AuthorizeRequest.State,
-		Iss:   session.LoginUriBase,
+		Iss:   loadedRealm.Config.BaseUrl,
 	}
 
 	return &response, nil
@@ -387,7 +393,9 @@ func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSessi
 	}
 
 	// if we have a auth_time in the login session we add it to the claims
-	otherClaims["acr"] = loginSession.Result.AuthLevel
+	if loginSession.Result.AuthLevel != "" {
+		otherClaims["acr"] = loginSession.Result.AuthLevel
+	}
 
 	// Merge the claims into the final set
 	claims := maps.Clone(userClaims)
