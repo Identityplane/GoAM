@@ -134,7 +134,8 @@ func CreateAccessTokenSession(t *testing.T, user model.User) string {
 		user.ID,
 		[]string{},
 		"test",
-		1000)
+		1000,
+		nil)
 
 	if err != nil {
 		t.Fatalf("failed to create access token session: %v", err)

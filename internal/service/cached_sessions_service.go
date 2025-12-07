@@ -115,8 +115,8 @@ func (s *cachedSessionsService) CreateAuthCodeSession(ctx context.Context, tenan
 }
 
 // CreateAccessTokenSession creates a new access token session
-func (s *cachedSessionsService) CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int) (string, *model.ClientSession, error) {
-	token, session, err := s.sessionsService.CreateAccessTokenSession(ctx, tenant, realm, clientID, userID, scope, grantType, lifetime)
+func (s *cachedSessionsService) CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int, claims map[string]interface{}) (string, *model.ClientSession, error) {
+	token, session, err := s.sessionsService.CreateAccessTokenSession(ctx, tenant, realm, clientID, userID, scope, grantType, lifetime, claims)
 	if err == nil {
 		// Cache the session
 		cacheKey := fmt.Sprintf("access_token_session:%s:%s:%s", tenant, realm, session.ClientSessionID)
@@ -129,8 +129,8 @@ func (s *cachedSessionsService) CreateAccessTokenSession(ctx context.Context, te
 }
 
 // CreateRefreshTokenSession creates a new refresh token session
-func (s *cachedSessionsService) CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int) (string, *model.ClientSession, error) {
-	return s.sessionsService.CreateRefreshTokenSession(ctx, tenant, realm, clientID, userID, scope, grantType, expiresIn)
+func (s *cachedSessionsService) CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int, claims map[string]interface{}) (string, *model.ClientSession, error) {
+	return s.sessionsService.CreateRefreshTokenSession(ctx, tenant, realm, clientID, userID, scope, grantType, expiresIn, claims)
 }
 
 // GetClientSessionByAccessToken retrieves a client session by its access token

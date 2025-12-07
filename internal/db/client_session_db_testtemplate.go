@@ -35,6 +35,11 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 		LoginSessionJson: `{"state":"test-state","nonce":"test-nonce"}`,
 		Created:          now,
 		Expire:           now.Add(1 * time.Hour),
+		Claims: map[string]interface{}{
+			"sub":   "user123",
+			"name":  "Test User",
+			"email": "test@example.com",
+		},
 	}
 
 	t.Run("CreateClientSession", func(t *testing.T) {
@@ -57,6 +62,7 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 		assert.Equal(t, testSession.LoginSessionJson, session.LoginSessionJson)
 		assert.Equal(t, testSession.Created.Truncate(time.Second), session.Created.Truncate(time.Second))
 		assert.Equal(t, testSession.Expire.Truncate(time.Second), session.Expire.Truncate(time.Second))
+		assert.Equal(t, testSession.Claims, session.Claims)
 	})
 
 	t.Run("GetClientSessionByAccessToken", func(t *testing.T) {
@@ -101,6 +107,12 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 
 		session.Scope = "openid profile email"
 		session.Expire = now.Add(2 * time.Hour)
+		session.Claims = map[string]interface{}{
+			"sub":   "user123",
+			"name":  "Updated User",
+			"email": "updated@example.com",
+			"role":  "admin",
+		}
 		err = db.UpdateClientSession(ctx, testTenant, testRealm, session)
 		assert.NoError(t, err)
 
@@ -108,6 +120,7 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 		assert.NoError(t, err)
 		assert.Equal(t, "openid profile email", updatedSession.Scope)
 		assert.Equal(t, now.Add(2*time.Hour).Truncate(time.Second), updatedSession.Expire.Truncate(time.Second))
+		assert.Equal(t, session.Claims, updatedSession.Claims)
 	})
 
 	t.Run("DeleteClientSession", func(t *testing.T) {
@@ -235,5 +248,85 @@ func TemplateTestClientSessionCRUD(t *testing.T, db ClientSessionDB) {
 		assert.NotNil(t, session)
 		assert.Equal(t, refreshTokenSession.ClientSessionID, session.ClientSessionID)
 		assert.Equal(t, refreshTokenSession.RefreshTokenHash, session.RefreshTokenHash)
+	})
+
+	t.Run("CreateAndQueryWithClaims", func(t *testing.T) {
+		// Create a new session with claims
+		claimsSession := &model.ClientSession{
+			Tenant:           testTenant,
+			Realm:            testRealm,
+			ClientSessionID:  "claims-session",
+			ClientID:         testClientID,
+			GrantType:        "authorization_code",
+			AccessTokenHash:  "claims-access-token-hash",
+			RefreshTokenHash: "claims-refresh-token-hash",
+			AuthCodeHash:     "claims-auth-code-hash",
+			UserID:           testUserID,
+			Scope:            "openid profile",
+			LoginSessionJson: `{"state":"claims-state","nonce":"claims-nonce"}`,
+			Created:          now,
+			Expire:           now.Add(1 * time.Hour),
+			Claims: map[string]interface{}{
+				"sub":         "claims-user-123",
+				"name":        "Claims Test User",
+				"email":       "claims@example.com",
+				"custom_attr": "custom_value",
+				"nested": map[string]interface{}{
+					"key1": "value1",
+					"key2": 42,
+				},
+			},
+		}
+
+		err := db.CreateClientSession(ctx, testTenant, testRealm, claimsSession)
+		assert.NoError(t, err)
+
+		// Query by ID and verify claims
+		session, err := db.GetClientSessionByID(ctx, testTenant, testRealm, claimsSession.ClientSessionID)
+		assert.NoError(t, err)
+		assert.NotNil(t, session)
+		assert.Equal(t, claimsSession.ClientSessionID, session.ClientSessionID)
+		// Verify individual claim values (note: JSON unmarshaling converts numbers to float64)
+		assert.Equal(t, "claims-user-123", session.Claims["sub"])
+		assert.Equal(t, "Claims Test User", session.Claims["name"])
+		assert.Equal(t, "claims@example.com", session.Claims["email"])
+		assert.Equal(t, "custom_value", session.Claims["custom_attr"])
+		nested, ok := session.Claims["nested"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "value1", nested["key1"])
+		assert.Equal(t, float64(42), nested["key2"]) // JSON numbers become float64
+	})
+
+	t.Run("CreateAndQueryWithNilClaims", func(t *testing.T) {
+		// Create a session with nil claims
+		nilClaimsSession := &model.ClientSession{
+			Tenant:           testTenant,
+			Realm:            testRealm,
+			ClientSessionID:  "nil-claims-session",
+			ClientID:         testClientID,
+			GrantType:        "authorization_code",
+			AccessTokenHash:  "nil-claims-access-token-hash",
+			RefreshTokenHash: "nil-claims-refresh-token-hash",
+			AuthCodeHash:     "nil-claims-auth-code-hash",
+			UserID:           testUserID,
+			Scope:            "openid profile",
+			LoginSessionJson: `{"state":"nil-claims-state","nonce":"nil-claims-nonce"}`,
+			Created:          now,
+			Expire:           now.Add(1 * time.Hour),
+			Claims:           nil,
+		}
+
+		err := db.CreateClientSession(ctx, testTenant, testRealm, nilClaimsSession)
+		assert.NoError(t, err)
+
+		// Query by ID and verify claims is nil or empty
+		session, err := db.GetClientSessionByID(ctx, testTenant, testRealm, nilClaimsSession.ClientSessionID)
+		assert.NoError(t, err)
+		assert.NotNil(t, session)
+		assert.Equal(t, nilClaimsSession.ClientSessionID, session.ClientSessionID)
+		// Claims should be nil or empty map
+		if session.Claims != nil {
+			assert.Empty(t, session.Claims)
+		}
 	})
 }

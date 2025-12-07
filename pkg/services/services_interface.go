@@ -160,10 +160,10 @@ type SessionsService interface {
 	CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession) (string, *model.ClientSession, error)
 
 	// CreateAccessTokenSession creates a new access token session
-	CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int) (string, *model.ClientSession, error)
+	CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int, claims map[string]interface{}) (string, *model.ClientSession, error)
 
 	// CreateRefreshTokenSession creates a new refresh token session
-	CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int) (string, *model.ClientSession, error)
+	CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int, claims map[string]interface{}) (string, *model.ClientSession, error)
 
 	// GetClientSessionByAccessToken retrieves a client session by its access token
 	GetClientSessionByAccessToken(ctx context.Context, tenant, realm, accessToken string) (*model.ClientSession, error)

@@ -3,6 +3,7 @@ package sqlite_adapter
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -35,12 +36,22 @@ func (s *SQLiteClientSessionDB) CreateClientSession(ctx context.Context, tenant,
 		return fmt.Errorf("tenant and realm do not match")
 	}
 
+	// Convert claims to JSON string for SQLite
+	claimsJSON := ""
+	if session.Claims != nil {
+		claimsBytes, err := json.Marshal(session.Claims)
+		if err != nil {
+			return fmt.Errorf("failed to marshal claims: %w", err)
+		}
+		claimsJSON = string(claimsBytes)
+	}
+
 	query := `
 		INSERT INTO client_sessions (
 			tenant, realm, client_session_id, client_id, grant_type,
 			access_token_hash, refresh_token_hash, auth_code_hash,
-			user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	_, err := s.db.ExecContext(ctx, query,
@@ -59,6 +70,7 @@ func (s *SQLiteClientSessionDB) CreateClientSession(ctx context.Context, tenant,
 		session.CodeChallengeMethod,
 		session.Created.Format(time.RFC3339),
 		session.Expire.Format(time.RFC3339),
+		claimsJSON,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create client session: %w", err)
@@ -71,13 +83,14 @@ func (s *SQLiteClientSessionDB) GetClientSessionByID(ctx context.Context, tenant
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = ? AND realm = ? AND client_session_id = ?
 	`
 
 	var session model.ClientSession
 	var createdStr, expireStr string
+	var claimsJSON sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, tenant, realm, sessionID).Scan(
 		&session.Tenant,
@@ -95,6 +108,7 @@ func (s *SQLiteClientSessionDB) GetClientSessionByID(ctx context.Context, tenant
 		&session.CodeChallengeMethod,
 		&createdStr,
 		&expireStr,
+		&claimsJSON,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -111,6 +125,14 @@ func (s *SQLiteClientSessionDB) GetClientSessionByID(ctx context.Context, tenant
 	session.Created = created.Local()
 	session.Expire = expire.Local()
 
+	// Parse claims JSON
+	if claimsJSON.Valid && claimsJSON.String != "" {
+		session.Claims = make(map[string]interface{})
+		if err := json.Unmarshal([]byte(claimsJSON.String), &session.Claims); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+		}
+	}
+
 	return &session, nil
 }
 
@@ -118,13 +140,14 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Contex
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = ? AND realm = ? AND access_token_hash = ?
 	`
 
 	var session model.ClientSession
 	var createdStr, expireStr string
+	var claimsJSON sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, tenant, realm, accessTokenHash).Scan(
 		&session.Tenant,
@@ -142,6 +165,7 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Contex
 		&session.CodeChallengeMethod,
 		&createdStr,
 		&expireStr,
+		&claimsJSON,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -158,6 +182,14 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAccessToken(ctx context.Contex
 	session.Created = created.Local()
 	session.Expire = expire.Local()
 
+	// Parse claims JSON
+	if claimsJSON.Valid && claimsJSON.String != "" {
+		session.Claims = make(map[string]interface{})
+		if err := json.Unmarshal([]byte(claimsJSON.String), &session.Claims); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+		}
+	}
+
 	return &session, nil
 }
 
@@ -165,13 +197,14 @@ func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Conte
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = ? AND realm = ? AND refresh_token_hash = ?
 	`
 
 	var session model.ClientSession
 	var createdStr, expireStr string
+	var claimsJSON sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, tenant, realm, refreshTokenHash).Scan(
 		&session.Tenant,
@@ -189,6 +222,7 @@ func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Conte
 		&session.CodeChallengeMethod,
 		&createdStr,
 		&expireStr,
+		&claimsJSON,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -205,6 +239,14 @@ func (s *SQLiteClientSessionDB) GetClientSessionByRefreshToken(ctx context.Conte
 	session.Created = created.Local()
 	session.Expire = expire.Local()
 
+	// Parse claims JSON
+	if claimsJSON.Valid && claimsJSON.String != "" {
+		session.Claims = make(map[string]interface{})
+		if err := json.Unmarshal([]byte(claimsJSON.String), &session.Claims); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+		}
+	}
+
 	return &session, nil
 }
 
@@ -212,13 +254,14 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, 
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = ? AND realm = ? AND auth_code_hash = ?
 	`
 
 	var session model.ClientSession
 	var createdStr, expireStr string
+	var claimsJSON sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, tenant, realm, authCodeHash).Scan(
 		&session.Tenant,
@@ -236,6 +279,7 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, 
 		&session.CodeChallengeMethod,
 		&createdStr,
 		&expireStr,
+		&claimsJSON,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -252,6 +296,14 @@ func (s *SQLiteClientSessionDB) GetClientSessionByAuthCode(ctx context.Context, 
 	session.Created = created.Local()
 	session.Expire = expire.Local()
 
+	// Parse claims JSON
+	if claimsJSON.Valid && claimsJSON.String != "" {
+		session.Claims = make(map[string]interface{})
+		if err := json.Unmarshal([]byte(claimsJSON.String), &session.Claims); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+		}
+	}
+
 	return &session, nil
 }
 
@@ -259,7 +311,7 @@ func (s *SQLiteClientSessionDB) ListClientSessions(ctx context.Context, tenant, 
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = ? AND realm = ? AND client_id = ?
 	`
@@ -274,6 +326,7 @@ func (s *SQLiteClientSessionDB) ListClientSessions(ctx context.Context, tenant, 
 	for rows.Next() {
 		var session model.ClientSession
 		var createdStr, expireStr string
+		var claimsJSON sql.NullString
 
 		err := rows.Scan(
 			&session.Tenant,
@@ -291,6 +344,7 @@ func (s *SQLiteClientSessionDB) ListClientSessions(ctx context.Context, tenant, 
 			&session.CodeChallengeMethod,
 			&createdStr,
 			&expireStr,
+			&claimsJSON,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan client session: %w", err)
@@ -304,6 +358,14 @@ func (s *SQLiteClientSessionDB) ListClientSessions(ctx context.Context, tenant, 
 		session.Created = created.Local()
 		session.Expire = expire.Local()
 
+		// Parse claims JSON
+		if claimsJSON.Valid && claimsJSON.String != "" {
+			session.Claims = make(map[string]interface{})
+			if err := json.Unmarshal([]byte(claimsJSON.String), &session.Claims); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+			}
+		}
+
 		sessions = append(sessions, session)
 	}
 
@@ -314,7 +376,7 @@ func (s *SQLiteClientSessionDB) ListUserClientSessions(ctx context.Context, tena
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = ? AND realm = ? AND user_id = ?
 	`
@@ -329,6 +391,7 @@ func (s *SQLiteClientSessionDB) ListUserClientSessions(ctx context.Context, tena
 	for rows.Next() {
 		var session model.ClientSession
 		var createdStr, expireStr string
+		var claimsJSON sql.NullString
 
 		err := rows.Scan(
 			&session.Tenant,
@@ -346,6 +409,7 @@ func (s *SQLiteClientSessionDB) ListUserClientSessions(ctx context.Context, tena
 			&session.CodeChallengeMethod,
 			&createdStr,
 			&expireStr,
+			&claimsJSON,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan client session: %w", err)
@@ -358,6 +422,14 @@ func (s *SQLiteClientSessionDB) ListUserClientSessions(ctx context.Context, tena
 		// Convert to local time to match PostgreSQL behavior
 		session.Created = created.Local()
 		session.Expire = expire.Local()
+
+		// Parse claims JSON
+		if claimsJSON.Valid && claimsJSON.String != "" {
+			session.Claims = make(map[string]interface{})
+			if err := json.Unmarshal([]byte(claimsJSON.String), &session.Claims); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+			}
+		}
 
 		sessions = append(sessions, session)
 	}
@@ -372,12 +444,22 @@ func (s *SQLiteClientSessionDB) UpdateClientSession(ctx context.Context, tenant,
 		return fmt.Errorf("tenant and realm do not match")
 	}
 
+	// Convert claims to JSON string for SQLite
+	claimsJSON := ""
+	if session.Claims != nil {
+		claimsBytes, err := json.Marshal(session.Claims)
+		if err != nil {
+			return fmt.Errorf("failed to marshal claims: %w", err)
+		}
+		claimsJSON = string(claimsBytes)
+	}
+
 	query := `
 		UPDATE client_sessions
 		SET client_id = ?, grant_type = ?,
 		    access_token_hash = ?, refresh_token_hash = ?, auth_code_hash = ?,
 		    user_id = ?, scope = ?, login_session_state_json = ?, code_challenge = ?, code_challenge_method = ?,
-		    created = ?, expire = ?
+		    created = ?, expire = ?, claims = ?
 		WHERE tenant = ? AND realm = ? AND client_session_id = ?
 	`
 
@@ -394,6 +476,7 @@ func (s *SQLiteClientSessionDB) UpdateClientSession(ctx context.Context, tenant,
 		session.CodeChallengeMethod,
 		session.Created.Format(time.RFC3339),
 		session.Expire.Format(time.RFC3339),
+		claimsJSON,
 		session.Tenant,
 		session.Realm,
 		session.ClientSessionID,

@@ -2,6 +2,7 @@ package postgres_adapter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/Identityplane/GoAM/internal/db"
@@ -34,12 +35,22 @@ func (s *PostgresClientSessionDB) CreateClientSession(ctx context.Context, tenan
 		return fmt.Errorf("tenant and realm do not match")
 	}
 
+	// Convert claims to JSONB for PostgreSQL
+	var claimsJSONB []byte
+	if session.Claims != nil {
+		var err error
+		claimsJSONB, err = json.Marshal(session.Claims)
+		if err != nil {
+			return fmt.Errorf("failed to marshal claims: %w", err)
+		}
+	}
+
 	query := `
 		INSERT INTO client_sessions (
 			tenant, realm, client_session_id, client_id, grant_type,
 			access_token_hash, refresh_token_hash, auth_code_hash,
-			user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+			user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	`
 
 	_, err := s.db.Exec(ctx, query,
@@ -58,6 +69,7 @@ func (s *PostgresClientSessionDB) CreateClientSession(ctx context.Context, tenan
 		session.CodeChallengeMethod,
 		session.Created,
 		session.Expire,
+		claimsJSONB,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create client session: %w", err)
@@ -70,12 +82,13 @@ func (s *PostgresClientSessionDB) GetClientSessionByID(ctx context.Context, tena
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = $1 AND realm = $2 AND client_session_id = $3
 	`
 
 	var session model.ClientSession
+	var claimsJSONB []byte
 	err := s.db.QueryRow(ctx, query, tenant, realm, sessionID).Scan(
 		&session.Tenant,
 		&session.Realm,
@@ -92,12 +105,21 @@ func (s *PostgresClientSessionDB) GetClientSessionByID(ctx context.Context, tena
 		&session.CodeChallengeMethod,
 		&session.Created,
 		&session.Expire,
+		&claimsJSONB,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client session: %w", err)
+	}
+
+	// Parse claims JSONB
+	if len(claimsJSONB) > 0 {
+		session.Claims = make(map[string]interface{})
+		if err := json.Unmarshal(claimsJSONB, &session.Claims); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+		}
 	}
 
 	return &session, nil
@@ -107,12 +129,13 @@ func (s *PostgresClientSessionDB) GetClientSessionByAccessToken(ctx context.Cont
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = $1 AND realm = $2 AND access_token_hash = $3
 	`
 
 	var session model.ClientSession
+	var claimsJSONB []byte
 	err := s.db.QueryRow(ctx, query, tenant, realm, accessTokenHash).Scan(
 		&session.Tenant,
 		&session.Realm,
@@ -129,12 +152,21 @@ func (s *PostgresClientSessionDB) GetClientSessionByAccessToken(ctx context.Cont
 		&session.CodeChallengeMethod,
 		&session.Created,
 		&session.Expire,
+		&claimsJSONB,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client session by access token: %w", err)
+	}
+
+	// Parse claims JSONB
+	if len(claimsJSONB) > 0 {
+		session.Claims = make(map[string]interface{})
+		if err := json.Unmarshal(claimsJSONB, &session.Claims); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+		}
 	}
 
 	return &session, nil
@@ -144,12 +176,13 @@ func (s *PostgresClientSessionDB) GetClientSessionByRefreshToken(ctx context.Con
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = $1 AND realm = $2 AND refresh_token_hash = $3
 	`
 
 	var session model.ClientSession
+	var claimsJSONB []byte
 	err := s.db.QueryRow(ctx, query, tenant, realm, refreshTokenHash).Scan(
 		&session.Tenant,
 		&session.Realm,
@@ -166,12 +199,21 @@ func (s *PostgresClientSessionDB) GetClientSessionByRefreshToken(ctx context.Con
 		&session.CodeChallengeMethod,
 		&session.Created,
 		&session.Expire,
+		&claimsJSONB,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client session by refresh token: %w", err)
+	}
+
+	// Parse claims JSONB
+	if len(claimsJSONB) > 0 {
+		session.Claims = make(map[string]interface{})
+		if err := json.Unmarshal(claimsJSONB, &session.Claims); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+		}
 	}
 
 	return &session, nil
@@ -181,12 +223,13 @@ func (s *PostgresClientSessionDB) GetClientSessionByAuthCode(ctx context.Context
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = $1 AND realm = $2 AND auth_code_hash = $3
 	`
 
 	var session model.ClientSession
+	var claimsJSONB []byte
 	err := s.db.QueryRow(ctx, query, tenant, realm, authCodeHash).Scan(
 		&session.Tenant,
 		&session.Realm,
@@ -203,12 +246,21 @@ func (s *PostgresClientSessionDB) GetClientSessionByAuthCode(ctx context.Context
 		&session.CodeChallengeMethod,
 		&session.Created,
 		&session.Expire,
+		&claimsJSONB,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client session by auth code: %w", err)
+	}
+
+	// Parse claims JSONB
+	if len(claimsJSONB) > 0 {
+		session.Claims = make(map[string]interface{})
+		if err := json.Unmarshal(claimsJSONB, &session.Claims); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+		}
 	}
 
 	return &session, nil
@@ -218,7 +270,7 @@ func (s *PostgresClientSessionDB) ListClientSessions(ctx context.Context, tenant
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = $1 AND realm = $2 AND client_id = $3
 	`
@@ -232,6 +284,7 @@ func (s *PostgresClientSessionDB) ListClientSessions(ctx context.Context, tenant
 	var sessions []model.ClientSession
 	for rows.Next() {
 		var session model.ClientSession
+		var claimsJSONB []byte
 		err := rows.Scan(
 			&session.Tenant,
 			&session.Realm,
@@ -248,9 +301,18 @@ func (s *PostgresClientSessionDB) ListClientSessions(ctx context.Context, tenant
 			&session.CodeChallengeMethod,
 			&session.Created,
 			&session.Expire,
+			&claimsJSONB,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan client session: %w", err)
+		}
+
+		// Parse claims JSONB
+		if len(claimsJSONB) > 0 {
+			session.Claims = make(map[string]interface{})
+			if err := json.Unmarshal(claimsJSONB, &session.Claims); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+			}
 		}
 
 		sessions = append(sessions, session)
@@ -267,7 +329,7 @@ func (s *PostgresClientSessionDB) ListUserClientSessions(ctx context.Context, te
 	query := `
 		SELECT tenant, realm, client_session_id, client_id, grant_type,
 		       access_token_hash, refresh_token_hash, auth_code_hash,
-		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire
+		       user_id, scope, login_session_state_json, code_challenge, code_challenge_method, created, expire, claims
 		FROM client_sessions
 		WHERE tenant = $1 AND realm = $2 AND user_id = $3
 	`
@@ -281,6 +343,7 @@ func (s *PostgresClientSessionDB) ListUserClientSessions(ctx context.Context, te
 	var sessions []model.ClientSession
 	for rows.Next() {
 		var session model.ClientSession
+		var claimsJSONB []byte
 		err := rows.Scan(
 			&session.Tenant,
 			&session.Realm,
@@ -297,9 +360,18 @@ func (s *PostgresClientSessionDB) ListUserClientSessions(ctx context.Context, te
 			&session.CodeChallengeMethod,
 			&session.Created,
 			&session.Expire,
+			&claimsJSONB,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan client session: %w", err)
+		}
+
+		// Parse claims JSONB
+		if len(claimsJSONB) > 0 {
+			session.Claims = make(map[string]interface{})
+			if err := json.Unmarshal(claimsJSONB, &session.Claims); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+			}
 		}
 
 		sessions = append(sessions, session)
@@ -318,6 +390,16 @@ func (s *PostgresClientSessionDB) UpdateClientSession(ctx context.Context, tenan
 		return fmt.Errorf("tenant and realm do not match")
 	}
 
+	// Convert claims to JSONB for PostgreSQL
+	var claimsJSONB []byte
+	if session.Claims != nil {
+		var err error
+		claimsJSONB, err = json.Marshal(session.Claims)
+		if err != nil {
+			return fmt.Errorf("failed to marshal claims: %w", err)
+		}
+	}
+
 	query := `
 		UPDATE client_sessions
 		SET client_id = $1,
@@ -331,8 +413,9 @@ func (s *PostgresClientSessionDB) UpdateClientSession(ctx context.Context, tenan
 			code_challenge = $9,
 			code_challenge_method = $10,
 			created = $11,
-			expire = $12
-		WHERE tenant = $13 AND realm = $14 AND client_session_id = $15
+			expire = $12,
+			claims = $13
+		WHERE tenant = $14 AND realm = $15 AND client_session_id = $16
 	`
 
 	_, err := s.db.Exec(ctx, query,
@@ -348,6 +431,7 @@ func (s *PostgresClientSessionDB) UpdateClientSession(ctx context.Context, tenan
 		session.CodeChallengeMethod,
 		session.Created,
 		session.Expire,
+		claimsJSONB,
 		session.Tenant,
 		session.Realm,
 		session.ClientSessionID,

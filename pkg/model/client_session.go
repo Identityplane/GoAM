@@ -53,6 +53,9 @@ type ClientSession struct {
 
 	// Expire is the timestamp when the session expires
 	Expire time.Time `json:"expire"`
+
+	// Claims is the claims for the user for this session
+	Claims map[string]interface{} `json:"claims"`
 }
 
 // GetLogger returns a zerolog logger with contextual information from the client session
