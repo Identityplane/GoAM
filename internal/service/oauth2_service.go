@@ -126,6 +126,14 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 
 	// If all ok we create a client session and issue an auth code
 	scope := session.Oauth2SessionInformation.AuthorizeRequest.Scope
+
+	// Get the user claims
+	userClaims, err := s.GetUserClaims(*session.User, strings.Join(scope, " "))
+	if err != nil {
+		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not get user claims")
+	}
+
+	// Create the client session
 	authCode, _, err := GetServices().SessionsService.CreateAuthCodeSession(
 		context.Background(),
 		tenant,
@@ -136,7 +144,8 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 		"authorization_code",
 		session.Oauth2SessionInformation.AuthorizeRequest.CodeChallenge,
 		session.Oauth2SessionInformation.AuthorizeRequest.CodeChallengeMethod,
-		session)
+		session,
+		userClaims)
 
 	if err != nil {
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not create session")
@@ -314,7 +323,7 @@ func (s *OAuth2Service) processTokenRequestForAuthorizationCodeGrant(tenant stri
 func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application, grantType oauth2.OAuth2GrantType) (*oauth2.Oauth2TokenResponse, error) {
 
 	// first we generate the access token
-	accessToken, expiresIn, scopes, tokenType, err := s.generateAccessToken(session, loginSession, application)
+	accessToken, expiresIn, scopes, tokenType, err := s.generateAccessToken(session, loginSession, application, session.Claims)
 
 	if err != nil {
 		return nil, fmt.Errorf("internal server error. Could not generate access token: %w", err)
@@ -323,7 +332,7 @@ func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, logi
 	// if the appliaction as refresh_token grant enabled we need to generate a refresh token
 	var refreshToken string
 	if slices.Contains(application.AllowedGrants, string(oauth2.Oauth2_RefreshToken)) {
-		refreshToken, err = s.generateRefreshToken(session, loginSession, application)
+		refreshToken, err = s.generateRefreshToken(session, loginSession, application, session.Claims)
 		if err != nil {
 			return nil, fmt.Errorf("internal server error. Could not generate refresh token: %w", err)
 		}
@@ -340,7 +349,7 @@ func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, logi
 		}
 
 		var err error
-		idToken, err = s.generateIdToken(session, loginSession, application)
+		idToken, err = s.generateIdToken(session, loginSession, application, session.Claims)
 		if err != nil {
 			// Log the error but continue with the response
 			// The ID token will be empty in this case
@@ -360,17 +369,11 @@ func (s *OAuth2Service) generateTokenResponse(session *model.ClientSession, logi
 	return &tokenResponse, nil
 }
 
-func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, error) {
+func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application, userClaims map[string]interface{}) (string, error) {
 
 	// Load the user from the login session
 	if loginSession.User == nil {
 		return "", fmt.Errorf("internal server error. User is nil")
-	}
-
-	// TODO later we use the id token mapping but for now we just map the claims directly
-	userClaims, err := s.GetUserClaims(*loginSession.User, session.Scope)
-	if err != nil {
-		return "", fmt.Errorf("internal server error. Could not get user claims")
 	}
 
 	otherClaims, err := s.GetOtherJwtClaims(session.Tenant, session.Realm, session.ClientID)
@@ -401,7 +404,7 @@ func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSessi
 	return token, nil
 }
 
-func (s *OAuth2Service) generateAccessToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, int, string, string, error) {
+func (s *OAuth2Service) generateAccessToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application, userClaims map[string]interface{}) (string, int, string, string, error) {
 
 	// First we generate the access token
 	expiresIn := application.AccessTokenLifetime
@@ -413,7 +416,7 @@ func (s *OAuth2Service) generateAccessToken(session *model.ClientSession, loginS
 	scopesArray := strings.Split(scopes, " ")
 
 	// Then we store it into the client sessions database using the service
-	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn)
+	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn, userClaims)
 
 	if err != nil {
 		return "", 0, "", "", fmt.Errorf("internal server error. Could not create access token session: %w", err)
@@ -435,7 +438,7 @@ func (s *OAuth2Service) generateAccessTokenForClientCredentialsGrant(application
 	scope := strings.Join(scopes, " ")
 
 	// Then we store it into the client sessions database using the service
-	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, clientId, userId, scopes, string(oauth2.Oauth2_ClientCredentials), expiresIn)
+	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, clientId, userId, scopes, string(oauth2.Oauth2_ClientCredentials), expiresIn, nil)
 
 	if err != nil {
 		return "", 0, "", "", fmt.Errorf("internal server error. Could not create access token session: %w", err)
@@ -444,7 +447,7 @@ func (s *OAuth2Service) generateAccessTokenForClientCredentialsGrant(application
 	return accessToken, expiresIn, scope, tokenType, nil
 }
 
-func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application) (string, error) {
+func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, loginSession *model.AuthenticationSession, application *model.Application, userClaims map[string]interface{}) (string, error) {
 
 	expiresIn := application.RefreshTokenLifetime
 
@@ -459,7 +462,7 @@ func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, login
 	scopesArray := strings.Split(scopes, " ")
 
 	// Create the refresh token
-	refreshToken, _, err := GetServices().SessionsService.CreateRefreshTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn)
+	refreshToken, _, err := GetServices().SessionsService.CreateRefreshTokenSession(context.Background(), tenant, realm, session.ClientID, session.UserID, scopesArray, "authorization_code", expiresIn, userClaims)
 
 	if err != nil {
 		return "", fmt.Errorf("internal server error. Could not create refresh token session: %w", err)

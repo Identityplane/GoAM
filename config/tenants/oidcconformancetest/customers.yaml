@@ -25,9 +25,13 @@ applications:
       - "mock_success"
     allowed_scopes:
       - openid
+    access_token_lifetime: 3600
+    refresh_token_lifetime: 31536000
+    id_token_lifetime: 3600
     settings:
       oauth2_settings:
         compatibility_redirect_uri_prefix_check: true # Enables prefix check for oauth2.0 compatibility. OAuth2.1 does not support this and requires exact match.
+        load_user_from_login_session: true # Enables loading the user from the login session instead of the database
   second_client:
     client_id: second_client
     client_secret: second_client_secret
@@ -40,11 +44,12 @@ applications:
       - "https://localhost.emobix.co.uk:8443/test/"
     allowed_authentication_flows:
       - "mock_success"
+    allowed_scopes:
+      - openid
     access_token_lifetime: 3600
     refresh_token_lifetime: 31536000
     id_token_lifetime: 3600
-    allowed_scopes:
-      - openid
     settings:
       oauth2_settings:
-        compatibility_redirect_uri_prefix_check: true
+        compatibility_redirect_uri_prefix_check: true # Enables prefix check for oauth2.0 compatibility. OAuth2.1 does not support this and requires exact match.
+        load_user_from_login_session: true # Enables loading the user from the login session instead of the database

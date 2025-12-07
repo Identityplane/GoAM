@@ -7,6 +7,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/lib/oauth2"
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/valyala/fasthttp"
 )
@@ -29,17 +30,17 @@ func HandleUserinfoEndpoint(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Load the user of the session
-	user, err := service.GetServices().UserService.GetUserWithAttributesByID(ctx, tenant, realm, session.UserID)
-	if err != nil || user == nil {
-		returnBearerTokenError(ctx, oauth2.ErrorInvalidRequest, "The Access Token is invalid")
+	// get the application
+	application, ok := service.GetServices().ApplicationService.GetApplication(tenant, realm, session.ClientID)
+	if !ok {
+		returnBearerTokenError(ctx, oauth2.ErrorInvalidRequest, "Application not found")
 		return
 	}
 
 	// Get the user claims
-	claims, err := service.GetServices().OAuth2Service.GetUserClaims(*user, session.Scope)
+	claims, err := getUserClaims(ctx, tenant, realm, session, application)
 	if err != nil {
-		returnBearerTokenError(ctx, oauth2.ErrorInvalidRequest, "The Access Token is invalid")
+		returnBearerTokenError(ctx, oauth2.ErrorInvalidRequest, "Could not get user claims")
 		return
 	}
 
@@ -81,4 +82,40 @@ func returnBearerTokenError(ctx *fasthttp.RequestCtx, errorCode string, errorDes
 
 	ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 	ctx.Response.Header.Set("WWW-Authenticate", fmt.Sprintf("Bearer error=\"%s\", error_description=\"%s\"", errorCode, errorDescription))
+}
+
+func getUserClaims(ctx *fasthttp.RequestCtx, tenant, realm string, session *model.ClientSession, application *model.Application) (map[string]interface{}, error) {
+
+	if application != nil && application.Settings != nil && application.Settings.OAuth2Settings != nil && application.Settings.OAuth2Settings.LoadUserFromLoginSession {
+		return getUserClaimsFromLoginSession(ctx, tenant, realm, session, application)
+	} else {
+		return getUserClaimsFromDatabase(ctx, tenant, realm, session, application)
+	}
+
+}
+
+func getUserClaimsFromLoginSession(ctx *fasthttp.RequestCtx, tenant, realm string, session *model.ClientSession, application *model.Application) (map[string]interface{}, error) {
+
+	if session.Claims == nil {
+		return nil, fmt.Errorf("no claims found in session")
+	}
+
+	return session.Claims, nil
+}
+
+func getUserClaimsFromDatabase(ctx *fasthttp.RequestCtx, tenant, realm string, session *model.ClientSession, application *model.Application) (map[string]interface{}, error) {
+
+	// Load the user of the session
+	user, err := service.GetServices().UserService.GetUserWithAttributesByID(ctx, tenant, realm, session.UserID)
+	if err != nil || user == nil {
+		return nil, fmt.Errorf("could not load user")
+	}
+
+	// Get the user claims
+	claims, err := service.GetServices().OAuth2Service.GetUserClaims(*user, session.Scope)
+	if err != nil {
+		return nil, fmt.Errorf("could not get user claims")
+	}
+
+	return claims, nil
 }

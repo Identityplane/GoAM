@@ -105,6 +105,12 @@ func (s *simpleAuthService) FinishSimpleAuthFlow(ctx context.Context, session *m
 		return nil, returnSimpleAuthError(oauth2.ErrorServerError, "Internal server error. Could not get application")
 	}
 
+	// Get the user claims
+	userClaims, err2 := GetServices().OAuth2Service.GetUserClaims(*session.User, session.SimpleAuthSessionInformation.Request.Scope)
+	if err2 != nil {
+		return nil, returnSimpleAuthError(oauth2.ErrorServerError, "Internal server error. Could not get user claims")
+	}
+
 	// In the simple auth flow we dont do any token exchange but directly return the tokens
 	request := session.SimpleAuthSessionInformation.Request
 	userID := session.Result.UserID
@@ -118,23 +124,17 @@ func (s *simpleAuthService) FinishSimpleAuthFlow(ctx context.Context, session *m
 	var err error
 
 	// We always create a access token
-	accessToken, expiresIn, scope, tokenType, err = s.generateAccessToken(request, application, userID)
+	accessToken, expiresIn, scope, tokenType, err = s.generateAccessToken(request, application, userID, userClaims)
 	if err != nil {
 		return nil, returnSimpleAuthError(oauth2.ErrorServerError, "Internal server error. Could not generate access token")
 	}
 
 	// If the application has refresh token grant enabled we generate a refresh token
 	if slices.Contains(application.AllowedGrants, string(oauth2.Oauth2_RefreshToken)) {
-		refreshToken, refreshTokenExpiresIn, _, err = s.generateRefreshToken(request, application, userID)
+		refreshToken, refreshTokenExpiresIn, _, err = s.generateRefreshToken(request, application, userID, userClaims)
 		if err != nil {
 			return nil, returnSimpleAuthError(oauth2.ErrorServerError, "Internal server error. Could not generate refresh token")
 		}
-	}
-
-	// Get the user claims
-	userClaims, err := GetServices().OAuth2Service.GetUserClaims(*session.User, scope)
-	if err != nil {
-		return nil, returnSimpleAuthError(oauth2.ErrorServerError, "Internal server error. Could not get user claims")
 	}
 
 	// if the result node is a success result we return the tokens
@@ -155,7 +155,7 @@ func (s *simpleAuthService) FinishSimpleAuthFlow(ctx context.Context, session *m
 
 }
 
-func (s *simpleAuthService) generateAccessToken(request *model.SimpleAuthRequest, application *model.Application, userID string) (string, int, string, string, error) {
+func (s *simpleAuthService) generateAccessToken(request *model.SimpleAuthRequest, application *model.Application, userID string, userClaims map[string]interface{}) (string, int, string, string, error) {
 
 	// First we generate the access token
 	expiresIn := application.AccessTokenLifetime
@@ -167,7 +167,7 @@ func (s *simpleAuthService) generateAccessToken(request *model.SimpleAuthRequest
 	scopesArray := strings.Split(scopes, " ")
 
 	// Then we store it into the client sessions database using the service
-	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, request.ClientID, userID, scopesArray, request.Grant, expiresIn)
+	accessToken, _, err := GetServices().SessionsService.CreateAccessTokenSession(context.Background(), tenant, realm, request.ClientID, userID, scopesArray, request.Grant, expiresIn, userClaims)
 
 	if err != nil {
 		return "", 0, "", "", fmt.Errorf("internal server error. Could not create access token session: %w", err)
@@ -176,7 +176,7 @@ func (s *simpleAuthService) generateAccessToken(request *model.SimpleAuthRequest
 	return accessToken, expiresIn, scopes, tokenType, nil
 }
 
-func (s *simpleAuthService) generateRefreshToken(request *model.SimpleAuthRequest, application *model.Application, userID string) (string, int, string, error) {
+func (s *simpleAuthService) generateRefreshToken(request *model.SimpleAuthRequest, application *model.Application, userID string, userClaims map[string]interface{}) (string, int, string, error) {
 
 	expiresIn := application.RefreshTokenLifetime
 
@@ -191,7 +191,7 @@ func (s *simpleAuthService) generateRefreshToken(request *model.SimpleAuthReques
 	scopesArray := strings.Split(scopes, " ")
 
 	// Create the refresh token
-	refreshToken, _, err := GetServices().SessionsService.CreateRefreshTokenSession(context.Background(), tenant, realm, request.ClientID, userID, scopesArray, "authorization_code", expiresIn)
+	refreshToken, _, err := GetServices().SessionsService.CreateRefreshTokenSession(context.Background(), tenant, realm, request.ClientID, userID, scopesArray, "authorization_code", expiresIn, userClaims)
 
 	if err != nil {
 		return "", 0, "", fmt.Errorf("internal server error. Could not create refresh token session: %w", err)

@@ -101,8 +101,8 @@ func (s *cachedSessionsService) DeleteAuthenticationSession(ctx context.Context,
 }
 
 // CreateAuthCodeSession creates a new client session with an auth code
-func (s *cachedSessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession) (string, *model.ClientSession, error) {
-	code, session, err := s.sessionsService.CreateAuthCodeSession(ctx, tenant, realm, clientID, userID, scope, grantType, codeChallenge, codeChallengeMethod, loginSession)
+func (s *cachedSessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession, claims map[string]interface{}) (string, *model.ClientSession, error) {
+	code, session, err := s.sessionsService.CreateAuthCodeSession(ctx, tenant, realm, clientID, userID, scope, grantType, codeChallenge, codeChallengeMethod, loginSession, claims)
 	if err == nil {
 		// Cache the session
 		cacheKey := fmt.Sprintf("auth_code_session:%s:%s:%s", tenant, realm, session.ClientSessionID)

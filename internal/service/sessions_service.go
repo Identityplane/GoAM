@@ -141,7 +141,7 @@ func (s *sessionsService) DeleteAuthenticationSession(ctx context.Context, tenan
 }
 
 // CreateAuthCodeSession creates a new client session with an auth code
-func (s *sessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession) (string, *model.ClientSession, error) {
+func (s *sessionsService) CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession, claims map[string]interface{}) (string, *model.ClientSession, error) {
 	// Generate a new auth code
 	sessionID := lib.GenerateSecureSessionID()
 	authCode := lib.GenerateSecureSessionID()
@@ -168,6 +168,7 @@ func (s *sessionsService) CreateAuthCodeSession(ctx context.Context, tenant, rea
 		LoginSessionJson:    string(loginSessionJSON),
 		Created:             time.Now(),
 		Expire:              time.Now().Add(10 * time.Minute), // Auth codes typically expire in 10 minutes recommended by OAuth 2.1
+		Claims:              claims,
 	}
 
 	// Store the session in the database
@@ -179,7 +180,7 @@ func (s *sessionsService) CreateAuthCodeSession(ctx context.Context, tenant, rea
 	return authCode, session, nil
 }
 
-func (s *sessionsService) CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int) (string, *model.ClientSession, error) {
+func (s *sessionsService) CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int, claims map[string]interface{}) (string, *model.ClientSession, error) {
 	sessionID := lib.GenerateSecureSessionID()
 	accessToken := lib.GenerateSecureSessionID()
 	accessTokenHash := lib.HashString(accessToken)
@@ -195,6 +196,7 @@ func (s *sessionsService) CreateAccessTokenSession(ctx context.Context, tenant, 
 		Scope:           strings.Join(scope, " "),
 		Created:         time.Now(),
 		Expire:          time.Now().Add(time.Duration(lifetime) * time.Second),
+		Claims:          claims,
 	}
 
 	err := s.clientSessionDB.CreateClientSession(ctx, tenant, realm, session)
@@ -210,7 +212,7 @@ func (s *sessionsService) CreateAccessTokenSession(ctx context.Context, tenant, 
 }
 
 // CreateRefreshTokenSession creates a new refresh token session
-func (s *sessionsService) CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int) (string, *model.ClientSession, error) {
+func (s *sessionsService) CreateRefreshTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, expiresIn int, claims map[string]interface{}) (string, *model.ClientSession, error) {
 	sessionID := lib.GenerateSecureSessionID()
 	refreshToken := lib.GenerateSecureSessionID()
 	refreshTokenHash := lib.HashString(refreshToken)
@@ -226,6 +228,7 @@ func (s *sessionsService) CreateRefreshTokenSession(ctx context.Context, tenant,
 		Scope:            strings.Join(scope, " "),
 		Created:          time.Now(),
 		Expire:           time.Now().Add(time.Duration(expiresIn) * time.Second),
+		Claims:           claims,
 	}
 
 	err := s.clientSessionDB.CreateClientSession(ctx, tenant, realm, session)

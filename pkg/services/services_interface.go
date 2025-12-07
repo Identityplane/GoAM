@@ -157,7 +157,7 @@ type SessionsService interface {
 	DeleteAuthenticationSession(ctx context.Context, tenant, realm, sessionIDHash string) error
 
 	// CreateAuthCodeSession creates a new client session with an auth code
-	CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession) (string, *model.ClientSession, error)
+	CreateAuthCodeSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, codeChallenge string, codeChallengeMethod string, loginSession *model.AuthenticationSession, claims map[string]interface{}) (string, *model.ClientSession, error)
 
 	// CreateAccessTokenSession creates a new access token session
 	CreateAccessTokenSession(ctx context.Context, tenant, realm, clientID, userID string, scope []string, grantType string, lifetime int, claims map[string]interface{}) (string, *model.ClientSession, error)
