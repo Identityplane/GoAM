@@ -1,0 +1,20 @@
+{
+    "server": {
+        "discoveryUrl": "https://010354c3e77a.ngrok-free.app/oidcconformancetest/customers/oauth2/.well-known/openid-configuration"
+    },
+    "client": {
+        "client_id": "first_client",
+        "client_secret": "first_client_secret"
+    },
+    "client_secret_post": {
+        "client_id": "first_client",
+        "client_secret": "first_client_secret"
+    },
+    "client2": {
+        "client_id": "second_client",
+        "client_secret": "second_client_secret"
+    },
+    "federation": {
+        "trust_anchor": "https://localhost.emobix.co.uk:8443/test/a/<INSERT TEST ALIAS>/trust-anchor"
+    }
+}

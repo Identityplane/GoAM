@@ -1,0 +1,50 @@
+realm: customers
+realm_name: Test realm for OIDC conformance tests
+base_url: https://010354c3e77a.ngrok-free.app/oidcconformancetest/customers # Overwritte this url with your own public url for the realm
+
+flows:
+  mock_success:
+    route: /mock-success
+    active: yes
+    debug_allowed: yes
+    definition_location: mock_success.yaml
+
+
+applications:
+  first_client:
+    client_id: first_client
+    client_secret: first_client_secret
+    confidential: true
+    allowed_grants:
+      - authorization_code
+      - refresh_token
+      - client_credentials
+    redirect_uris:
+      - "https://localhost.emobix.co.uk:8443/test/"
+    allowed_authentication_flows:
+      - "mock_success"
+    allowed_scopes:
+      - openid
+    settings:
+      oauth2_settings:
+        compatibility_redirect_uri_prefix_check: true # Enables prefix check for oauth2.0 compatibility. OAuth2.1 does not support this and requires exact match.
+  second_client:
+    client_id: second_client
+    client_secret: second_client_secret
+    confidential: true
+    allowed_grants:
+      - authorization_code
+      - refresh_token
+      - client_credentials
+    redirect_uris:
+      - "https://localhost.emobix.co.uk:8443/test/"
+    allowed_authentication_flows:
+      - "mock_success"
+    access_token_lifetime: 3600
+    refresh_token_lifetime: 31536000
+    id_token_lifetime: 3600
+    allowed_scopes:
+      - openid
+    settings:
+      oauth2_settings:
+        compatibility_redirect_uri_prefix_check: true
