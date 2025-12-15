@@ -17,6 +17,7 @@ applications:
     confidential: true
     allowed_grants:
       - authorization_code
+      - authorization_code_pkce
       - refresh_token
       - client_credentials
     redirect_uris:
@@ -38,6 +39,7 @@ applications:
     confidential: true
     allowed_grants:
       - authorization_code
+      - authorization_code_pkce
       - refresh_token
       - client_credentials
     redirect_uris:

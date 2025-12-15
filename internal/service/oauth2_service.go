@@ -272,6 +272,11 @@ func (s *OAuth2Service) processTokenRequestForRefreshTokenGrant(tenant string, r
 		return nil, NewOAuth2Error(oauth2.ErrorInvalidRequest, "Invalid refresh token")
 	}
 
+	// Check if the token request is from the same client as the client session
+	if session.ClientID != tokenRequest.ClientID {
+		return nil, NewOAuth2Error(oauth2.ErrorInvalidGrant, "Invalid refresh token")
+	}
+
 	// Issue new access token and new refresh token
 	tokenResponse, err := s.generateTokenResponse(session, nil, application, oauth2.Oauth2_RefreshToken)
 	if err != nil {

@@ -309,6 +309,8 @@ func HandleTokenEndpoint(ctx *fasthttp.RequestCtx) {
 	// Set the response headers
 	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetContentType("application/json")
+	ctx.Response.Header.Set("Cache-Control", "no-store")
+	ctx.Response.Header.Set("Pragma", "no-cache")
 
 	// Set the body to the token response
 	jsonData, err := json.MarshalIndent(tokenResponse, "", "  ")
