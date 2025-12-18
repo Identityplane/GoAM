@@ -256,7 +256,7 @@ type OAuth2Service interface {
 	ToQueryString(response *oauth2.AuthorizationResponse) string
 
 	// GetUserClaims gets the user claims for a given client session
-	GetUserClaims(user model.User, scope string) (map[string]interface{}, error)
+	GetUserClaims(user model.User, scope string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error)
 
 	// GetOtherJwtClaims gets the other JWT claims for a given client
 	GetOtherJwtClaims(tenant, realm, client_id string) (map[string]interface{}, error)

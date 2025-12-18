@@ -129,6 +129,9 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	// Set the http auth context from the request
+	auth.SetHttpAuthContextFromRequest(session, ctx)
+
 	// We set the finish url of the auth session to the oauth2/finishauthorize endpoint
 	baseUrl := loadedRealm.Config.BaseUrl
 	if baseUrl == "" {
@@ -146,6 +149,9 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri)
 		return
 	}
+
+	// Set the http auth context to the response
+	auth.SetHttpAuthContextToResponse(session, ctx)
 
 	// If the resulting state is a result node we directly process the FinsishOauth2AuthorizationEndpoint
 	if session.Result != nil {

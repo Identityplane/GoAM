@@ -128,7 +128,7 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 	scope := session.Oauth2SessionInformation.AuthorizeRequest.Scope
 
 	// Get the user claims
-	userClaims, err := s.GetUserClaims(*session.User, strings.Join(scope, " "))
+	userClaims, err := s.GetUserClaims(*session.User, strings.Join(scope, " "), session.Oauth2SessionInformation)
 	if err != nil {
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not get user claims")
 	}
@@ -484,7 +484,7 @@ func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, login
 	return refreshToken, nil
 }
 
-func (s *OAuth2Service) GetUserClaims(user model.User, scope string) (map[string]interface{}, error) {
+func (s *OAuth2Service) GetUserClaims(user model.User, scope string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error) {
 
 	// If userid is empty we return an error. This might be the case if a client uses the client_credentials grant and then accesses the userinfo endpoint
 	if user.ID == "" {
@@ -498,6 +498,10 @@ func (s *OAuth2Service) GetUserClaims(user model.User, scope string) (map[string
 
 	// We always return the sub claim
 	claims["sub"] = user.ID
+
+	if oauth2Session != nil && !oauth2Session.AuthTime.IsZero() {
+		claims["auth_time"] = oauth2Session.AuthTime.Unix()
+	}
 
 	//TODO we need to add the claims for the user attributes
 	/*

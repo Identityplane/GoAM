@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(36) PRIMARY KEY,
 
     -- Organization Context
-    tenant VARCHAR(255) NOT NULL,
-    realm VARCHAR(255) NOT NULL,
+    tenant VARCHAR(255) PRIMARY KEY,
+    realm VARCHAR(255) PRIMARY KEY,
 
     -- User status
     status VARCHAR(50) NOT NULL DEFAULT 'active',

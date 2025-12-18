@@ -87,7 +87,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Set the http auth context from the request
-	setHttpAuthContextFromRequest(session, ctx)
+	SetHttpAuthContextFromRequest(session, ctx)
 
 	// Process the auth request
 	newSession, err := ProcessAuthRequest(ctx, flow, session)
@@ -102,7 +102,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
 
 	// If the session has any additional response cookies we set them
-	setHttpAuthContextToResponse(newSession, ctx)
+	SetHttpAuthContextToResponse(newSession, ctx)
 
 	// If the result is set and finish uri is set we redirect to the finish uri
 	// without deleting the session so the endpoint can finish the flow
@@ -135,7 +135,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	Render(ctx, flow.Definition, newSession, currentNode, newSession.Prompts, baseUrl)
 }
 
-func setHttpAuthContextFromRequest(session *model.AuthenticationSession, ctx *fasthttp.RequestCtx) {
+func SetHttpAuthContextFromRequest(session *model.AuthenticationSession, ctx *fasthttp.RequestCtx) {
 
 	// Set the http auth context
 	session.HttpAuthContext = &model.HttpAuthContext{
@@ -146,7 +146,7 @@ func setHttpAuthContextFromRequest(session *model.AuthenticationSession, ctx *fa
 	}
 }
 
-func setHttpAuthContextToResponse(session *model.AuthenticationSession, ctx *fasthttp.RequestCtx) {
+func SetHttpAuthContextToResponse(session *model.AuthenticationSession, ctx *fasthttp.RequestCtx) {
 
 	// no-op if the http auth context is not set
 	if session.HttpAuthContext == nil {

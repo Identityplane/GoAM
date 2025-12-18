@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS users (
     -- Unique UUID for the user
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
 
     -- Organization Context
     tenant TEXT NOT NULL,
@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS users (
     last_login_at TEXT,
 
     -- Constraints
-    CONSTRAINT unique_user_per_tenant_realm UNIQUE (tenant, realm, id)
+
+    PRIMARY KEY (id, realm, id)
 );
 
 -- Create indexes

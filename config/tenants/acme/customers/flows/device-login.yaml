@@ -16,6 +16,7 @@ nodes:
     next:
       known_device: successResult
       unknown_device: askUserID
+      oidc_requires_login: askUserID
 
   askUserID:
     name: askUserID

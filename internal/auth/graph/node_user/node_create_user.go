@@ -60,6 +60,15 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 		}
 	}
 
+	// Check if the user already exists in the database
+	existing, err := services.UserRepo.GetByID(ctx, state.User.ID)
+	if err != nil {
+		return model.NewNodeResultWithError(err)
+	}
+	if existing != nil {
+		return model.NewNodeResultWithCondition("existing")
+	}
+
 	// If we have a username in the context but no username attribute we create a username attribute
 	username := state.Context["username"]
 	existingUsernames, _, err := model.GetAttributes[model.UsernameAttributeValue](state.User, model.AttributeTypeUsername)

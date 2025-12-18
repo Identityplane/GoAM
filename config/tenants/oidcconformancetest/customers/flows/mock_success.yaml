@@ -1,4 +1,4 @@
-description: 'Implements a mock flow with no interaction that directly leads to a signed-in in user'
+description: 'Implements a device-based login flow that checks for known devices and creates a mock user if needed'
 start: init
 nodes:
   init:
@@ -6,29 +6,46 @@ nodes:
     use: init
     custom_config: {}
     next:
-      start: setVariable 
-      
-  setVariable:
-    name: setVariable
-    use: setVariable
+      start: checkKnownDevice
+
+  checkKnownDevice:
+    name: checkKnownDevice
+    use: isKnownDevice
     custom_config:
-      key: user_id
-      value: testuser
+      cookie_name: device
     next:
-      done: createUser
+      known_device: successResult
+      unknown_device: askUserID
+      oidc_requires_login: askUserID
+
+  askUserID:
+    name: askUserID
+    use: askUserID
+    custom_config: {}
+    next:
+      submitted: addKnownDevice
+      not_found: createUser
 
   createUser:
     name: createUser
     use: createUser
+    next:
+      success: addKnownDevice
+      existing: addKnownDevice
+
+  addKnownDevice:
+    name: addKnownDevice
+    use: addKnownDevice
     custom_config:
-      skipSaveUser: "true"
+      cookie_name: device
     next:
       success: successResult
-      existing: successResult
-    
+      device_already_exists: successResult
+
   successResult:
     name: successResult
     use: successResult
     custom_config:
-      message: Mock login successful!
+      message: Device login successful!
     next: {}
+

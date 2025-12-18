@@ -2,6 +2,7 @@ package node_device
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -103,8 +104,7 @@ func RunIsKnownDeviceNode(state *model.AuthenticationSession, node *model.GraphN
 		}
 
 		// If the latest auth time is more than max_age ago we return that oidc requires a login
-
-		if latestAuthTime.Before(now.Add(-time.Duration(state.Oauth2SessionInformation.AuthorizeRequest.MaxAge) * time.Second)) {
+		if state.Oauth2SessionInformation.AuthorizeRequest.MaxAge != nil && latestAuthTime.Before(now.Add(-time.Duration(*state.Oauth2SessionInformation.AuthorizeRequest.MaxAge)*time.Second)) {
 			return model.NewNodeResultWithCondition(CONDITION_OIDC_REQUIRES_LOGIN)
 		}
 	}
@@ -121,6 +121,10 @@ func getDeviceFromRequest(state *model.AuthenticationSession, services *model.Re
 	cookieName := node.CustomConfig[CONFIG_COOKIE_NAME]
 	if cookieName == "" {
 		cookieName = DEFAULT_COOKIE_NAME
+	}
+
+	if state.HttpAuthContext == nil {
+		return nil, nil, nil, errors.New("http auth context is not set")
 	}
 
 	cookieValue := state.HttpAuthContext.RequestCookies[cookieName]

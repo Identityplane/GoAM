@@ -129,7 +129,7 @@ type AuthorizeRequest struct {
 	CodeChallengeMethod string   `json:"code_challenge_method"`
 
 	// Advanced OIDC parameters
-	MaxAge      int    `json:"max_age"`
+	MaxAge      *int   `json:"max_age"`
 	Nonce       string `json:"nonce"`
 	Prompt      string `json:"prompt"`
 	IdTokenHint string `json:"id_token_hint"`

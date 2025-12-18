@@ -112,7 +112,7 @@ func getUserClaimsFromDatabase(ctx *fasthttp.RequestCtx, tenant, realm string, s
 	}
 
 	// Get the user claims
-	claims, err := service.GetServices().OAuth2Service.GetUserClaims(*user, session.Scope)
+	claims, err := service.GetServices().OAuth2Service.GetUserClaims(*user, session.Scope, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not get user claims")
 	}
