@@ -54,6 +54,14 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		Prompt:              string(ctx.QueryArgs().Peek("prompt")),
 	}
 
+	// If the max_age parameter is set we add it to the oauth2 request
+	if ctx.QueryArgs().Has("max_age") {
+		maxAge, err := ctx.QueryArgs().GetUint("max_age")
+		if err == nil {
+			oauth2request.MaxAge = &maxAge
+		}
+	}
+
 	var redirectUri string = ""
 
 	// Load the client from the database
