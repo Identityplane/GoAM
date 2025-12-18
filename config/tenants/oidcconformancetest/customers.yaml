@@ -38,7 +38,11 @@ applications:
       oauth2_settings:
         compatibility_redirect_uri_prefix_check: true # Enables prefix check for oauth2.0 compatibility. OAuth2.1 does not support this and requires exact match.
         load_user_from_login_session: true # Enables loading the user from the login session instead of the database
-        show_error_page_instead_of_redirect: true # If true the error page will be shown instead of the redirect to the client application
+        show_error_page_instead_of_redirect: false # If true the error page will be shown instead of the redirect to the client application
+      arc_mapping:
+        - acr: "urn:identityplane:arc:testlogin"
+          flow: "mock_success"
+
   second_client:
     client_id: second_client
     client_secret: second_client_secret
@@ -61,4 +65,4 @@ applications:
       oauth2_settings:
         compatibility_redirect_uri_prefix_check: true # Enables prefix check for oauth2.0 compatibility. OAuth2.1 does not support this and requires exact match.
         load_user_from_login_session: true # Enables loading the user from the login session instead of the database
-        show_error_page_instead_of_redirect: true # If true the error page will be shown instead of the redirect to the client application
+        show_error_page_instead_of_redirect: false # If true the error page will be shown instead of the redirect to the client application

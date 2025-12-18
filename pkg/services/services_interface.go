@@ -259,7 +259,7 @@ type OAuth2Service interface {
 	GetUserClaims(user model.User, scope string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error)
 
 	// GetOtherJwtClaims gets the other JWT claims for a given client
-	GetOtherJwtClaims(tenant, realm, client_id string) (map[string]interface{}, error)
+	GetOtherJwtClaims(tenant, realm, client_id string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error)
 
 	// Validate the redirect uri for an authorize request
 	ValidateRedirectUri(oauth2request *model.AuthorizeRequest, application *model.Application) *oauth2.OAuth2Error

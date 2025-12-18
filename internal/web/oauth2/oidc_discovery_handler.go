@@ -23,6 +23,7 @@ type OpenIDConfiguration struct {
 	IDTokenSigningAlgValuesSupported  []string `json:"id_token_signing_alg_values_supported"`
 	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
 	ClaimsSupported                   []string `json:"claims_supported"`
+	ACRValuesSupported                []string `json:"acr_values_supported"`
 }
 
 // HandleOpenIDConfiguration returns the OpenID Connect configuration
@@ -56,8 +57,15 @@ func HandleOpenIDConfiguration(ctx *fasthttp.RequestCtx) {
 		baseURL = webutils.GetFallbackUrl(ctx, tenant, realm)
 	}
 
+	acrValuesSupported, err := getACRValuesSupported(tenant, realm)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		ctx.SetBodyString("failed to get ACR values supported")
+		return
+	}
+
 	config := OpenIDConfiguration{
-		Issuer:                            loadedRealm.Config.BaseUrl,
+		Issuer:                            baseURL,
 		AuthorizationEndpoint:             baseURL + "/oauth2/authorize",
 		TokenEndpoint:                     baseURL + "/oauth2/token",
 		UserinfoEndpoint:                  baseURL + "/oauth2/userinfo",
@@ -69,6 +77,7 @@ func HandleOpenIDConfiguration(ctx *fasthttp.RequestCtx) {
 		SubjectTypesSupported:             []string{"public"},
 		IDTokenSigningAlgValuesSupported:  []string{"ES256"},
 		TokenEndpointAuthMethodsSupported: []string{"client_secret_basic"},
+		ACRValuesSupported:                acrValuesSupported,
 		ClaimsSupported: []string{
 			"sub",
 			"iss",
@@ -92,6 +101,31 @@ func HandleOpenIDConfiguration(ctx *fasthttp.RequestCtx) {
 	// Set response headers and body
 	ctx.SetContentType("application/json")
 	ctx.SetBody(jsonData)
+}
+
+func getACRValuesSupported(tenant, realm string) ([]string, error) {
+
+	// get all applications for the realm
+	applications, err := service.GetServices().ApplicationService.ListApplications(tenant, realm)
+	if err != nil {
+		return []string{}, err
+	}
+
+	// Get the supported ACR values
+	acrValuesSupported := map[string]struct{}{}
+	for _, application := range applications {
+		for _, arcMapping := range application.Settings.ArcMapping {
+			acrValuesSupported[arcMapping.Acr] = struct{}{}
+		}
+	}
+
+	// Extract keys from map
+	keys := make([]string, 0, len(acrValuesSupported))
+	for k := range acrValuesSupported {
+		keys = append(keys, k)
+	}
+
+	return keys, nil
 }
 
 // HandleJWKs returns the JWKs for the specified realm

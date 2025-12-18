@@ -44,6 +44,7 @@ type Application struct {
 type ApplicationExtensionSettings struct {
 	Cookie         *CookieSpecification `json:"cookie_specification,omitempty" yaml:"cookie_specification,omitempty" db:"cookie_specification"`
 	OAuth2Settings *OAuth2Settings      `json:"oauth2_settings,omitempty" yaml:"oauth2_settings,omitempty" db:"oauth2_settings"`
+	ArcMapping     []AcrMapping         `json:"arc_mapping,omitempty" yaml:"arc_mapping,omitempty" db:"arc_mapping"`
 }
 
 type CookieSpecification struct {
@@ -60,4 +61,9 @@ type OAuth2Settings struct {
 	CompatibilityRedirectUriPrefixCheck bool `json:"compatibility_redirect_uri_prefix_check" yaml:"compatibility_redirect_uri_prefix_check"` // Enables prefix check for oauth2.0 compatibility. OAuth2.1 does not support this and requires exact match.
 	LoadUserFromLoginSession            bool `json:"load_user_from_login_session" yaml:"load_user_from_login_session"`                       // Enables loading the user from the login session instead of the database
 	ShowErrorPageInsteadOfRedirect      bool `json:"show_error_page_instead_of_redirect" yaml:"show_error_page_instead_of_redirect"`         // If true the error page will be shown instead of the redirect
+}
+
+type AcrMapping struct {
+	Acr  string `json:"acr" yaml:"acr"`
+	Flow string `json:"flow" yaml:"flow"`
 }

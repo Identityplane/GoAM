@@ -392,7 +392,7 @@ func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSessi
 		return "", fmt.Errorf("internal server error. User is nil")
 	}
 
-	otherClaims, err := s.GetOtherJwtClaims(session.Tenant, session.Realm, session.ClientID)
+	otherClaims, err := s.GetOtherJwtClaims(session.Tenant, session.Realm, session.ClientID, loginSession.Oauth2SessionInformation)
 	if err != nil {
 		return "", fmt.Errorf("internal server error. Could not get other claims")
 	}
@@ -539,7 +539,7 @@ func (s *OAuth2Service) GetUserClaims(user model.User, scope string, oauth2Sessi
 	return claims, nil
 }
 
-func (s *OAuth2Service) GetOtherJwtClaims(tenant, realm, client_id string) (map[string]interface{}, error) {
+func (s *OAuth2Service) GetOtherJwtClaims(tenant, realm, client_id string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error) {
 
 	// Issuer
 	claims := make(map[string]interface{})
@@ -564,6 +564,11 @@ func (s *OAuth2Service) GetOtherJwtClaims(tenant, realm, client_id string) (map[
 	claims["iat"] = now.Unix()
 	claims["nbf"] = now.Unix()
 	claims["jti"] = lib.GenerateSecureSessionID()
+
+	// If we have an acr value in the context we add it to the claims
+	if oauth2Session != nil && oauth2Session.Acr != "" {
+		claims["acr"] = oauth2Session.Acr
+	}
 
 	return claims, nil
 }

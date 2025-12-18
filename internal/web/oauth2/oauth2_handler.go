@@ -52,6 +52,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		CodeChallengeMethod: string(ctx.QueryArgs().Peek("code_challenge_method")),
 		Nonce:               string(ctx.QueryArgs().Peek("nonce")),
 		Prompt:              string(ctx.QueryArgs().Peek("prompt")),
+		AcrValues:           strings.Split(string(ctx.QueryArgs().Peek("acr_values")), " "),
 	}
 
 	// If the max_age parameter is set we add it to the oauth2 request
@@ -95,9 +96,10 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// If the flow id is not set as an additional paramater we default to the first flow of the allowed flows
-	if flowId == "" {
-		flowId = application.AllowedAuthenticationFlows[0]
+	flowId, acrValue, err := getFlowIdForRequest(oauth2request, application)
+	if err != nil {
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, err.Error(), oauth2request, redirectUri, application)
+		return
 	}
 
 	// Load the realm
@@ -150,6 +152,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	// Set the oauth2 context to the session
 	session.Oauth2SessionInformation = &model.Oauth2Session{}
 	session.Oauth2SessionInformation.AuthorizeRequest = oauth2request
+	session.Oauth2SessionInformation.Acr = acrValue
 
 	session, oauth2error = peekGraphExecutionForPromptParameter(session, flow, loadedRealm)
 
@@ -422,4 +425,32 @@ func RenderOauth2Error(ctx *fasthttp.RequestCtx, errorCode string, errorDescript
 	ctx.Response.Header.Set("Location", redirectURL)
 	ctx.Response.Header.Set("Cache-Control", "no-store")
 	ctx.Response.Header.Set("Pragma", "no-cache")
+}
+
+func getFlowIdForRequest(oauth2request *model.AuthorizeRequest, application *model.Application) (string, string, error) {
+
+	// First we check the acr mappings for a acr value of the request and take this flow id
+	flowId := ""
+	acr := ""
+	for _, arcMapping := range application.Settings.ArcMapping {
+		for _, acrValue := range oauth2request.AcrValues {
+			if arcMapping.Acr == acrValue {
+				flowId = arcMapping.Flow
+				acr = acrValue
+				break
+			}
+		}
+	}
+
+	// if the flow id is not set yet we take the first flow of the allowed flows
+	if flowId == "" {
+
+		if len(application.AllowedAuthenticationFlows) == 0 {
+			return "", "", fmt.Errorf("no allowed authentication flows")
+		}
+
+		flowId = application.AllowedAuthenticationFlows[0]
+	}
+
+	return flowId, acr, nil
 }
