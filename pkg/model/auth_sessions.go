@@ -115,6 +115,7 @@ func (s *AuthenticationSession) GetLogger() zerolog.Logger {
 
 type Oauth2Session struct {
 	AuthorizeRequest *AuthorizeRequest `json:"authorize_request"`
+	AuthTime         time.Time         `json:"auth_time"`
 }
 
 // AuthorizeRequest represents the parameters for the authorization request
@@ -126,6 +127,10 @@ type AuthorizeRequest struct {
 	State               string   `json:"state"`
 	CodeChallenge       string   `json:"code_challenge"`
 	CodeChallengeMethod string   `json:"code_challenge_method"`
-	Nonce               string   `json:"nonce"`
-	Prompt              string   `json:"prompt"`
+
+	// Advanced OIDC parameters
+	MaxAge      int    `json:"max_age"`
+	Nonce       string `json:"nonce"`
+	Prompt      string `json:"prompt"`
+	IdTokenHint string `json:"id_token_hint"`
 }

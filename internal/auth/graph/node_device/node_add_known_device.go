@@ -2,6 +2,7 @@ package node_device
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -12,12 +13,6 @@ import (
 
 const (
 	CONDITION_DEVICE_ALREADY_EXISTS = "device_already_exists"
-
-	DEFAULT_SESSION_DURATION      = 3600 * 24 * 30
-	DEFAULT_SESSION_REFRESH_AFTER = 3600 * 24 * 30 / 2
-
-	CONFIG_SESSION_DURATION      = "session_duration"
-	CONFIG_SESSION_REFRESH_AFTER = "session_refresh_after"
 )
 
 var AddKnownDeviceNode = &model.NodeDefinition{
@@ -41,25 +36,6 @@ func RunAddKnownDeviceNode(state *model.AuthenticationSession, node *model.Graph
 	now := time.Now()
 	var err error
 
-	// Get the config for the node
-	sessionDurationInt := DEFAULT_SESSION_DURATION
-	sessionDuration := node.CustomConfig[CONFIG_SESSION_DURATION]
-	if sessionDuration != "" {
-		sessionDurationInt, err = strconv.Atoi(sessionDuration)
-		if err != nil {
-			return model.NewNodeResultWithError(err)
-		}
-	}
-
-	sessionRefreshAfterInt := DEFAULT_SESSION_REFRESH_AFTER
-	sessionRefreshAfter := node.CustomConfig[CONFIG_SESSION_REFRESH_AFTER]
-	if sessionRefreshAfter != "" {
-		sessionRefreshAfterInt, err = strconv.Atoi(sessionRefreshAfter)
-		if err != nil {
-			return model.NewNodeResultWithError(err)
-		}
-	}
-
 	cookieName := node.CustomConfig[CONFIG_COOKIE_NAME]
 	if cookieName == "" {
 		cookieName = DEFAULT_COOKIE_NAME
@@ -79,22 +55,23 @@ func RunAddKnownDeviceNode(state *model.AuthenticationSession, node *model.Graph
 	deviceSecret := lib.GenerateSecureSessionID()
 	deviceSecretHash := lib.HashString(deviceSecret)
 
-	expiry := now.Add(time.Duration(sessionDurationInt) * time.Second)
-
 	// create a new device attribute value
 	device := model.DeviceAttributeValue{
-		DeviceID:            deviceId,
-		DeviceSecretHash:    deviceSecretHash,
-		DeviceName:          userAgent,
-		DeviceIP:            deviceIp,
-		DeviceUserAgent:     userAgent,
-		SessionDuration:     sessionDurationInt,
-		SessionExpiry:       &expiry,
-		SessionRefreshAfter: sessionRefreshAfterInt,
-		SessionFirstLogin:   &now,
-		SessionLastActivity: &now,
-		CookieName:          cookieName,
+		DeviceID:         deviceId,
+		DeviceSecretHash: deviceSecretHash,
+		DeviceName:       userAgent,
+		DeviceIP:         deviceIp,
+		DeviceUserAgent:  userAgent,
+		CookieName:       cookieName,
 	}
+
+	err = initSessions(&device, now, state, node)
+	if err != nil {
+		return model.NewNodeResultWithError(err)
+	}
+
+	// set the cookie expires
+	device.CookieExpires = device.LatestExpiry(now)
 
 	// create the device attribute
 	attribute := &model.UserAttribute{
@@ -116,7 +93,7 @@ func RunAddKnownDeviceNode(state *model.AuthenticationSession, node *model.Graph
 	cookie := &http.Cookie{
 		Name:     cookieName,
 		Value:    deviceSecret,
-		Expires:  expiry,
+		Expires:  device.CookieExpires,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
@@ -129,4 +106,40 @@ func RunAddKnownDeviceNode(state *model.AuthenticationSession, node *model.Graph
 	state.Context["device"] = deviceId
 
 	return model.NewNodeResultWithCondition("success")
+}
+
+func initSessions(device *model.DeviceAttributeValue, now time.Time, state *model.AuthenticationSession, node *model.GraphNode) error {
+
+	// Get the level of assurance  from the authentication context
+
+	loa := 0
+	if state.Context["loa"] != "" {
+		var err error
+		loaStr := state.Context["loa"]
+		loa, err = strconv.Atoi(loaStr)
+		if err != nil {
+			return fmt.Errorf("failed to convert loa to int: %w", err)
+		}
+	}
+
+	mappings := getLoaToExpiryMapping()
+
+	// We always init the LOA0 session
+	device.SessionLoa0 = *model.InitSession(now, mappings[0])
+
+	// We init the LOA1 session if the loa is 1 or 2
+	if loa >= 1 && len(mappings) > 1 {
+		device.SessionLoa1 = model.InitSession(now, mappings[1])
+	}
+
+	// We init the LOA2 session if the loa is 2
+	if loa >= 2 && len(mappings) > 2 {
+		device.SessionLoa2 = model.InitSession(now, mappings[2])
+	}
+
+	return nil
+}
+
+func getLoaToExpiryMapping() []model.LoaToExpiryMapping {
+	return model.DEFAULT_LOA_TO_EXPIRY_MAPPINGS
 }

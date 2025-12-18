@@ -104,17 +104,19 @@ func TestIsKnownDeviceNode(t *testing.T) {
 
 	// Create device attribute value
 	device := model.DeviceAttributeValue{
-		DeviceID:            deviceID,
-		DeviceSecretHash:    deviceSecretHash,
-		DeviceName:          "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
-		DeviceIP:            "192.168.1.100",
-		DeviceUserAgent:     "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
-		SessionDuration:     3600 * 24 * 30,
-		SessionExpiry:       &expiry,
-		SessionRefreshAfter: 3600 * 24 * 30 / 2,
-		SessionFirstLogin:   &now,
-		SessionLastActivity: &now,
-		CookieName:          "session",
+		DeviceID:         deviceID,
+		DeviceSecretHash: deviceSecretHash,
+		DeviceName:       "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
+		DeviceIP:         "192.168.1.100",
+		DeviceUserAgent:  "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
+		CookieName:       "session",
+		CookieExpires:    expiry,
+		CookieSameSite:   "Lax",
+		CookieHttpOnly:   true,
+		CookieSecure:     true,
+		SessionLoa0:      *model.InitSession(now, model.DEFAULT_LOA_TO_EXPIRY_MAPPINGS[0]),
+		SessionLoa1:      nil,
+		SessionLoa2:      nil,
 	}
 
 	// Add device attribute to user
@@ -252,17 +254,19 @@ func TestAddKnownDeviceAndThenIsKnownDevice(t *testing.T) {
 	expiry := now.Add(30 * 24 * time.Hour)
 
 	device := model.DeviceAttributeValue{
-		DeviceID:            deviceID,
-		DeviceSecretHash:    cookieValue,
-		DeviceName:          "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
-		DeviceIP:            "192.168.1.100",
-		DeviceUserAgent:     "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
-		SessionDuration:     3600 * 24 * 30,
-		SessionExpiry:       &expiry,
-		SessionRefreshAfter: 3600 * 24 * 30 / 2,
-		SessionFirstLogin:   &now,
-		SessionLastActivity: &now,
-		CookieName:          "session",
+		DeviceID:         deviceID,
+		DeviceSecretHash: cookieValue,
+		DeviceName:       "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
+		DeviceIP:         "192.168.1.100",
+		DeviceUserAgent:  "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
+		CookieName:       "session",
+		CookieExpires:    expiry,
+		CookieSameSite:   "Lax",
+		CookieHttpOnly:   true,
+		CookieSecure:     true,
+		SessionLoa0:      *model.InitSession(now, model.DEFAULT_LOA_TO_EXPIRY_MAPPINGS[0]),
+		SessionLoa1:      nil,
+		SessionLoa2:      nil,
 	}
 
 	// Add device attribute to user with the double-hash as index (since is_known_device hashes the cookie value)
@@ -398,22 +402,24 @@ func TestIsKnownDeviceNodeExpiredDevice(t *testing.T) {
 
 	now := time.Now()
 	// Create an expired device (expiry is in the past)
-	expiredTime := now.Add(-1 * time.Hour) // 1 hour ago
+	expiredTime := now.Add(-2 * 365 * 24 * time.Hour) // 2 years ago
 	expiry := &expiredTime
 
 	// Create device attribute value with expired session
 	device := model.DeviceAttributeValue{
-		DeviceID:            deviceID,
-		DeviceSecretHash:    deviceSecretHash,
-		DeviceName:          "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
-		DeviceIP:            "192.168.1.100",
-		DeviceUserAgent:     "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
-		SessionDuration:     3600 * 24 * 30,
-		SessionExpiry:       expiry,
-		SessionRefreshAfter: 3600 * 24 * 30 / 2,
-		SessionFirstLogin:   &expiredTime,
-		SessionLastActivity: &expiredTime,
-		CookieName:          "session",
+		DeviceID:         deviceID,
+		DeviceSecretHash: deviceSecretHash,
+		DeviceName:       "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
+		DeviceIP:         "192.168.1.100",
+		DeviceUserAgent:  "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
+		CookieName:       "session",
+		CookieExpires:    *expiry,
+		CookieSameSite:   "Lax",
+		CookieHttpOnly:   true,
+		CookieSecure:     true,
+		SessionLoa0:      *model.InitSession(expiredTime, model.DEFAULT_LOA_TO_EXPIRY_MAPPINGS[0]),
+		SessionLoa1:      nil,
+		SessionLoa2:      nil,
 	}
 
 	// Add device attribute to user
@@ -470,6 +476,9 @@ func TestIsKnownDeviceNodeExpiredDevice(t *testing.T) {
 }
 
 func TestIsKnownDeviceNodeRefreshExpiry(t *testing.T) {
+
+	now := time.Now()
+
 	// Setup
 	mockUserRepo := repository.NewMockUserRepository()
 
@@ -489,7 +498,6 @@ func TestIsKnownDeviceNodeRefreshExpiry(t *testing.T) {
 	deviceID := lib.GenerateSecureSessionID()
 
 	// Create a device that is past refresh time but before expiry
-	now := time.Now()
 	sessionDuration := 3600 * 24 * 30         // 30 days
 	sessionRefreshAfter := 3600 * 24 * 30 / 2 // 15 days
 
@@ -499,20 +507,25 @@ func TestIsKnownDeviceNodeRefreshExpiry(t *testing.T) {
 	expiry := now.Add(10 * 24 * time.Hour)
 	// Last activity was 20 days ago (same as first login)
 	lastActivity := now.Add(-20 * 24 * time.Hour)
+	sessionLoa0 := model.Session{
+		SessionDuration:     sessionDuration,
+		SessionRefreshAfter: sessionRefreshAfter,
+		SessionExpiry:       expiry,
+		SessionLastActivity: lastActivity,
+		LevelOfAssurance:    0,
+	}
 
 	// Create device attribute value
 	device := model.DeviceAttributeValue{
-		DeviceID:            deviceID,
-		DeviceSecretHash:    deviceSecretHash,
-		DeviceName:          "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
-		DeviceIP:            "192.168.1.100",
-		DeviceUserAgent:     "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
-		SessionDuration:     sessionDuration,
-		SessionExpiry:       &expiry,
-		SessionRefreshAfter: sessionRefreshAfter,
-		SessionFirstLogin:   &firstLogin,
-		SessionLastActivity: &lastActivity,
-		CookieName:          "session",
+		DeviceID:         deviceID,
+		DeviceSecretHash: deviceSecretHash,
+		DeviceName:       "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
+		DeviceIP:         "192.168.1.100",
+		DeviceUserAgent:  "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15",
+		SessionLoa0:      sessionLoa0,
+		SessionLoa1:      nil,
+		SessionLoa2:      nil,
+		CookieName:       "session",
 	}
 
 	// Add device attribute to user
@@ -594,9 +607,9 @@ func TestIsKnownDeviceNodeRefreshExpiry(t *testing.T) {
 	// Note: The current implementation only updates SessionLastActivity, not expiry
 	// If expiry refresh logic is added, this test will verify it
 	if updatedDevice != nil {
-		assert.NotNil(t, updatedDevice.SessionLastActivity)
+		assert.NotNil(t, updatedDevice.SessionLoa0.SessionLastActivity)
 		// Last activity should be updated to approximately now (within 1 second)
-		assert.WithinDuration(t, now, *updatedDevice.SessionLastActivity, 1*time.Second)
+		assert.WithinDuration(t, now, updatedDevice.SessionLoa0.SessionLastActivity, 1*time.Second)
 	}
 
 	mockUserRepo.AssertExpectations(t)
