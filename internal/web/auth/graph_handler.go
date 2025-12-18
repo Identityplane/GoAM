@@ -102,7 +102,7 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
 
 	// If the session has any additional response cookies we set them
-	SetHttpAuthContextToResponse(newSession, ctx)
+	SetHttpAuthContextToResponse(newSession, ctx, realm)
 
 	// If the result is set and finish uri is set we redirect to the finish uri
 	// without deleting the session so the endpoint can finish the flow
@@ -146,7 +146,7 @@ func SetHttpAuthContextFromRequest(session *model.AuthenticationSession, ctx *fa
 	}
 }
 
-func SetHttpAuthContextToResponse(session *model.AuthenticationSession, ctx *fasthttp.RequestCtx) {
+func SetHttpAuthContextToResponse(session *model.AuthenticationSession, ctx *fasthttp.RequestCtx, realm *model.Realm) {
 
 	// no-op if the http auth context is not set
 	if session.HttpAuthContext == nil {
@@ -161,7 +161,7 @@ func SetHttpAuthContextToResponse(session *model.AuthenticationSession, ctx *fas
 	}
 
 	// Set the additional response cookies
-	if session.HttpAuthContext != nil && len(session.HttpAuthContext.AdditionalResponseCookies) > 0 {
+	if session.HttpAuthContext != nil && len(session.HttpAuthContext.AdditionalResponseCookies) > 0 && realm != nil {
 		for name, cookie := range session.HttpAuthContext.AdditionalResponseCookies {
 
 			var sameSiteMode fasthttp.CookieSameSite
@@ -178,6 +178,15 @@ func SetHttpAuthContextToResponse(session *model.AuthenticationSession, ctx *fas
 				sameSiteMode = fasthttp.CookieSameSiteDefaultMode
 			}
 
+			// We need to set the cookie path to the base url
+			cookiePath := webutils.GetUrlForRealm(ctx, realm)
+			parsedUrl, err := url.Parse(cookiePath)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to parse base url")
+				continue
+			}
+			cookiePath = parsedUrl.Path
+
 			// Set the cookie
 			c := &fasthttp.Cookie{}
 			c.SetKey(name)
@@ -185,6 +194,7 @@ func SetHttpAuthContextToResponse(session *model.AuthenticationSession, ctx *fas
 			c.SetSameSite(sameSiteMode)
 			c.SetHTTPOnly(cookie.HttpOnly)
 			c.SetSecure(cookie.Secure)
+			c.SetPath(cookiePath)
 			ctx.Response.Header.SetCookie(c)
 		}
 	}

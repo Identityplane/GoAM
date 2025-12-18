@@ -95,7 +95,7 @@ func RunAddKnownDeviceNode(state *model.AuthenticationSession, node *model.Graph
 		Value:    deviceSecret,
 		Expires:  device.CookieExpires,
 		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		HttpOnly: true,
 		Secure:   true,
 	}

@@ -74,7 +74,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	// Check if the redirect URI is trusted
 	oauth2error := service.GetServices().OAuth2Service.ValidateRedirectUri(oauth2request, application)
 	if oauth2error != nil {
-		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri, application)
 		return
 	}
 
@@ -83,7 +83,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 
 	// If there are no allowed flows we return an error
 	if len(application.AllowedAuthenticationFlows) == 0 {
-		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "No allowed authentication flows", oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "No allowed authentication flows", oauth2request, redirectUri, application)
 		return
 	}
 
@@ -95,28 +95,28 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	// Load the realm
 	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
-		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Realm not found: "+flowId, oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Realm not found: "+flowId, oauth2request, redirectUri, application)
 		return
 	}
 
 	// Load the flow
 	flow, ok := service.GetServices().FlowService.GetFlowById(tenant, realm, flowId)
 	if !ok {
-		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Flow not found: "+flowId, oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Flow not found: "+flowId, oauth2request, redirectUri, application)
 		return
 	}
 
 	// Load the flow for execution
 	flow, ok = service.GetServices().FlowService.GetFlowForExecution(flow.Route, loadedRealm)
 	if !ok {
-		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Cannot load flow for execution: "+flowId, oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Cannot load flow for execution: "+flowId, oauth2request, redirectUri, application)
 		return
 	}
 
 	// Validate and process the authorization request
 	oauth2error = service.GetServices().OAuth2Service.ValidateOAuth2AuthorizationRequest(oauth2request, tenant, realm, application, flowId)
 	if oauth2error != nil {
-		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri, application)
 		return
 	}
 
@@ -125,7 +125,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	var authErr *model.AuthError
 	session, authErr = auth.CreateNewAuthenticationSession(ctx, loadedRealm.Config, flow, false)
 	if authErr != nil {
-		RenderOauth2Error(ctx, oauth2.ErrorServerError, "Internal server error. Cannot create session", oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2.ErrorServerError, "Internal server error. Cannot create session", oauth2request, redirectUri, application)
 		return
 	}
 
@@ -146,12 +146,12 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	session, oauth2error = peekGraphExecutionForPromptParameter(session, flow, loadedRealm)
 
 	if oauth2error != nil {
-		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri, application)
 		return
 	}
 
 	// Set the http auth context to the response
-	auth.SetHttpAuthContextToResponse(session, ctx)
+	auth.SetHttpAuthContextToResponse(session, ctx, loadedRealm.Config)
 
 	// If the resulting state is a result node we directly process the FinsishOauth2AuthorizationEndpoint
 	if session.Result != nil {
@@ -242,7 +242,7 @@ func FinsishOauth2AuthorizationEndpoint(ctx *fasthttp.RequestCtx) {
 	// Get the authorization response
 	response, oauth2error := service.GetServices().OAuth2Service.FinishOauth2AuthorizationEndpoint(session, tenant, realm)
 	if oauth2error != nil {
-		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri)
+		RenderOauth2Error(ctx, oauth2error.Error, oauth2error.ErrorDescription, oauth2request, redirectUri, nil)
 		return
 	}
 
@@ -285,7 +285,7 @@ func HandleTokenEndpoint(ctx *fasthttp.RequestCtx) {
 	body := ctx.PostBody()
 	bodyParams, err := url.ParseQuery(string(body))
 	if err != nil {
-		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Invalid request body", nil, "")
+		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "Invalid request body", nil, "", nil)
 		return
 	}
 
@@ -388,7 +388,12 @@ func RenderOauth2ErrorWithoutRedirect(ctx *fasthttp.RequestCtx, errorCode string
 }
 
 // RenderOauth2Error sends an OAuth2 error response as a redirect
-func RenderOauth2Error(ctx *fasthttp.RequestCtx, errorCode string, errorDescription string, oauth2request *model.AuthorizeRequest, trustedRedirectURI string) {
+func RenderOauth2Error(ctx *fasthttp.RequestCtx, errorCode string, errorDescription string, oauth2request *model.AuthorizeRequest, trustedRedirectURI string, application *model.Application) {
+
+	if application.Settings != nil && application.Settings.OAuth2Settings != nil && application.Settings.OAuth2Settings.ShowErrorPageInsteadOfRedirect {
+		RenderOauth2ErrorWithoutRedirect(ctx, errorCode, errorDescription)
+		return
+	}
 
 	// Get the redirect URI from the parameter to extend with the error parameters
 	redirectURI := trustedRedirectURI
