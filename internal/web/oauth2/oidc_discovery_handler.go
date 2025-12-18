@@ -62,14 +62,23 @@ func HandleOpenIDConfiguration(ctx *fasthttp.RequestCtx) {
 		TokenEndpoint:                     baseURL + "/oauth2/token",
 		UserinfoEndpoint:                  baseURL + "/oauth2/userinfo",
 		JwksURI:                           baseURL + "/oauth2/.well-known/jwks.json",
-		ScopesSupported:                   []string{"openid", "profile"},
+		ScopesSupported:                   []string{"openid", "profile", "email", "address", "phone"},
 		ResponseTypesSupported:            []string{"code"},
 		ResponseModesSupported:            []string{"query"},
 		GrantTypesSupported:               []string{"authorization_code", "refresh_token", "client_credentials"},
 		SubjectTypesSupported:             []string{"public"},
 		IDTokenSigningAlgValuesSupported:  []string{"ES256"},
 		TokenEndpointAuthMethodsSupported: []string{"client_secret_basic"},
-		ClaimsSupported:                   []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce", "acr", "amr", "name", "given_name", "family_name", "username"},
+		ClaimsSupported: []string{
+			"sub",
+			"iss",
+			"aud",
+			"exp",
+			"iat",
+			"auth_time",
+			"nonce",
+			"acr",
+			"amr"},
 	}
 
 	// Marshal the configuration to JSON

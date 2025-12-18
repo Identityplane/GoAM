@@ -1,0 +1,10 @@
+{{ define "content" }}
+<form method="POST" class="login-form" action="{{ .LoginUri}}">
+  <div class="input-group">
+    <input type="hidden" name="step" value="{{ .NodeName }}">
+    <label for="user_id">User ID</label>
+    <input type="text" name="user_id" id="user_id" placeholder="user_id" required />
+  </div>
+  <button type="submit">Submit</button>
+</form>
+{{ end }}

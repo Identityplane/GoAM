@@ -26,6 +26,11 @@ applications:
       - "mock_success"
     allowed_scopes:
       - openid
+      - profile
+      - email
+      - address
+      - phone
+      
     access_token_lifetime: 3600
     refresh_token_lifetime: 31536000
     id_token_lifetime: 3600

@@ -77,6 +77,11 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: email-otp.yaml
+  device-login:
+    route: /device-login
+    active: yes
+    debug_allowed: yes
+    definition_location: device-login.yaml
 
 
 applications:

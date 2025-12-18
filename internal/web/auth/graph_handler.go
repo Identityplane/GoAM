@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -85,6 +86,9 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
+	// Set the http auth context from the request
+	setHttpAuthContextFromRequest(session, ctx)
+
 	// Process the auth request
 	newSession, err := ProcessAuthRequest(ctx, flow, session)
 
@@ -96,6 +100,9 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 
 	// Save the updated state in the session
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
+
+	// If the session has any additional response cookies we set them
+	setHttpAuthContextToResponse(newSession, ctx)
 
 	// If the result is set and finish uri is set we redirect to the finish uri
 	// without deleting the session so the endpoint can finish the flow
@@ -126,6 +133,61 @@ func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
 	currentNode := flow.Definition.Nodes[newSession.Current]
 
 	Render(ctx, flow.Definition, newSession, currentNode, newSession.Prompts, baseUrl)
+}
+
+func setHttpAuthContextFromRequest(session *model.AuthenticationSession, ctx *fasthttp.RequestCtx) {
+
+	// Set the http auth context
+	session.HttpAuthContext = &model.HttpAuthContext{
+		RequestHeaders:            webutils.GetRequestHeaders(ctx),
+		RequestCookies:            webutils.GetRequestCookies(ctx),
+		AdditionalResponseCookies: make(map[string]http.Cookie),
+		AdditionalResponseHeaders: make(map[string]string),
+	}
+}
+
+func setHttpAuthContextToResponse(session *model.AuthenticationSession, ctx *fasthttp.RequestCtx) {
+
+	// no-op if the http auth context is not set
+	if session.HttpAuthContext == nil {
+		return
+	}
+
+	// Set the additional response headers
+	if len(session.HttpAuthContext.AdditionalResponseHeaders) > 0 {
+		for name, value := range session.HttpAuthContext.AdditionalResponseHeaders {
+			ctx.Response.Header.Set(name, value)
+		}
+	}
+
+	// Set the additional response cookies
+	if session.HttpAuthContext != nil && len(session.HttpAuthContext.AdditionalResponseCookies) > 0 {
+		for name, cookie := range session.HttpAuthContext.AdditionalResponseCookies {
+
+			var sameSiteMode fasthttp.CookieSameSite
+			switch cookie.SameSite {
+			case http.SameSiteStrictMode:
+				sameSiteMode = fasthttp.CookieSameSiteStrictMode
+			case http.SameSiteLaxMode:
+				sameSiteMode = fasthttp.CookieSameSiteLaxMode
+			case http.SameSiteDefaultMode:
+				sameSiteMode = fasthttp.CookieSameSiteDefaultMode
+			case http.SameSiteNoneMode:
+				sameSiteMode = fasthttp.CookieSameSiteNoneMode
+			default:
+				sameSiteMode = fasthttp.CookieSameSiteDefaultMode
+			}
+
+			// Set the cookie
+			c := &fasthttp.Cookie{}
+			c.SetKey(name)
+			c.SetValue(cookie.Value)
+			c.SetSameSite(sameSiteMode)
+			c.SetHTTPOnly(cookie.HttpOnly)
+			c.SetSecure(cookie.Secure)
+			ctx.Response.Header.SetCookie(c)
+		}
+	}
 }
 
 func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session *model.AuthenticationSession) (*model.AuthenticationSession, error) {

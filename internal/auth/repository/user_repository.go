@@ -7,9 +7,12 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 )
+
+var log = logger.GetGoamLogger().With().Str("repository", "user").Logger()
 
 // The user repository is a simplified interface for the user database, to be used by the auth service
 // It porivides additional abstractions over the database, such as tenant and realm aware operations
@@ -29,8 +32,17 @@ func NewUserRepository(tenant, realm string, db db.UserDB, attributesDB db.UserA
 
 func (r *UserRepositoryImpl) NewUserModel(state *model.AuthenticationSession) (*model.User, error) {
 
+	var id string
+
+	// If the state contains a user we use that one
+	if state.Context["user_id"] != "" {
+		id = state.Context["user_id"]
+	} else {
+		id = uuid.NewString()
+	}
+
 	return &model.User{
-		ID:        uuid.NewString(),
+		ID:        id,
 		Tenant:    r.tenant,
 		Realm:     r.realm,
 		CreatedAt: time.Now(),
@@ -41,6 +53,8 @@ func (r *UserRepositoryImpl) NewUserModel(state *model.AuthenticationSession) (*
 
 func (r *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {
 
+	log.Debug().Msgf("Creating user %s", user.ID)
+
 	// Ensure the tenant and realm are set to the repository values
 	r.ensureTenantAndRealm(user, r.tenant, r.realm)
 
@@ -49,6 +63,8 @@ func (r *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error
 }
 
 func (r *UserRepositoryImpl) Update(ctx context.Context, user *model.User) error {
+
+	log.Debug().Msgf("Updating user %s", user.ID)
 
 	// If the user has no id we return an error
 	if user.ID == "" {
@@ -67,6 +83,8 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, user *model.User) error
 
 func (r *UserRepositoryImpl) CreateOrUpdate(ctx context.Context, user *model.User) error {
 
+	log.Debug().Msgf("Creating or updating user %s", user.ID)
+
 	// If the user has no id we create a new one
 	if user.ID == "" {
 		return r.Create(ctx, user)
@@ -84,15 +102,31 @@ func (r *UserRepositoryImpl) CreateOrUpdate(ctx context.Context, user *model.Use
 }
 
 func (r *UserRepositoryImpl) GetByID(ctx context.Context, id string) (*model.User, error) {
+
+	user, err := r.attributesDB.GetUserWithAttributes(ctx, r.tenant, r.realm, id)
+	log.Debug().Str("id", id).Bool("found", user != nil).Err(err).Msgf("GetByID")
+
 	return r.attributesDB.GetUserWithAttributes(ctx, r.tenant, r.realm, id)
 }
 
 func (r *UserRepositoryImpl) GetByAttributeIndex(ctx context.Context, attributeType, index string) (*model.User, error) {
-	return r.attributesDB.GetUserByAttributeIndexWithAttributes(ctx, r.tenant, r.realm, attributeType, index)
+
+	user, err := r.attributesDB.GetUserByAttributeIndexWithAttributes(ctx, r.tenant, r.realm, attributeType, index)
+	log.Debug().Str("attributeType", attributeType).Str("index", index).Bool("found", user != nil).Err(err).Msgf("GetByAttributeIndex")
+
+	return user, err
 }
 
 func (r *UserRepositoryImpl) CreateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error {
-	return r.attributesDB.CreateUserAttribute(ctx, *attribute)
+
+	// Ensure the tenant and realm are set to the repository values
+	attribute.Tenant = r.tenant
+	attribute.Realm = r.realm
+
+	err := r.attributesDB.CreateUserAttribute(ctx, *attribute)
+	log.Debug().Str("attributeType", attribute.Type).Str("index", stringPtrOrEmpty(attribute.Index)).Str("userID", attribute.UserID).Err(err).Msgf("CreateUserAttribute")
+
+	return err
 }
 
 func (r *UserRepositoryImpl) UpdateUserAttribute(ctx context.Context, attribute *model.UserAttribute) error {
@@ -101,12 +135,18 @@ func (r *UserRepositoryImpl) UpdateUserAttribute(ctx context.Context, attribute 
 	attribute.Tenant = r.tenant
 	attribute.Realm = r.realm
 
-	return r.attributesDB.UpdateUserAttribute(ctx, attribute)
+	err := r.attributesDB.UpdateUserAttribute(ctx, attribute)
+	log.Debug().Str("attributeType", attribute.Type).Str("index", stringPtrOrEmpty(attribute.Index)).Str("userID", attribute.UserID).Err(err).Msgf("UpdateUserAttribute")
+
+	return err
 }
 
 func (r *UserRepositoryImpl) DeleteUserAttribute(ctx context.Context, attributeID string) error {
 
-	return r.attributesDB.DeleteUserAttribute(ctx, r.tenant, r.realm, attributeID)
+	err := r.attributesDB.DeleteUserAttribute(ctx, r.tenant, r.realm, attributeID)
+	log.Debug().Str("attributeID", attributeID).Err(err).Msgf("DeleteUserAttribute")
+
+	return err
 }
 
 // ensureTenantAndRealm ensures that the tenant and realm are set to the repository values
@@ -134,4 +174,11 @@ func (r *UserRepositoryImpl) ensureTenantAndRealm(user *model.User, tenant, real
 			user.UserAttributes[idx].ID = uuid.NewString()
 		}
 	}
+}
+
+func stringPtrOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

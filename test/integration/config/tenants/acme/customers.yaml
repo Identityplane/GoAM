@@ -41,7 +41,12 @@ flows:
     route: /telegram-test
     active: yes
     definition_location: telegram_test.yaml
+  device-login:
+    route: /device-login
+    active: yes
+    definition_location: device-login.yaml
 
+    
 applications:
   management-ui:
     confidential: false

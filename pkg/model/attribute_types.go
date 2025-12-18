@@ -17,6 +17,7 @@ const (
 	AttributeTypePasskey      = "identityplane:passkey"
 	AttributeTypeEntitlements = "identityplane:entitlements"
 	AttributeTypeYubico       = "identityplane:yubico"
+	AttributeTypeDevice       = "identityplane:device"
 )
 
 // CredentialAttributeValue is the attribute value for credentials such as password otp etc
@@ -139,6 +140,14 @@ type DeviceAttributeValue struct {
 	DeviceOSVersion  string `json:"device_os_version" example:"15.0"`
 	DeviceModel      string `json:"device_model" example:"iPhone 12"`
 	DeviceIP         string `json:"device_ip" example:"192.168.1.100"`
+	DeviceUserAgent  string `json:"device_user_agent" example:"Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"`
+	CookieName       string `json:"cookie_name" example:"session"`
+
+	SessionDuration     int        `json:"session_duration" example:"3600"`
+	SessionExpiry       *time.Time `json:"session_expiry" example:"2024-01-01T00:00:00Z"`
+	SessionRefreshAfter int        `json:"session_refresh_after" example:"1800"`
+	SessionFirstLogin   *time.Time `json:"session_first_login" example:"2024-01-01T00:00:00Z"`
+	SessionLastActivity *time.Time `json:"session_last_activity" example:"2024-01-01T00:00:00Z"`
 }
 
 // EntitlementSet is a set of entitlements

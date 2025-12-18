@@ -45,6 +45,9 @@ type AuthenticationSession struct {
 	// Debug is a flag to enable debug mode
 	// This will add additional debug logs as well as the render to display the debug information which contains sensitive information
 	Debug bool `json:"debug"`
+
+	// HttpAuthContext is the context for the http authentication
+	HttpAuthContext *HttpAuthContext `json:"http_auth_context,omitempty"`
 }
 
 func (s *AuthenticationSession) GetLatestHistory() string {

@@ -76,3 +76,19 @@ func GetUrlOfRequest(ctx *fasthttp.RequestCtx) string {
 
 	return fmt.Sprintf("%s://%s", protocol, host)
 }
+
+func GetRequestHeaders(ctx *fasthttp.RequestCtx) map[string]string {
+	headers := make(map[string]string)
+	ctx.Request.Header.VisitAll(func(key []byte, value []byte) {
+		headers[string(key)] = string(value)
+	})
+	return headers
+}
+
+func GetRequestCookies(ctx *fasthttp.RequestCtx) map[string]string {
+	cookies := make(map[string]string)
+	ctx.Request.Header.VisitAllCookie(func(key []byte, value []byte) {
+		cookies[string(key)] = string(value)
+	})
+	return cookies
+}

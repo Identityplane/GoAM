@@ -54,6 +54,7 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 	if state.User == nil {
 		var err error
 		state.User, err = services.UserRepo.NewUserModel(state)
+
 		if err != nil {
 			return model.NewNodeResultWithError(fmt.Errorf("failed to create user: %w", err))
 		}
