@@ -57,6 +57,13 @@ func HandleUserinfoEndpoint(ctx *fasthttp.RequestCtx) {
 }
 
 func readAccessTokenFromRequest(ctx *fasthttp.RequestCtx) (string, bool) {
+
+	// Not needed by spec but we support access_token via post body as well
+	accessToken := string(ctx.PostArgs().Peek("access_token"))
+	if accessToken != "" {
+		return accessToken, true
+	}
+
 	authorizationHeader := ctx.Request.Header.Peek("Authorization")
 	if len(authorizationHeader) == 0 {
 		return "", false
@@ -112,7 +119,7 @@ func getUserClaimsFromDatabase(ctx *fasthttp.RequestCtx, tenant, realm string, s
 	}
 
 	// Get the user claims
-	claims, err := service.GetServices().OAuth2Service.GetUserClaims(*user, session.Scope, nil)
+	claims, err := service.GetServices().UserClaimsService.GetUserClaims(*user, session.Scope, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not get user claims")
 	}

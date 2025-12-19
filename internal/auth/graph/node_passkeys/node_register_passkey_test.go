@@ -34,7 +34,7 @@ func TestRunPasskeyRegisterNode_GenerateOptions(t *testing.T) {
 		Type:  model.AttributeTypeUsername,
 		Index: lib.StringPtr("alice"),
 		Value: model.UsernameAttributeValue{
-			Username: "alice",
+			PreferredUsername: "alice",
 		},
 	})
 
@@ -143,7 +143,7 @@ func TestRunPasskeyRegisterNode_InvalidCredentialResponse(t *testing.T) {
 		Type:  model.AttributeTypeUsername,
 		Index: lib.StringPtr("alice"),
 		Value: model.UsernameAttributeValue{
-			Username: "alice",
+			PreferredUsername: "alice",
 		},
 	})
 

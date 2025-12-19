@@ -50,6 +50,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		State:               string(ctx.QueryArgs().Peek("state")),
 		CodeChallenge:       string(ctx.QueryArgs().Peek("code_challenge")),
 		CodeChallengeMethod: string(ctx.QueryArgs().Peek("code_challenge_method")),
+		Claims:              strings.Split(string(ctx.QueryArgs().Peek("claims")), " "),
 		Nonce:               string(ctx.QueryArgs().Peek("nonce")),
 		Prompt:              string(ctx.QueryArgs().Peek("prompt")),
 		AcrValues:           strings.Split(string(ctx.QueryArgs().Peek("acr_values")), " "),

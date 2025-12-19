@@ -96,7 +96,7 @@ func TestPasswordUpdateAndValidation(t *testing.T) {
 
 	// Add username attribute
 	usernameAttrValue := model.UsernameAttributeValue{
-		Username: "testuser",
+		PreferredUsername: "testuser",
 	}
 	testUser.AddAttribute(&model.UserAttribute{
 		ID:    uuid.NewString(),

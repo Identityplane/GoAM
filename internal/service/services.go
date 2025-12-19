@@ -49,6 +49,7 @@ func InitServices(connections DatabaseConnections) *services_interface.Services 
 		AdminAuthzService:          NewAdminAuthzService(),
 		SimpleAuthService:          NewSimpleAuthService(),
 		EmailService:               email.NewDefaultEmailService(),
+		UserClaimsService:          NewUserClaimsService(),
 	}
 
 	return services

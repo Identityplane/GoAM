@@ -133,7 +133,7 @@ func (s *OAuth2Service) FinishOauth2AuthorizationEndpoint(session *model.Authent
 	scope := session.Oauth2SessionInformation.AuthorizeRequest.Scope
 
 	// Get the user claims
-	userClaims, err := s.GetUserClaims(*session.User, strings.Join(scope, " "), session.Oauth2SessionInformation)
+	userClaims, err := GetServices().UserClaimsService.GetUserClaims(*session.User, strings.Join(scope, " "), session.Oauth2SessionInformation)
 	if err != nil {
 		return nil, oauth2.NewOAuth2Error(oauth2.ErrorServerError, "Internal server error. Could not get user claims")
 	}
@@ -407,8 +407,24 @@ func (s *OAuth2Service) generateIdToken(session *model.ClientSession, loginSessi
 		otherClaims["acr"] = loginSession.Result.AuthLevel
 	}
 
+	jwtUserClaims := make(map[string]interface{})
+	// To be compliant with the oidc spec we only return the requested claims from the authorize request
+	// if the client does for example not request the email claim but the email scope they can still get it via the userinfo endpoint
+	// Only the sub and auth_time claim are always added to the token if they are present
+	for claim, value := range userClaims {
+		if slices.Contains(loginSession.Oauth2SessionInformation.AuthorizeRequest.Claims, string(claim)) {
+			jwtUserClaims[string(claim)] = value
+		}
+	}
+	if userClaims["sub"] != nil {
+		jwtUserClaims["sub"] = userClaims["sub"]
+	}
+	if userClaims["auth_time"] != nil {
+		jwtUserClaims["auth_time"] = userClaims["auth_time"]
+	}
+
 	// Merge the claims into the final set
-	claims := maps.Clone(userClaims)
+	claims := maps.Clone(jwtUserClaims)
 	for k, v := range otherClaims {
 		claims[k] = v
 	}
@@ -487,56 +503,6 @@ func (s *OAuth2Service) generateRefreshToken(session *model.ClientSession, login
 	}
 
 	return refreshToken, nil
-}
-
-func (s *OAuth2Service) GetUserClaims(user model.User, scope string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error) {
-
-	// If userid is empty we return an error. This might be the case if a client uses the client_credentials grant and then accesses the userinfo endpoint
-	if user.ID == "" {
-		return nil, fmt.Errorf("internal server error. User ID is empty")
-	}
-
-	// now we map the user attributes into claims
-	// we need to check the sesssion scopes and map the attributes accordingly
-	claims := make(map[string]interface{})
-	//scopes := strings.Split(scope, " ")
-
-	// We always return the sub claim
-	claims["sub"] = user.ID
-
-	if oauth2Session != nil && !oauth2Session.AuthTime.IsZero() {
-		claims["auth_time"] = oauth2Session.AuthTime.Unix()
-	}
-
-	//TODO we need to add the claims for the user attributes
-	/*
-
-		if slices.Contains(scopes, "email") {
-			claims["email"] = user.Email
-			claims["email_verified"] = user.EmailVerified
-		}
-
-		if slices.Contains(scopes, "profile") {
-			claims["username"] = user.Username
-			claims["name"] = user.DisplayName
-			claims["given_name"] = user.GivenName
-			claims["family_name"] = user.FamilyName
-		}
-
-		if slices.Contains(scopes, "phone") {
-			claims["phone"] = user.Phone
-			claims["phone_verified"] = user.PhoneVerified
-		}
-
-		if slices.Contains(scopes, "groups") {
-			claims["groups"] = user.Groups
-		}
-
-		if slices.Contains(scopes, "roles") {
-			claims["roles"] = user.Roles
-		}*/
-
-	return claims, nil
 }
 
 func (s *OAuth2Service) GetOtherJwtClaims(tenant, realm, client_id string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error) {

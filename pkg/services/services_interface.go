@@ -26,6 +26,7 @@ type Services struct {
 	AdminAuthzService          AdminAuthzService
 	TemplatesService           TemplatesService
 	EmailService               EmailService
+	UserClaimsService          UserClaimsService
 }
 
 // UserAdminService defines the business logic for user operations
@@ -255,9 +256,6 @@ type OAuth2Service interface {
 	// ToQueryString converts the AuthorizationResponse to a URL query string
 	ToQueryString(response *oauth2.AuthorizationResponse) string
 
-	// GetUserClaims gets the user claims for a given client session
-	GetUserClaims(user model.User, scope string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error)
-
 	// GetOtherJwtClaims gets the other JWT claims for a given client
 	GetOtherJwtClaims(tenant, realm, client_id string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error)
 
@@ -272,4 +270,10 @@ type SimpleAuthService interface {
 
 	// FinishSimpleAuthFlow completes the Simple Auth flow and returns tokens
 	FinishSimpleAuthFlow(ctx context.Context, session *model.AuthenticationSession, tenant, realm string) (*model.SimpleAuthResponse, *model.AuthError)
+}
+
+// UserClaimsService defines the business logic for User Claims operations
+type UserClaimsService interface {
+	// GetUserClaims gets the user claims for a given client session
+	GetUserClaims(user model.User, scope string, oauth2Session *model.Oauth2Session) (map[string]interface{}, error)
 }

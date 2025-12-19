@@ -78,7 +78,7 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 	// Check if any of the existing usernames are the same as the username in the context
 	alreadyExists := false
 	for _, existingUsername := range existingUsernames {
-		if existingUsername.Username == username {
+		if existingUsername.PreferredUsername == username {
 			alreadyExists = true
 		}
 	}
@@ -87,7 +87,7 @@ func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode
 			Type:  model.AttributeTypeUsername,
 			Index: &username,
 			Value: model.UsernameAttributeValue{
-				Username: username,
+				PreferredUsername: username,
 			},
 		}
 		state.User.AddAttribute(usernameAttribute)

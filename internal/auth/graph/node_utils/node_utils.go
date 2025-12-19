@@ -23,7 +23,7 @@ func GetAccountNameFromContext(state *model.AuthenticationSession) string {
 	// If we have a username we return it
 	usernames, _, err := model.GetAttributes[model.UsernameAttributeValue](state.User, model.AttributeTypeUsername)
 	if err == nil && len(usernames) > 0 {
-		return usernames[0].Username
+		return usernames[0].PreferredUsername
 	}
 
 	// Find the first verified email otherwise we return the first email

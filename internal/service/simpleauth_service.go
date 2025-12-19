@@ -106,7 +106,7 @@ func (s *simpleAuthService) FinishSimpleAuthFlow(ctx context.Context, session *m
 	}
 
 	// Get the user claims
-	userClaims, err2 := GetServices().OAuth2Service.GetUserClaims(*session.User, session.SimpleAuthSessionInformation.Request.Scope, session.Oauth2SessionInformation)
+	userClaims, err2 := GetServices().UserClaimsService.GetUserClaims(*session.User, session.SimpleAuthSessionInformation.Request.Scope, session.Oauth2SessionInformation)
 	if err2 != nil {
 		return nil, returnSimpleAuthError(oauth2.ErrorServerError, "Internal server error. Could not get user claims")
 	}

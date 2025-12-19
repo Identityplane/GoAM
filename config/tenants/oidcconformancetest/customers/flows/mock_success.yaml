@@ -24,7 +24,25 @@ nodes:
     custom_config: {}
     next:
       submitted: addKnownDevice
-      not_found: createUser
+      not_found: setUsernameVariable
+
+  setUsernameVariable:
+    name: setUsernameVariable
+    use: setVariable
+    custom_config:
+      key: username
+      value: testuser
+    next:
+      done: setEmailVariable
+
+  setEmailVariable:
+    name: setEmailVariable
+    use: setVariable
+    custom_config:
+      key: email
+      value: testuser@example.com
+    next:
+      done: createUser
 
   createUser:
     name: createUser
