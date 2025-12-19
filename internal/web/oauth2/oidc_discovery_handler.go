@@ -77,7 +77,7 @@ func HandleOpenIDConfiguration(ctx *fasthttp.RequestCtx) {
 		GrantTypesSupported:                    []string{"authorization_code", "refresh_token", "client_credentials"},
 		SubjectTypesSupported:                  []string{"public"},
 		IDTokenSigningAlgValuesSupported:       []string{"ES256"},
-		TokenEndpointAuthMethodsSupported:      []string{"client_secret_basic"},
+		TokenEndpointAuthMethodsSupported:      []string{"client_secret_basic", "client_secret_post"},
 		ACRValuesSupported:                     acrValuesSupported,
 		RequestObjectSigningAlgValuesSupported: []string{},
 		ClaimsSupported: []string{
