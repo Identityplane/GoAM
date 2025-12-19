@@ -105,7 +105,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	flowId, acrValue, err := getFlowIdForRequest(oauth2request, application)
+	flowId, acrValue, err := getFlowIdForRequest(flowId, oauth2request, application)
 	if err != nil {
 		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, err.Error(), oauth2request, redirectUri, application)
 		return
@@ -212,15 +212,22 @@ func peekGraphExecutionForPromptParameter(session *model.AuthenticationSession, 
 		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorServerError, ErrorDescription: "Internal server error. Flow resulted in error"}
 	}
 
-	// Check if there is prompt of a result
-	asksForPrompts := (newSession.Prompts != nil)
+	// Check if the flow completed successfully (has a result)
+	// If it has a result, it doesn't ask for prompts regardless of the Prompts field
+	flowCompleted := (newSession.Result != nil)
+
+	// Check if there is prompt or a result
+	// If the flow completed, it doesn't ask for prompts
+	asksForPrompts := !flowCompleted && (newSession.Prompts != nil)
 
 	// If prompt parameter is set to none but there is prompt to the user we return an error
 	if session.Oauth2SessionInformation.AuthorizeRequest.Prompt == "none" && asksForPrompts {
 		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorLoginRequired, ErrorDescription: "Login required"}
 	}
 
-	if session.Oauth2SessionInformation.AuthorizeRequest.Prompt == "login" && !asksForPrompts {
+	// If prompt parameter is set to login but the flow completed without asking for prompts,
+	// this is an error because prompt=login requires user interaction
+	if session.Oauth2SessionInformation.AuthorizeRequest.Prompt == "login" && flowCompleted {
 		return nil, &oauth2.OAuth2Error{Error: oauth2.ErrorServerError, ErrorDescription: "No login required but prompt parameter is set to login"}
 	}
 
@@ -436,24 +443,41 @@ func RenderOauth2Error(ctx *fasthttp.RequestCtx, errorCode string, errorDescript
 	ctx.Response.Header.Set("Pragma", "no-cache")
 }
 
-func getFlowIdForRequest(oauth2request *model.AuthorizeRequest, application *model.Application) (string, string, error) {
+func getFlowIdForRequest(queryFlowId string, oauth2request *model.AuthorizeRequest, application *model.Application) (string, string, error) {
 
-	// First we check the acr mappings for a acr value of the request and take this flow id
+	// First check if a flow was specified in the query parameters
 	flowId := ""
 	acr := ""
-	for _, arcMapping := range application.Settings.ArcMapping {
-		for _, acrValue := range oauth2request.AcrValues {
-			if arcMapping.Acr == acrValue {
-				flowId = arcMapping.Flow
-				acr = acrValue
+	if queryFlowId != "" {
+		// Validate that the specified flow is in the allowed flows
+		flowAllowed := false
+		for _, allowedFlow := range application.AllowedAuthenticationFlows {
+			if allowedFlow == queryFlowId {
+				flowAllowed = true
+				flowId = queryFlowId
 				break
+			}
+		}
+		if !flowAllowed {
+			return "", "", fmt.Errorf("flow '%s' is not in the allowed authentication flows", queryFlowId)
+		}
+	}
+
+	// If no flow was specified in query, check the acr mappings for a acr value of the request
+	if flowId == "" && application != nil && application.Settings != nil && application.Settings.ArcMapping != nil {
+		for _, arcMapping := range application.Settings.ArcMapping {
+			for _, acrValue := range oauth2request.AcrValues {
+				if arcMapping.Acr == acrValue {
+					flowId = arcMapping.Flow
+					acr = acrValue
+					break
+				}
 			}
 		}
 	}
 
 	// if the flow id is not set yet we take the first flow of the allowed flows
 	if flowId == "" {
-
 		if len(application.AllowedAuthenticationFlows) == 0 {
 			return "", "", fmt.Errorf("no allowed authentication flows")
 		}
