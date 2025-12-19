@@ -10,11 +10,23 @@ GoIAM is a modern, high-performance Identity and Access Management system writte
 
 ---
 
-## ⚠️ Disclaimer
+**OAuth2 / OIDC Support:**
+GoAM is compliant with the OIDC basic-certification-test-plan. The following features are supported:
+- AuthCode Flow
+- AuthCode with PKCE Flow
+- Access Token
+- Refresh Token
+- Client Authentication (client_secret_basic, client_secret_post)
+- Userinfo Endpoint (post-header, post-body)
+- Scopes with email, profile, others can be implemented
+- OIDC Prompt (login, none)
+- OIDC max-age
+- OIDC acr_values
 
-**This project is a work in progress and is not ready for production use.** Expect breaking changes everywhere, incomplete features, and not/limited documentation and code that was not reviewed for security vulnerabilities.
+We are implementing **OAuth2.1** which comes with the following changes to OAuth2.
+- Redirect URIs exact string matching
+- One-time-use refresh tokens
 
----
 
 ## Key Features
 
@@ -24,6 +36,24 @@ GoIAM is a modern, high-performance Identity and Access Management system writte
 - **Multitenancy**: Support for multiple tenants with isolated realms per tenant. Each tenant can have multiple realms for different user populations (e.g. customers, staff).
 - **Extensibility**: Easily add custom nodes, flows, and integrations to meet your specific requirements.
 - **Customization**: Serve static assets like CSS and JavaScript for theming and customization.
+
+
+Supported Login Features:
+- Captcha
+- Remember this device
+- Email
+- GitHub Login
+- OIDC Federated Login
+- Multiple Login Options on 1 page
+- WebAuthN (Passkeys)
+- Password
+- Login with Telegram
+- TOTP
+- Username
+- Yubikey OTP
+- Email OTP
+
+GoAM is designed to be extended so you can implement your own login steps as simple nodes in the login graph.
 
 ---
 
@@ -199,6 +229,13 @@ nodes:
 
 ---
 
+## OIDC Conformance
+
+We are using the OIDC conformance test suite to validate spec conformance. The test logs can be found at: `test/oidc-conformance/logs` 
+
+
+![Conformance Log](test/oidc-conformance/logs/Screenshot.png)
+
 ## Contact
 
-For questions or support, please reach out to [gian-luca.frei@zuehlke.com](mailto:[gian-luca.frei@zuehlke.com).
+For questions or support, please reach out to [gianluca@identityplane.com](mailto:[gianluca@identityplane.com).
