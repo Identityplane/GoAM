@@ -53,6 +53,7 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		Nonce:               string(ctx.QueryArgs().Peek("nonce")),
 		Prompt:              string(ctx.QueryArgs().Peek("prompt")),
 		AcrValues:           strings.Split(string(ctx.QueryArgs().Peek("acr_values")), " "),
+		Request:             string(ctx.QueryArgs().Peek("request")),
 	}
 
 	// If the max_age parameter is set we add it to the oauth2 request
@@ -90,6 +91,13 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	// After we validated the redirect URI we can use it as the trusted redirect URI
 	redirectUri = oauth2request.RedirectURI
 
+	// Currenty we dont support request obejct as per OIDCC-6.1. We reject the request if present
+	if oauth2request.Request != "" {
+		RenderOauth2Error(ctx, oauth2.ErrorRequestNotSupported, "Request object not supported", oauth2request, redirectUri, nil)
+		return
+	}
+
+	// Currenty we dont support request obejct as per OIDCC-6.1. We reject the request if present
 	// If there are no allowed flows we return an error
 	if len(application.AllowedAuthenticationFlows) == 0 {
 		RenderOauth2Error(ctx, oauth2.ErrorInvalidRequest, "No allowed authentication flows", oauth2request, redirectUri, application)
@@ -401,7 +409,7 @@ func RenderOauth2ErrorWithoutRedirect(ctx *fasthttp.RequestCtx, errorCode string
 // RenderOauth2Error sends an OAuth2 error response as a redirect
 func RenderOauth2Error(ctx *fasthttp.RequestCtx, errorCode string, errorDescription string, oauth2request *model.AuthorizeRequest, trustedRedirectURI string, application *model.Application) {
 
-	if application.Settings != nil && application.Settings.OAuth2Settings != nil && application.Settings.OAuth2Settings.ShowErrorPageInsteadOfRedirect {
+	if application != nil && application.Settings != nil && application.Settings.OAuth2Settings != nil && application.Settings.OAuth2Settings.ShowErrorPageInsteadOfRedirect {
 		RenderOauth2ErrorWithoutRedirect(ctx, errorCode, errorDescription)
 		return
 	}

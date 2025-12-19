@@ -128,6 +128,7 @@ type AuthorizeRequest struct {
 	State               string   `json:"state"`
 	CodeChallenge       string   `json:"code_challenge"`
 	CodeChallengeMethod string   `json:"code_challenge_method"`
+	Request             string   `json:"request"`
 
 	// Advanced OIDC parameters
 	MaxAge      *int     `json:"max_age"`

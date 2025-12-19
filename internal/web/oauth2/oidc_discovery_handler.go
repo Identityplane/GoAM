@@ -10,20 +10,21 @@ import (
 )
 
 type OpenIDConfiguration struct {
-	Issuer                            string   `json:"issuer"`
-	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
-	TokenEndpoint                     string   `json:"token_endpoint"`
-	UserinfoEndpoint                  string   `json:"userinfo_endpoint"`
-	JwksURI                           string   `json:"jwks_uri"`
-	ScopesSupported                   []string `json:"scopes_supported"`
-	ResponseTypesSupported            []string `json:"response_types_supported"`
-	ResponseModesSupported            []string `json:"response_modes_supported"`
-	GrantTypesSupported               []string `json:"grant_types_supported"`
-	SubjectTypesSupported             []string `json:"subject_types_supported"`
-	IDTokenSigningAlgValuesSupported  []string `json:"id_token_signing_alg_values_supported"`
-	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
-	ClaimsSupported                   []string `json:"claims_supported"`
-	ACRValuesSupported                []string `json:"acr_values_supported"`
+	Issuer                                 string   `json:"issuer"`
+	AuthorizationEndpoint                  string   `json:"authorization_endpoint"`
+	TokenEndpoint                          string   `json:"token_endpoint"`
+	UserinfoEndpoint                       string   `json:"userinfo_endpoint"`
+	JwksURI                                string   `json:"jwks_uri"`
+	ScopesSupported                        []string `json:"scopes_supported"`
+	ResponseTypesSupported                 []string `json:"response_types_supported"`
+	ResponseModesSupported                 []string `json:"response_modes_supported"`
+	GrantTypesSupported                    []string `json:"grant_types_supported"`
+	SubjectTypesSupported                  []string `json:"subject_types_supported"`
+	IDTokenSigningAlgValuesSupported       []string `json:"id_token_signing_alg_values_supported"`
+	TokenEndpointAuthMethodsSupported      []string `json:"token_endpoint_auth_methods_supported"`
+	ClaimsSupported                        []string `json:"claims_supported"`
+	ACRValuesSupported                     []string `json:"acr_values_supported"`
+	RequestObjectSigningAlgValuesSupported []string `json:"request_object_signing_alg_values_supported"`
 }
 
 // HandleOpenIDConfiguration returns the OpenID Connect configuration
@@ -65,19 +66,20 @@ func HandleOpenIDConfiguration(ctx *fasthttp.RequestCtx) {
 	}
 
 	config := OpenIDConfiguration{
-		Issuer:                            baseURL,
-		AuthorizationEndpoint:             baseURL + "/oauth2/authorize",
-		TokenEndpoint:                     baseURL + "/oauth2/token",
-		UserinfoEndpoint:                  baseURL + "/oauth2/userinfo",
-		JwksURI:                           baseURL + "/oauth2/.well-known/jwks.json",
-		ScopesSupported:                   []string{"openid", "profile", "email", "address", "phone"},
-		ResponseTypesSupported:            []string{"code"},
-		ResponseModesSupported:            []string{"query"},
-		GrantTypesSupported:               []string{"authorization_code", "refresh_token", "client_credentials"},
-		SubjectTypesSupported:             []string{"public"},
-		IDTokenSigningAlgValuesSupported:  []string{"ES256"},
-		TokenEndpointAuthMethodsSupported: []string{"client_secret_basic"},
-		ACRValuesSupported:                acrValuesSupported,
+		Issuer:                                 baseURL,
+		AuthorizationEndpoint:                  baseURL + "/oauth2/authorize",
+		TokenEndpoint:                          baseURL + "/oauth2/token",
+		UserinfoEndpoint:                       baseURL + "/oauth2/userinfo",
+		JwksURI:                                baseURL + "/oauth2/.well-known/jwks.json",
+		ScopesSupported:                        []string{"openid", "profile", "email", "address", "phone"},
+		ResponseTypesSupported:                 []string{"code"},
+		ResponseModesSupported:                 []string{"query"},
+		GrantTypesSupported:                    []string{"authorization_code", "refresh_token", "client_credentials"},
+		SubjectTypesSupported:                  []string{"public"},
+		IDTokenSigningAlgValuesSupported:       []string{"ES256"},
+		TokenEndpointAuthMethodsSupported:      []string{"client_secret_basic"},
+		ACRValuesSupported:                     acrValuesSupported,
+		RequestObjectSigningAlgValuesSupported: []string{},
 		ClaimsSupported: []string{
 			"sub",
 			"iss",

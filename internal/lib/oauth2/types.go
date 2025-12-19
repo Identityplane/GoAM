@@ -23,6 +23,7 @@ const (
 	ErrorServerError             = "server_error"
 	ErrorTemporarilyUnavailable  = "temporarily_unavailable"
 	ErrorLoginRequired           = "login_required"
+	ErrorRequestNotSupported     = "request_not_supported"
 )
 
 // AuthorizationResponse represents the OAuth2 authorization response
