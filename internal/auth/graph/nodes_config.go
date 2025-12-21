@@ -6,6 +6,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_email"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_forms"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_github"
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_oidc"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_options"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_passkeys"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_password"
@@ -87,6 +88,9 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	// Device
 	node_device.AddKnownDeviceNode.Name: node_device.AddKnownDeviceNode,
 	node_device.IsKnownDeviceNode.Name:  node_device.IsKnownDeviceNode,
+
+	// OIDC
+	node_oidc.GenericOIDCLoginNode.Name: node_oidc.GenericOIDCLoginNode,
 }
 
 func GetNodeDefinitionByName(name string) *model.NodeDefinition {

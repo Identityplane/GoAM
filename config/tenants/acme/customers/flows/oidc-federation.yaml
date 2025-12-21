@@ -1,0 +1,44 @@
+description: 'Implements a flow that logs in a user using a generic OIDC provider like Google, Azure, etc.'
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: genericOIDCLogin 
+      
+  genericOIDCLogin:
+    name: genericOIDCLogin
+    use: genericOIDCLogin
+    custom_config:
+      issuer: https://accounts.google.com
+      client_id: "1099505135701-4lsuqir3ul33ipgoqeli2ahsiu4mvplo.apps.googleusercontent.com"
+      scope: "openid email profile"
+      claims: "email"
+    next:
+      oidc_new_user: createUser
+      oidc_existing_user: successResult
+      oidc_failure: failureResult
+    
+  createUser:
+    name: createUser
+    use: createUser
+    custom_config:
+    next:
+      success: successResult
+      existing: successResult
+
+  successResult:
+    name: successResult
+    use: successResult
+    custom_config:
+      message: OIDC login successful!
+    next: {}
+
+  failureResult:
+    name: failureResult
+    use: failureResult
+    custom_config:
+      message: OIDC login failed!
+    next: {}

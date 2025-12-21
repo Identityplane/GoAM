@@ -82,7 +82,11 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: device-login.yaml
-
+  oidc-federation:
+    route: /oidc-federation
+    active: yes
+    debug_allowed: yes
+    definition_location: oidc-federation.yaml
 
 applications:
   customers-app:

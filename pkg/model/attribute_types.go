@@ -18,6 +18,7 @@ const (
 	AttributeTypeEntitlements = "identityplane:entitlements"
 	AttributeTypeYubico       = "identityplane:yubico"
 	AttributeTypeDevice       = "identityplane:device"
+	AttributeTypeOidc         = "identityplane:oidc"
 )
 
 // CredentialAttributeValue is the attribute value for credentials such as password otp etc
