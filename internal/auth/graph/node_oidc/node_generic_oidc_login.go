@@ -37,12 +37,20 @@ const (
 // OIDC serviers without the .well-known/openid-configuration endpoint are not supported at this time but will
 // be added in the future with a custom config via the node config.
 var GenericOIDCLoginNode = &model.NodeDefinition{
-	Name:                 "genericOIDCLogin",
-	PrettyName:           "Generic OIDC Login",
-	Description:          "Logs in a user using a generic OIDC provider.",
-	Category:             "OIDC",
-	Type:                 model.NodeTypeQueryWithLogic,
-	RequiredContext:      []string{},
+	Name:            "genericOIDCLogin",
+	PrettyName:      "Generic OIDC Login",
+	Description:     "Logs in a user using a generic OIDC provider.",
+	Category:        "OIDC",
+	Type:            model.NodeTypeQueryWithLogic,
+	RequiredContext: []string{},
+	CustomConfigOptions: map[string]string{
+		CONFIG_ISSUER:        "The issuer of the OIDC provider",
+		CONFIG_CLIENT_ID:     "The client id of the OIDC provider",
+		CONFIG_CLIENT_SECRET: "The client secret of the OIDC provider",
+		CONFIG_REDIRECT_URI:  "The redirect uri of the OIDC provider",
+		CONFIG_SCOPE:         "The scope of the OIDC provider",
+		CONFIG_CLAIMS:        "The claims of the OIDC provider",
+	},
 	OutputContext:        []string{"oidcLoginResult"},
 	PossibleResultStates: []string{CONDITION_OIDC_FAILURE, CONDITION_OIDC_NEW_USER, CONDITION_OIDC_EXISTING_USER},
 	PossiblePrompts: map[string]string{

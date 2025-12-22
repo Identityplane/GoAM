@@ -255,19 +255,26 @@ func overwriteNodeSettings(flow *model.FlowDefinition, loadedRealm *services_int
 
 func getConfigurationOption(loadedRealm *services_interface.LoadedRealm, nodeDefiniton *model.NodeDefinition, configOption string, node *model.GraphNode) string {
 
-	// If a customer configuration is set for the node we use if with highest priority
-	if node.CustomConfig[configOption] != "" {
-		return node.CustomConfig[configOption]
+	fullConfigOption := configOption
+
+	// If the node has a config prefix we use it to prefix the config option
+	if node.ConfigPrefix != "" {
+		fullConfigOption = node.ConfigPrefix + configOption
+	}
+
+	// If a custom configuration is set for the node we use if with highest priority
+	if node.CustomConfig[fullConfigOption] != "" {
+		return node.CustomConfig[fullConfigOption]
 	}
 
 	// If a realm configuration is set we use it
-	if loadedRealm.Config.RealmSettings[configOption] != "" {
-		return loadedRealm.Config.RealmSettings[configOption]
+	if loadedRealm.Config.RealmSettings[fullConfigOption] != "" {
+		return loadedRealm.Config.RealmSettings[fullConfigOption]
 	}
 
 	// If we have a server setting we use it
-	if config.ServerSettings.NodeSettings[configOption] != "" {
-		return config.ServerSettings.NodeSettings[configOption]
+	if config.ServerSettings.NodeSettings[fullConfigOption] != "" {
+		return config.ServerSettings.NodeSettings[fullConfigOption]
 	}
 
 	// If we have no setting we return an empty string

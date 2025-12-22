@@ -22,6 +22,7 @@ type yamlGraphNode struct {
 	Next                map[string]string `yaml:"next"`
 	CustomConfig        map[string]string `yaml:"custom_config,omitempty"`
 	CustomConfigLeggacy map[string]string `yaml:"customConfig,omitempty"`
+	ConfigPrefix        string            `yaml:"config_prefix,omitempty"`
 }
 
 func LoadFlowDefinitonFromString(content string) (*model.FlowDefinition, error) {
@@ -53,6 +54,7 @@ func (y *yamlFlowDefinition) convertToFlowDefinition() (*model.FlowDefinition, e
 			Use:          yn.Use,
 			Next:         yn.Next,
 			CustomConfig: yn.CustomConfig,
+			ConfigPrefix: yn.ConfigPrefix,
 		}
 	}
 

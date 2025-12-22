@@ -7,15 +7,15 @@ nodes:
     custom_config: {}
     next:
       start: genericOIDCLogin 
-      
   genericOIDCLogin:
     name: genericOIDCLogin
     use: genericOIDCLogin
+    config_prefix: oidc_google_
     custom_config:
-      issuer: https://accounts.google.com
-      client_id: "1099505135701-4lsuqir3ul33ipgoqeli2ahsiu4mvplo.apps.googleusercontent.com"
-      scope: "openid email profile"
-      claims: "email"
+      oidc_google_issuer: https://accounts.google.com
+      oidc_google_client_id: "1099505135701-4lsuqir3ul33ipgoqeli2ahsiu4mvplo.apps.googleusercontent.com"
+      oidc_google_scope: "openid email profile"
+      oidc_google_claims: "email"
     next:
       oidc_new_user: createUser
       oidc_existing_user: successResult

@@ -23,6 +23,7 @@ type NodeResult struct {
 
 type GraphNode struct {
 	Name         string            `json:"name"`                    // unique in graph
+	ConfigPrefix string            `json:"config_prefix,omitempty"` // for overrides (optional)
 	Use          string            `json:"use"`                     // reference to NodeDefinition.Name
 	Next         map[string]string `json:"next"`                    // condition -> next GraphNode.Name
 	CustomConfig map[string]string `json:"custom_config,omitempty"` // for overrides (optional)
