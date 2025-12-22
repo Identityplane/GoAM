@@ -1,5 +1,5 @@
 CREATE TABLE user_attributes (
-    id VARCHAR(36) PRIMARY KEY,
+    id VARCHAR(36) NOT NULL,
     user_id VARCHAR(36) NOT NULL,
     tenant VARCHAR(255) NOT NULL,
     realm VARCHAR(255) NOT NULL,
@@ -8,8 +8,9 @@ CREATE TABLE user_attributes (
     value JSONB NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE (tenant, realm, type, index_value)
+    FOREIGN KEY (user_id, tenant, realm) REFERENCES users(id, tenant, realm) ON DELETE CASCADE,
+    UNIQUE (tenant, realm, type, index_value),
+    PRIMARY KEY (id, tenant, realm)
 );
 
 CREATE INDEX idx_user_attributes_tenant_realm_user_id ON user_attributes(tenant, realm, user_id);

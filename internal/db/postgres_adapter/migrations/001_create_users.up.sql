@@ -2,11 +2,11 @@
 
 CREATE TABLE IF NOT EXISTS users (
     -- Unique UUID for the user
-    id VARCHAR(36) PRIMARY KEY,
+    id VARCHAR(36) NOT NULL,
 
     -- Organization Context
-    tenant VARCHAR(255) PRIMARY KEY,
-    realm VARCHAR(255) PRIMARY KEY,
+    tenant VARCHAR(255) NOT NULL,
+    realm VARCHAR(255) NOT NULL,
 
     -- User status
     status VARCHAR(50) NOT NULL DEFAULT 'active',
@@ -14,7 +14,10 @@ CREATE TABLE IF NOT EXISTS users (
     -- Audit
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    last_login_at TIMESTAMP WITH TIME ZONE
+    last_login_at TIMESTAMP WITH TIME ZONE,
+
+    -- Constraints
+    PRIMARY KEY (id, tenant, realm)
 );
 
 -- Create indexes
