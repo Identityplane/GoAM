@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/pkg/db"
 	"github.com/Identityplane/GoAM/pkg/model"
 
 	"github.com/jackc/pgx/v5"

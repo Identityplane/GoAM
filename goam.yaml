@@ -16,17 +16,19 @@ unsafe_disable_admin_auth: true
 db: goiam.db?_foreign_keys=on
 run_db_migrations: true
 
-# Node settings are propogated down to all nodes, realm 
+# Node settings are propogated down to all nodes in the realm
 node_settings:
-  telegram_bottoken: "8252112456:AAHrnmKsfK0lpjHDPCngmfjdqVcIJkC008E" #Throwaway bit id with goam.network activcated as url
+  telegram_bottoken: "8252112456:AAHrnmKsfK0lpjHDPCngmfjdqVcIJkC008E" #throwaway bot id with goam.network activcated as url
   github-client-id: "Iv23lidAagmbOGOBZqY8"
-  github-client-secret: "3b7ec03596fdd77021bf99a32698244af16f13bb" #throwaway bit id with http://localhost:8081 activated as return url
+  github-client-secret: "3b7ec03596fdd77021bf99a32698244af16f13bb" #throwaway bot id with http://localhost:8081 activated as return url
 
   # Yubico
   yubikey-apiurl: "https://api.yubico.com/wsapi/2.0/verify"
   yubikey-clientid: "114837"
   yubikey-apikey: "TE1s5tlnXF1oVYjv/34nEq9MWEM="
 
+  # OIDC
+  oidc_google_client_secret: "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" #throwaway client secret for google oidc
 
 # Extension can be used by extensions
 #extension_settings:

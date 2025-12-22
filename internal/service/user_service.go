@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/pkg/db"
 	"github.com/Identityplane/GoAM/pkg/model"
 	services_interface "github.com/Identityplane/GoAM/pkg/services"
 	"github.com/google/uuid"

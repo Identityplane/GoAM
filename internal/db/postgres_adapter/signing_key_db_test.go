@@ -3,7 +3,7 @@ package postgres_adapter
 import (
 	"testing"
 
-	"github.com/Identityplane/GoAM/internal/db"
+	"github.com/Identityplane/GoAM/pkg/db"
 
 	"github.com/stretchr/testify/require"
 )

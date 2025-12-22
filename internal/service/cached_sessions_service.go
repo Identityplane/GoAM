@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/pkg/db"
 	"github.com/Identityplane/GoAM/pkg/model"
 	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )

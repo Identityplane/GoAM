@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/pkg/db"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/google/uuid"
 )

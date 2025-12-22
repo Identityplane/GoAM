@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/Identityplane/GoAM/internal/service"
-
+	dbinit "github.com/Identityplane/GoAM/pkg/db/init"
 	"github.com/valyala/fasthttp"
 )
 
@@ -108,7 +108,11 @@ func handleInfo(ctx *fasthttp.RequestCtx) {
 	info["services"] = servicesInfo
 
 	// Get database implementations
-	databases := service.Databases
+	databases, err := dbinit.GetDatabaseConnections()
+	if err != nil {
+		info["databases"] = "cannot load databases"
+	}
+
 	databasesInfo := make(map[string]string)
 
 	// Use reflection to get the type information for databases

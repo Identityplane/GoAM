@@ -7,8 +7,8 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
 	"github.com/Identityplane/GoAM/internal/config"
-	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/lib"
+	"github.com/Identityplane/GoAM/pkg/db"
 	"github.com/Identityplane/GoAM/pkg/model"
 	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )

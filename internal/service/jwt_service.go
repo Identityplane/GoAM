@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Identityplane/GoAM/internal/db"
 	"github.com/Identityplane/GoAM/internal/lib/jwt_ec256"
+	"github.com/Identityplane/GoAM/pkg/db"
 	"github.com/Identityplane/GoAM/pkg/model"
 	services_interface "github.com/Identityplane/GoAM/pkg/services"
 
