@@ -608,7 +608,7 @@ func applyPatchToUser(existingUser *model.User, patchFlat *model.UserFlat, patch
 
 	if hasUsernameField {
 		// Get existing username value or create new one
-		usernameValue, _, err := model.GetAttribute[model.UsernameAttributeValue](existingUser, model.AttributeTypeUsername)
+		usernameValue, usernameAttr, err := model.GetAttribute[model.UsernameAttributeValue](existingUser, model.AttributeTypeUsername)
 		if err != nil || usernameValue == nil {
 			usernameValue = &model.UsernameAttributeValue{}
 		}
@@ -654,9 +654,33 @@ func applyPatchToUser(existingUser *model.User, patchFlat *model.UserFlat, patch
 			usernameValue.FamilyName = patchFlat.FamilyName
 		}
 
-		// Find or create the attribute and set the value
-		usernameAttr := findOrCreateAttribute(model.AttributeTypeUsername)
-		usernameAttr.Value = *usernameValue
+		// Only create/update username attribute if at least one field is non-empty
+		if usernameValue.PreferredUsername != "" ||
+			usernameValue.Website != "" ||
+			usernameValue.Zoneinfo != "" ||
+			usernameValue.Birthdate != "" ||
+			usernameValue.Gender != "" ||
+			usernameValue.Profile != "" ||
+			usernameValue.GivenName != "" ||
+			usernameValue.MiddleName != "" ||
+			usernameValue.Locale != "" ||
+			usernameValue.Picture != "" ||
+			usernameValue.Name != "" ||
+			usernameValue.Nickname != "" ||
+			usernameValue.FamilyName != "" {
+			// Find or create the attribute and set the value
+			usernameAttr := findOrCreateAttribute(model.AttributeTypeUsername)
+			usernameAttr.Value = *usernameValue
+		} else if usernameAttr != nil {
+			// If all fields are empty and attribute exists, remove it
+			// Find the attribute in the slice and remove it
+			for i, attr := range existingUser.UserAttributes {
+				if attr.Type == model.AttributeTypeUsername && attr.ID == usernameAttr.ID {
+					existingUser.UserAttributes = append(existingUser.UserAttributes[:i], existingUser.UserAttributes[i+1:]...)
+					break
+				}
+			}
+		}
 	}
 }
 

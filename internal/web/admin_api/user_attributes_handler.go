@@ -123,13 +123,8 @@ func HandleCreateUserAttribute(ctx *fasthttp.RequestCtx) {
 	createAttribute.Realm = realm
 	createAttribute.UserID = userID
 
-	// Set index from attribute value if it implements AttributeValue interface
-	if attrValue, ok := createAttribute.Value.(model.AttributeValue); ok {
-		index := attrValue.GetIndex()
-		if index != "" {
-			createAttribute.Index = &index
-		}
-	}
+	// Note: Index will be automatically set by the service layer using GetIndex() method
+	// No need to set it here as the service handles both concrete types and map[string]interface{}
 
 	// Create attribute through service
 	attribute, err := service.GetServices().UserAttributeService.CreateUserAttribute(ctx, createAttribute)
@@ -272,15 +267,8 @@ func HandleUpdateUserAttribute(ctx *fasthttp.RequestCtx) {
 	// Ensure type cannot be changed - use existing type
 	updateAttribute.Type = existingAttribute.Type
 
-	// Set index from attribute value if it implements AttributeValue interface
-	if attrValue, ok := updateAttribute.Value.(model.AttributeValue); ok {
-		index := attrValue.GetIndex()
-		if index != "" {
-			updateAttribute.Index = &index
-		} else {
-			updateAttribute.Index = nil
-		}
-	}
+	// Note: Index will be automatically set by the service layer using GetIndex() method
+	// No need to set it here as the service handles both concrete types and map[string]interface{}
 
 	// Update attribute through service
 	err = service.GetServices().UserAttributeService.UpdateUserAttribute(ctx, &updateAttribute)

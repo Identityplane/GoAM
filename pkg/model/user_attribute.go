@@ -67,74 +67,10 @@ func (ua *UserAttribute) isIndexSensitive() bool {
 
 	// If direct conversion fails, try to convert from map[string]interface{} (for database stored values)
 	if mapValue, ok := ua.Value.(map[string]interface{}); ok {
-		// Convert map to JSON and then try to unmarshal to known attribute types
-		jsonData, err := json.Marshal(mapValue)
-		if err != nil {
-			return false
-		}
-
-		// Try each known attribute type based on the Type field
-		switch ua.Type {
-		case AttributeTypeEmail:
-			var val EmailAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypePhone:
-			var val PhoneAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypeUsername:
-			var val UsernameAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypePassword:
-			var val PasswordAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypeTOTP:
-			var val TOTPAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypeGitHub:
-			var val GitHubAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypeTelegram:
-			var val TelegramAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypePasskey:
-			var val PasskeyAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypeYubico:
-			var val YubicoAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypeEntitlements:
-			var val EntitlementSetAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypeOidc:
-			var val OidcAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
-		case AttributeTypeDevice:
-			var val DeviceAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				return val.IndexIsSensitive()
-			}
+		// Use the converter map to convert to AttributeValue
+		attrValue := ConvertMapToAttributeValue(ua.Type, mapValue)
+		if attrValue != nil {
+			return attrValue.IndexIsSensitive()
 		}
 	}
 

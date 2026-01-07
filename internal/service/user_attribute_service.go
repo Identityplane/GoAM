@@ -93,13 +93,15 @@ func (s *userAttributeServiceImpl) DeleteUserAttribute(ctx context.Context, tena
 }
 
 // setIndexFromValue extracts the index from the attribute value using GetIndex() method
-// if the value implements the AttributeValue interface
+// if the value implements the AttributeValue interface. Handles both concrete types and
+// map[string]interface{} from JSON unmarshaling.
 func setIndexFromValue(attribute *model.UserAttribute) {
 	if attribute.Value == nil {
+		attribute.Index = nil
 		return
 	}
 
-	// Try to convert the value to AttributeValue interface
+	// Try to convert the value to AttributeValue interface directly
 	if attrValue, ok := attribute.Value.(model.AttributeValue); ok {
 		index := attrValue.GetIndex()
 		if index != "" {
@@ -110,7 +112,21 @@ func setIndexFromValue(attribute *model.UserAttribute) {
 		return
 	}
 
-	// log the error and dont set the index
-	log.Error().Msgf("failed to set index from value: %v", attribute.Value)
+	// If direct conversion fails, try to convert from map[string]interface{} (for JSON unmarshaled values)
+	if mapValue, ok := attribute.Value.(map[string]interface{}); ok {
+		// Use the converter map to convert to AttributeValue
+		attrValue := model.ConvertMapToAttributeValue(attribute.Type, mapValue)
+		if attrValue != nil {
+			index := attrValue.GetIndex()
+			if index != "" {
+				attribute.Index = &index
+			} else {
+				attribute.Index = nil
+			}
+			return
+		}
+	}
+
+	// If we can't convert to AttributeValue, set index to nil
 	attribute.Index = nil
 }
