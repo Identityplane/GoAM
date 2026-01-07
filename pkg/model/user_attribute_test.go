@@ -6,25 +6,17 @@ import (
 	"time"
 )
 
-func TestUserAttributeWithUsernameValue(t *testing.T) {
-	// Create a user attribute with a username attribute value
+func TestUserAttributeWithEmailValue(t *testing.T) {
+	// Create a user attribute with an email attribute value
 	userAttr := UserAttribute{
 		UserID: "123e4567-e89b-12d3-a456-426614174000",
 		Tenant: "acme",
 		Realm:  "customers",
-		Index:  stringPtr("google_1234567890"),
-		Type:   "social",
-		Value: UsernameAttributeValue{
-			PreferredUsername: "john.doe",
-			Website:           "https://example.com",
-			Zoneinfo:          "Europe/Berlin",
-			Birthdate:         "1990-01-01",
-			Gender:            "male",
-			Profile:           "https://example.com/profile",
-			GivenName:         "John",
-			MiddleName:        "Doe",
-			Locale:            "en-US",
-			Picture:           "https://example.com/picture.jpg",
+		Index:  stringPtr("john.doe@example.com"),
+		Type:   AttributeTypeEmail,
+		Value: EmailAttributeValue{
+			Email:    "john.doe@example.com",
+			Verified: true,
 		},
 		CreatedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 		UpdatedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -63,14 +55,14 @@ func TestUserAttributeWithUsernameValue(t *testing.T) {
 		t.Errorf("Expected UpdatedAt '%v', got '%v'", userAttr.UpdatedAt, decodedAttr.UpdatedAt)
 	}
 
-	// Verify the social value was properly encoded/decoded
+	// Verify the email value was properly encoded/decoded
 	// Note: The Value field is interface{} so we need to type assert it
-	if socialValue, ok := decodedAttr.Value.(map[string]interface{}); ok {
-		if socialValue["social_idp"] != "google" {
-			t.Errorf("Expected social_idp 'google', got '%v'", socialValue["social_idp"])
+	if emailValue, ok := decodedAttr.Value.(map[string]interface{}); ok {
+		if emailValue["email"] != "john.doe@example.com" {
+			t.Errorf("Expected email 'john.doe@example.com', got '%v'", emailValue["email"])
 		}
-		if socialValue["social_id"] != "1234567890" {
-			t.Errorf("Expected social_id '1234567890', got '%v'", socialValue["social_id"])
+		if emailValue["verified"] != true {
+			t.Errorf("Expected verified 'true', got '%v'", emailValue["verified"])
 		}
 	} else {
 		t.Errorf("Failed to type assert Value to map[string]interface{}")

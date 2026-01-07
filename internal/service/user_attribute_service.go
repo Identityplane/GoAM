@@ -58,8 +58,18 @@ func (s *userAttributeServiceImpl) CreateUserAttribute(ctx context.Context, attr
 		attribute.ID = uuid.NewString()
 	}
 
+	// Check if index was explicitly set to null (using sentinel value)
+	indexExplicitlyNull := false
+	if attribute.Index != nil && *attribute.Index == "__EXPLICIT_NULL__" {
+		indexExplicitlyNull = true
+		attribute.Index = nil
+	}
+
 	// Automatically set index from attribute value if it implements AttributeValue interface
-	setIndexFromValue(&attribute)
+	// But preserve null if it was explicitly set to null
+	if !indexExplicitlyNull {
+		setIndexFromValue(&attribute)
+	}
 
 	// Create the attribute
 	err = s.userAttributeDB.CreateUserAttribute(ctx, attribute)
@@ -81,9 +91,19 @@ func (s *userAttributeServiceImpl) UpdateUserAttribute(ctx context.Context, attr
 		return nil // Attribute not found
 	}
 
+	// Check if index was explicitly set to null (using sentinel value)
+	indexExplicitlyNull := false
+	if attribute.Index != nil && *attribute.Index == "__EXPLICIT_NULL__" {
+		indexExplicitlyNull = true
+		attribute.Index = nil
+	}
+
 	// Automatically set index from attribute value if it implements AttributeValue interface
 	// This ensures the index is updated if the value changed
-	setIndexFromValue(attribute)
+	// But preserve null if it was explicitly set to null
+	if !indexExplicitlyNull {
+		setIndexFromValue(attribute)
+	}
 
 	return s.userAttributeDB.UpdateUserAttribute(ctx, attribute)
 }

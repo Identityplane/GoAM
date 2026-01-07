@@ -221,8 +221,8 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 					UserID:    "user5",
 					Tenant:    "acme",
 					Realm:     "customers",
-					Index:     stringPtr("google"),
-					Type:      "social",
+					Index:     stringPtr("john.doe"),
+					Type:      AttributeTypeUsername,
 					Value:     UsernameAttributeValue{PreferredUsername: "john.doe", Website: "https://example.com", Zoneinfo: "Europe/Berlin", Birthdate: "1990-01-01", Gender: "male", Profile: "https://example.com/profile", GivenName: "John", MiddleName: "Doe", Locale: "en-US", Picture: "https://example.com/picture.jpg"},
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
@@ -242,27 +242,27 @@ func TestUserAttributeHelperMethods(t *testing.T) {
 		}
 
 		// Test various attribute types
-		socialAttrs := user.GetAttributesByType("social")
-		assert.Len(t, socialAttrs, 1)
-		assert.Equal(t, stringPtr("google"), socialAttrs[0].Index)
+		usernameAttrs := user.GetAttributesByType(AttributeTypeUsername)
+		assert.Len(t, usernameAttrs, 1)
+		assert.Equal(t, stringPtr("john.doe"), usernameAttrs[0].Index)
 
 		totpAttrs := user.GetAttributesByType("totp")
 		assert.Len(t, totpAttrs, 1)
 		assert.Equal(t, stringPtr("secret123"), totpAttrs[0].Index)
 
 		// Test GetAttribute with different types
-		socialAttr, _, err := GetAttribute[UsernameAttributeValue](user, "social")
+		usernameAttr, _, err := GetAttribute[UsernameAttributeValue](user, AttributeTypeUsername)
 		assert.NoError(t, err)
-		assert.NotNil(t, socialAttr)
-		assert.Equal(t, "john.doe", socialAttr.PreferredUsername)
-		assert.Equal(t, "https://example.com", socialAttr.Website)
-		assert.Equal(t, "Europe/Berlin", socialAttr.Zoneinfo)
-		assert.Equal(t, "1990-01-01", socialAttr.Birthdate)
-		assert.Equal(t, "male", socialAttr.Gender)
-		assert.Equal(t, "https://example.com/profile", socialAttr.Profile)
-		assert.Equal(t, "John", socialAttr.GivenName)
-		assert.Equal(t, "Doe", socialAttr.MiddleName)
-		assert.Equal(t, "en-US", socialAttr.Locale)
+		assert.NotNil(t, usernameAttr)
+		assert.Equal(t, "john.doe", usernameAttr.PreferredUsername)
+		assert.Equal(t, "https://example.com", usernameAttr.Website)
+		assert.Equal(t, "Europe/Berlin", usernameAttr.Zoneinfo)
+		assert.Equal(t, "1990-01-01", usernameAttr.Birthdate)
+		assert.Equal(t, "male", usernameAttr.Gender)
+		assert.Equal(t, "https://example.com/profile", usernameAttr.Profile)
+		assert.Equal(t, "John", usernameAttr.GivenName)
+		assert.Equal(t, "Doe", usernameAttr.MiddleName)
+		assert.Equal(t, "en-US", usernameAttr.Locale)
 
 		totpAttr, _, err := GetAttribute[TOTPAttributeValue](user, "totp")
 		assert.NoError(t, err)
