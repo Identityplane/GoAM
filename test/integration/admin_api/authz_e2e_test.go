@@ -110,7 +110,7 @@ func TestAdminAuthzE2E(t *testing.T) {
 		entitlements.Length().IsEqual(1)
 
 		entitlement := entitlements.Value(0).Object()
-		entitlement.Value("resource").String().IsEqual("test-tenant/**")
+		entitlement.Value("resource").String().IsEqual("/admin/test-tenant/**")
 		entitlement.Value("action").String().IsEqual("*")
 		entitlement.Value("effect").String().IsEqual("allow")
 		//entitlement.Value("description").String().IsEqual("Creator of tenant 'test-tenant'")
