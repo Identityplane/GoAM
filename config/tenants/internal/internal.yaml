@@ -1,6 +1,6 @@
 realm: internal
 realm_name: IAM Management Users
-base_url: http://localhost:8080/internal/internal
+base_url: http://localhost:8081/internal/internal
 
 flows:
   login_or_register:

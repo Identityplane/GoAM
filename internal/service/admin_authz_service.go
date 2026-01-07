@@ -53,7 +53,7 @@ func (s *adminAuthzServiceImpl) GetVisibleRealms(user *model.User) (map[string]*
 	visibleRealms := make(map[string]*services_interface.LoadedRealm)
 	for realmId, realm := range realms {
 
-		resource := fmt.Sprintf("%s/%s", realm.Config.Tenant, realm.Config.Realm)
+		resource := fmt.Sprintf("/admin/%s/%s", realm.Config.Tenant, realm.Config.Realm)
 		hasAccess, _ := s.CheckAccess(user, resource, "GET")
 		if hasAccess {
 			visibleRealms[realmId] = realm
@@ -115,7 +115,7 @@ func (s *adminAuthzServiceImpl) CreateTenant(tenantSlug, tenantName string, user
 			Entitlements: []model.Entitlement{
 				{
 					Description: fmt.Sprintf("Creator of tenant '%s'", tenantName),
-					Resource:    fmt.Sprintf("%s/**", tenantSlug),
+					Resource:    fmt.Sprintf("/admin/%s/**", tenantSlug),
 					Action:      "*",
 					Effect:      model.EffectTypeAllow,
 				},

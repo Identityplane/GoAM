@@ -151,11 +151,10 @@ nodes:
       github-client-id: Ov23lixgW7LykCkdRfuA
       github-client-secret: 75685c8076cd6f5646e7f227a8dda4010a75e7cb
       github-scope: read:user,user:email
-      create-user-if-not-exists: 'true'
+      github-create-user-if-not-exists: 'true'
     next:
-      sucess: node_486f74aa
       failure: node_5181e5ce
-      new-user: node_18ff8547
+      new-user: node_486f74aa
       existing-user: node_486f74aa
   node_486f74aa:
     name: messageConfirmation
@@ -168,11 +167,7 @@ nodes:
     name: failureResult
     use: failureResult
     next: {}
-  node_18ff8547:
-    name: githubCreateUser
-    use: githubCreateUser
-    next:
-      created: node_486f74aa
+
 editor:
   nodes:
     init:

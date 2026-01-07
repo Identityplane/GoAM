@@ -116,8 +116,10 @@ func getACRValuesSupported(tenant, realm string) ([]string, error) {
 	// Get the supported ACR values
 	acrValuesSupported := map[string]struct{}{}
 	for _, application := range applications {
-		for _, arcMapping := range application.Settings.ArcMapping {
-			acrValuesSupported[arcMapping.Acr] = struct{}{}
+		if application.Settings != nil && application.Settings.ArcMapping != nil {
+			for _, arcMapping := range application.Settings.ArcMapping {
+				acrValuesSupported[arcMapping.Acr] = struct{}{}
+			}
 		}
 	}
 
