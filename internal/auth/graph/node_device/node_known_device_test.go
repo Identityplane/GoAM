@@ -9,6 +9,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/repository"
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
+	"github.com/Identityplane/GoAM/pkg/model/attributes"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -114,7 +115,7 @@ func TestIsKnownDeviceNode(t *testing.T) {
 		CookieSameSite:   "Lax",
 		CookieHttpOnly:   true,
 		CookieSecure:     true,
-		SessionLoa0:      *model.InitSession(now, model.DEFAULT_LOA_TO_EXPIRY_MAPPINGS[0]),
+		SessionLoa0:      *attributes.InitSession(now, attributes.DEFAULT_LOA_TO_EXPIRY_MAPPINGS[0]),
 		SessionLoa1:      nil,
 		SessionLoa2:      nil,
 	}
@@ -264,7 +265,7 @@ func TestAddKnownDeviceAndThenIsKnownDevice(t *testing.T) {
 		CookieSameSite:   "Lax",
 		CookieHttpOnly:   true,
 		CookieSecure:     true,
-		SessionLoa0:      *model.InitSession(now, model.DEFAULT_LOA_TO_EXPIRY_MAPPINGS[0]),
+		SessionLoa0:      *attributes.InitSession(now, attributes.DEFAULT_LOA_TO_EXPIRY_MAPPINGS[0]),
 		SessionLoa1:      nil,
 		SessionLoa2:      nil,
 	}
@@ -417,7 +418,7 @@ func TestIsKnownDeviceNodeExpiredDevice(t *testing.T) {
 		CookieSameSite:   "Lax",
 		CookieHttpOnly:   true,
 		CookieSecure:     true,
-		SessionLoa0:      *model.InitSession(expiredTime, model.DEFAULT_LOA_TO_EXPIRY_MAPPINGS[0]),
+		SessionLoa0:      *attributes.InitSession(expiredTime, attributes.DEFAULT_LOA_TO_EXPIRY_MAPPINGS[0]),
 		SessionLoa1:      nil,
 		SessionLoa2:      nil,
 	}
@@ -507,7 +508,7 @@ func TestIsKnownDeviceNodeRefreshExpiry(t *testing.T) {
 	expiry := now.Add(10 * 24 * time.Hour)
 	// Last activity was 20 days ago (same as first login)
 	lastActivity := now.Add(-20 * 24 * time.Hour)
-	sessionLoa0 := model.Session{
+	sessionLoa0 := attributes.Session{
 		SessionDuration:     sessionDuration,
 		SessionRefreshAfter: sessionRefreshAfter,
 		SessionExpiry:       expiry,

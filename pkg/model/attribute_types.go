@@ -1,9 +1,7 @@
 package model
 
 import (
-	"time"
-
-	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/Identityplane/GoAM/pkg/model/attributes"
 )
 
 const (
@@ -21,152 +19,33 @@ const (
 	AttributeTypeOidc         = "identityplane:oidc"
 )
 
-// CredentialAttributeValue is the attribute value for credentials such as password otp etc
-// Credentials can be lockled and we track the number of failed attempts
-type CredentialAttributeValue struct {
-
-	// @description Whether the credential is locked
-	Locked bool `json:"locked" example:"false"`
-
-	// @description The number of failed attempts
-	FailedAttempts int `json:"failed_attempts" example:"0"`
+// AttributeValue is the interface that all attribute value types must implement
+// The GetIndex method returns a unique identifier for the attribute value
+// that can be used for user lookup within a realm
+// The IndexIsSensitive method returns whether the index should be omitted from JSON API responses
+type AttributeValue interface {
+	GetIndex() string
+	IndexIsSensitive() bool
 }
 
-// TOTPAttributeValue is the attribute value for TOTP
-// @description TOTP information
-type TOTPAttributeValue struct {
+// Type aliases for backward compatibility - these point to the types in the attributes package
+type EmailAttributeValue = attributes.EmailAttributeValue
+type PhoneAttributeValue = attributes.PhoneAttributeValue
+type UsernameAttributeValue = attributes.UsernameAttributeValue
+type PasswordAttributeValue = attributes.PasswordAttributeValue
+type TOTPAttributeValue = attributes.TOTPAttributeValue
+type GitHubAttributeValue = attributes.GitHubAttributeValue
+type TelegramAttributeValue = attributes.TelegramAttributeValue
+type PasskeyAttributeValue = attributes.PasskeyAttributeValue
+type YubicoAttributeValue = attributes.YubicoAttributeValue
+type EntitlementSetAttributeValue = attributes.EntitlementSetAttributeValue
+type Entitlement = attributes.Entitlement
+type EffectType = attributes.EffectType
+type OidcAttributeValue = attributes.OidcAttributeValue
+type DeviceAttributeValue = attributes.DeviceAttributeValue
 
-	// @description The secret key for the TOTP
-	SecretKey string `json:"secret" example:"1234567890"`
-
-	// @description Whether the TOTP is locked
-	Locked bool `json:"locked" example:"false"`
-
-	// @description The number of failed attempts
-	FailedAttempts int `json:"failed_attempts" example:"0"`
-}
-
-// UsernameAttributeValue is the attribute value for usernames
-// @description Username information
-type UsernameAttributeValue struct {
-	PreferredUsername string `json:"preferred_username" example:"john.doe"`
-	Website           string `json:"website" example:"https://example.com"`
-	Zoneinfo          string `json:"zoneinfo" example:"Europe/Berlin"`
-	Birthdate         string `json:"birthdate" example:"1990-01-01"`
-	Gender            string `json:"gender" example:"male"`
-	Profile           string `json:"profile" example:"https://example.com/profile"`
-	GivenName         string `json:"given_name" example:"John"`
-	MiddleName        string `json:"middle_name" example:"Doe"`
-	Locale            string `json:"locale" example:"en-US"`
-	Picture           string `json:"picture" example:"https://example.com/picture.jpg"`
-	UpdatedAt         string `json:"updated_at" example:"2024-01-01T00:00:00Z"`
-	Name              string `json:"name" example:"John Doe"`
-	Nickname          string `json:"nickname" example:"john.doe"`
-	FamilyName        string `json:"family_name" example:"Doe"`
-}
-
-// GitHubAttributeValue is the attribute value for GitHub
-// @description GitHub information
-type GitHubAttributeValue struct {
-	GitHubUserID       string `json:"github_user_id" example:"1234567890"`
-	GitHubRefreshToken string `json:"github_refresh_token" example:"1234567890"`
-	GitHubEmail        string `json:"github_email" example:"john.doe@example.com"`
-	GitHubAvatarURL    string `json:"github_avatar_url" example:"https://example.com/avatar.jpg"`
-	GitHubUsername     string `json:"github_username" example:"john.doe"`
-	GitHubAccessToken  string `json:"github_access_token" example:"1234567890"`
-	GitHubTokenType    string `json:"github_token_type" example:"bearer"`
-	GitHubScope        string `json:"github_scope" example:"user:email"`
-}
-
-// SocialAttributeValue is the attribute value for social accounts
-// @description Social account information
-type SocialAttributeValue struct {
-	SocialIDP string `json:"social_idp" example:"google"`
-	SocialID  string `json:"social_id" example:"1234567890"`
-}
-
-// PasswordAttributeValue is the attribute value for passwords
-// @description Password information
-type PasswordAttributeValue struct {
-	PasswordHash         string     `json:"password_hash" example:"password"`
-	Locked               bool       `json:"locked" example:"false"`
-	FailedAttempts       int        `json:"failed_attempts" example:"0"`
-	LastCorrectTimestamp *time.Time `json:"last_correct_timestamp,omitempty" example:"2024-01-01T00:00:00Z"`
-}
-
-// EmailAttributeValue is the attribute value for emails
-// @description Email information
-type EmailAttributeValue struct {
-	Email      string     `json:"email" example:"john.doe@example.com"`
-	Verified   bool       `json:"verified" example:"true"`
-	VerifiedAt *time.Time `json:"verified_at" example:"2024-01-01T00:00:00Z"`
-
-	OtpFailedAttempts int  `json:"otp_failed_attempts" example:"0"`
-	OtpLocked         bool `json:"otp_locked" example:"false"`
-}
-
-// PhoneAttributeValue is the attribute value for phones
-// @description Phone information
-type PhoneAttributeValue struct {
-	Phone      string     `json:"phone" example:"+1234567890"`
-	Verified   bool       `json:"verified" example:"true"`
-	VerifiedAt *time.Time `json:"verified_at" example:"2024-01-01T00:00:00Z"`
-}
-
-// PasskeyAttributeValue is the attribute value for passkeys
-// @description Passkey information
-type PasskeyAttributeValue struct {
-	RPID               string               `json:"rp_id" example:"example.com"`
-	CredentialID       string               `json:"credential_id" example:"1234567890"`
-	DisplayName        string               `json:"display_name" example:"John Doe"`
-	WebAuthnCredential *webauthn.Credential `json:"webauthn_credential" example:"{}"`
-	LastUsedAt         *time.Time           `json:"last_used_at" example:"2024-01-01T00:00:00Z"`
-}
-
-// UserProfileAttributeValue is the attribute value for user profiles
-// @description User profile information
-type UserProfileAttributeValue struct {
-	DisplayName string `json:"display_name" example:"John Doe"`
-	GivenName   string `json:"given_name" example:"John"`
-	FamilyName  string `json:"family_name" example:"Doe"`
-	Locale      string `json:"locale" example:"en-US"`
-	PictureUri  string `json:"picture_uri" example:"https://example.com/profile.jpg"`
-}
-
-// TelegramAttributeValue is the attribute value for Telegram accounts
-// @description Telegram information
-type TelegramAttributeValue struct {
-	TelegramUserID    string `json:"telegram_user_id" example:"1234567890"`
-	TelegramUsername  string `json:"telegram_username" example:"johndoe"`
-	TelegramFirstName string `json:"telegram_first_name" example:"John"`
-	TelegramPhotoURL  string `json:"telegram_photo_url" example:"https://t.me/i/userpic/123/photo.jpg"`
-	TelegramAuthDate  int64  `json:"telegram_auth_date" example:"1753278987"`
-}
-
-// EntitlementSet is a set of entitlements
-// @description Entitlement set information
-type EntitlementSetAttributeValue struct {
-	Entitlements []Entitlement `json:"entitlements" example:"['admin', 'user']"`
-}
-
-type Entitlement struct {
-	Description string     `json:"description" example:"Admin"`
-	Resource    string     `json:"resource" example:"arn:identityplane:acme:customers:users:123"`
-	Action      string     `json:"action" example:"read"`
-	Effect      EffectType `json:"effect" example:"allow"`
-}
-
-type EffectType string
-
+// Constants for EffectType
 const (
-	EffectTypeAllow EffectType = "allow"
-	EffectTypeDeny  EffectType = "deny"
+	EffectTypeAllow EffectType = attributes.EffectTypeAllow
+	EffectTypeDeny  EffectType = attributes.EffectTypeDeny
 )
-
-type YubicoAttributeValue struct {
-
-	// @description The public id for the yubikey
-	PublicID string `json:"public_id" example:"vvcijgklnrbf"`
-
-	CredentialAttributeValue
-}

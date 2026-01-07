@@ -20,12 +20,125 @@ type UserAttribute struct {
 	Tenant string `json:"-" db:"tenant" example:"acme"`                                  // The tenant of the user who this attribute belongs to
 	Realm  string `json:"-" db:"realm" example:"customers"`                              // The realm of the user who this attribute belongs to
 
-	Index *string `json:"index" db:"index_value" example:""` // the index can be used to lookup a user by attribute, e.g. by social idp login name. Index should be unique per realm
-	Type  string  `json:"type" db:"type" example:"password"` // the type of the attribute, e.g. password, email, phone, etc.
-	Value any     `json:"value" db:"value"`                  // the value of the attribute, e.g. password, email, phone, etc.
+	Index *string `json:"index,omitempty" db:"index_value" example:""` // the index can be used to lookup a user by attribute, e.g. by social idp login name. Index should be unique per realm
+	Type  string  `json:"type" db:"type" example:"password"`           // the type of the attribute, e.g. password, email, phone, etc.
+	Value any     `json:"value" db:"value"`                            // the value of the attribute, e.g. password, email, phone, etc.
 
 	CreatedAt time.Time `json:"created_at" db:"created_at" example:"2024-01-01T00:00:00Z"` // The time the attribute was created
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at" example:"2024-01-01T00:00:00Z"` // The time the attribute was last updated
+}
+
+// MarshalJSON implements custom JSON marshaling to omit the index if it's sensitive
+func (ua *UserAttribute) MarshalJSON() ([]byte, error) {
+	// Create a type alias to avoid infinite recursion
+	type Alias UserAttribute
+
+	// Check if the index is sensitive
+	indexIsSensitive := ua.isIndexSensitive()
+
+	// Create a struct for JSON marshaling
+	aux := &struct {
+		*Alias
+		Index *string `json:"index,omitempty"`
+	}{
+		Alias: (*Alias)(ua),
+	}
+
+	// Only include index if it's not sensitive
+	if indexIsSensitive {
+		aux.Index = nil
+	} else {
+		aux.Index = ua.Index
+	}
+
+	return json.Marshal(aux)
+}
+
+// isIndexSensitive checks if the attribute's index should be omitted from JSON responses
+func (ua *UserAttribute) isIndexSensitive() bool {
+	if ua.Value == nil {
+		return false
+	}
+
+	// Try to convert the value to AttributeValue interface
+	if attrValue, ok := ua.Value.(AttributeValue); ok {
+		return attrValue.IndexIsSensitive()
+	}
+
+	// If direct conversion fails, try to convert from map[string]interface{} (for database stored values)
+	if mapValue, ok := ua.Value.(map[string]interface{}); ok {
+		// Convert map to JSON and then try to unmarshal to known attribute types
+		jsonData, err := json.Marshal(mapValue)
+		if err != nil {
+			return false
+		}
+
+		// Try each known attribute type based on the Type field
+		switch ua.Type {
+		case AttributeTypeEmail:
+			var val EmailAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypePhone:
+			var val PhoneAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypeUsername:
+			var val UsernameAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypePassword:
+			var val PasswordAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypeTOTP:
+			var val TOTPAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypeGitHub:
+			var val GitHubAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypeTelegram:
+			var val TelegramAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypePasskey:
+			var val PasskeyAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypeYubico:
+			var val YubicoAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypeEntitlements:
+			var val EntitlementSetAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypeOidc:
+			var val OidcAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		case AttributeTypeDevice:
+			var val DeviceAttributeValue
+			if err := json.Unmarshal(jsonData, &val); err == nil {
+				return val.IndexIsSensitive()
+			}
+		}
+	}
+
+	return false
 }
 
 // Equals compares this attribute with another attribute, checking all fields except timestamps

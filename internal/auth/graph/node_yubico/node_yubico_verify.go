@@ -153,11 +153,9 @@ func CreateUserWithYubico(services *model.Repositories, state *model.Authenticat
 		Type:  model.AttributeTypeYubico,
 		Index: index,
 		Value: model.YubicoAttributeValue{
-			PublicID: publicId,
-			CredentialAttributeValue: model.CredentialAttributeValue{
-				Locked:         false,
-				FailedAttempts: 0,
-			},
+			PublicID:       publicId,
+			Locked:         false,
+			FailedAttempts: 0,
 		},
 	}
 

@@ -6,17 +6,25 @@ import (
 	"time"
 )
 
-func TestUserAttributeWithSocialValue(t *testing.T) {
-	// Create a user attribute with a social attribute value
+func TestUserAttributeWithUsernameValue(t *testing.T) {
+	// Create a user attribute with a username attribute value
 	userAttr := UserAttribute{
 		UserID: "123e4567-e89b-12d3-a456-426614174000",
 		Tenant: "acme",
 		Realm:  "customers",
 		Index:  stringPtr("google_1234567890"),
 		Type:   "social",
-		Value: SocialAttributeValue{
-			SocialIDP: "google",
-			SocialID:  "1234567890",
+		Value: UsernameAttributeValue{
+			PreferredUsername: "john.doe",
+			Website:           "https://example.com",
+			Zoneinfo:          "Europe/Berlin",
+			Birthdate:         "1990-01-01",
+			Gender:            "male",
+			Profile:           "https://example.com/profile",
+			GivenName:         "John",
+			MiddleName:        "Doe",
+			Locale:            "en-US",
+			Picture:           "https://example.com/picture.jpg",
 		},
 		CreatedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 		UpdatedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),

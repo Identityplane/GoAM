@@ -521,9 +521,8 @@ func applyPatchToUser(existingUser *model.User, patchFlat *model.UserFlat, patch
 		return newAttr
 	}
 
-	// Update email attribute if any email field is present
-	hasEmailField := patchFields["email"] || patchFields["email_verified"] || patchFields["email_verified_at"]
-	if hasEmailField {
+	// Update email attribute if email field is present and not empty
+	if patchFields["email"] && patchFlat.Email != "" {
 		// Get existing email value or create new one
 		emailValue, _, err := model.GetAttribute[model.EmailAttributeValue](existingUser, model.AttributeTypeEmail)
 		if err != nil || emailValue == nil {
@@ -531,9 +530,7 @@ func applyPatchToUser(existingUser *model.User, patchFlat *model.UserFlat, patch
 		}
 
 		// Update only the fields present in the patch
-		if patchFields["email"] {
-			emailValue.Email = patchFlat.Email
-		}
+		emailValue.Email = patchFlat.Email
 		if patchFields["email_verified"] && patchFlat.EmailVerified != nil {
 			emailValue.Verified = *patchFlat.EmailVerified
 		}
@@ -544,11 +541,23 @@ func applyPatchToUser(existingUser *model.User, patchFlat *model.UserFlat, patch
 		// Find or create the attribute and set the value
 		emailAttr := findOrCreateAttribute(model.AttributeTypeEmail)
 		emailAttr.Value = *emailValue
+	} else if patchFields["email_verified"] || patchFields["email_verified_at"] {
+		// Only update verified fields if email attribute already exists
+		emailValue, emailAttr, err := model.GetAttribute[model.EmailAttributeValue](existingUser, model.AttributeTypeEmail)
+		if err == nil && emailValue != nil && emailAttr != nil && emailValue.Email != "" {
+			// Update only the verified fields
+			if patchFields["email_verified"] && patchFlat.EmailVerified != nil {
+				emailValue.Verified = *patchFlat.EmailVerified
+			}
+			if patchFields["email_verified_at"] {
+				emailValue.VerifiedAt = patchFlat.EmailVerifiedAt
+			}
+			emailAttr.Value = *emailValue
+		}
 	}
 
-	// Update phone attribute if any phone field is present
-	hasPhoneField := patchFields["phone"] || patchFields["phone_verified"] || patchFields["phone_verified_at"]
-	if hasPhoneField {
+	// Update phone attribute if phone field is present and not empty
+	if patchFields["phone"] && patchFlat.Phone != "" {
 		// Get existing phone value or create new one
 		phoneValue, _, err := model.GetAttribute[model.PhoneAttributeValue](existingUser, model.AttributeTypePhone)
 		if err != nil || phoneValue == nil {
@@ -556,9 +565,7 @@ func applyPatchToUser(existingUser *model.User, patchFlat *model.UserFlat, patch
 		}
 
 		// Update only the fields present in the patch
-		if patchFields["phone"] {
-			phoneValue.Phone = patchFlat.Phone
-		}
+		phoneValue.Phone = patchFlat.Phone
 		if patchFields["phone_verified"] && patchFlat.PhoneVerified != nil {
 			phoneValue.Verified = *patchFlat.PhoneVerified
 		}
@@ -569,6 +576,19 @@ func applyPatchToUser(existingUser *model.User, patchFlat *model.UserFlat, patch
 		// Find or create the attribute and set the value
 		phoneAttr := findOrCreateAttribute(model.AttributeTypePhone)
 		phoneAttr.Value = *phoneValue
+	} else if patchFields["phone_verified"] || patchFields["phone_verified_at"] {
+		// Only update verified fields if phone attribute already exists
+		phoneValue, phoneAttr, err := model.GetAttribute[model.PhoneAttributeValue](existingUser, model.AttributeTypePhone)
+		if err == nil && phoneValue != nil && phoneAttr != nil && phoneValue.Phone != "" {
+			// Update only the verified fields
+			if patchFields["phone_verified"] && patchFlat.PhoneVerified != nil {
+				phoneValue.Verified = *patchFlat.PhoneVerified
+			}
+			if patchFields["phone_verified_at"] {
+				phoneValue.VerifiedAt = patchFlat.PhoneVerifiedAt
+			}
+			phoneAttr.Value = *phoneValue
+		}
 	}
 
 	// Update username attribute if any username field is present

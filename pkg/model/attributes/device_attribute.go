@@ -1,4 +1,4 @@
-package model
+package attributes
 
 import "time"
 
@@ -24,6 +24,16 @@ type DeviceAttributeValue struct {
 	SessionLoa0 Session  `json:"session_loa0" example:"{}"` // Session for LOA0 (typically no active authentication e.g. device only)
 	SessionLoa1 *Session `json:"session_loa1" example:"{}"` // Session for LOA1 (typically normal authentication)
 	SessionLoa2 *Session `json:"session_loa2" example:"{}"` // Session for LOA2 (typically strong authentication)
+}
+
+// GetIndex returns the index of the device attribute value
+func (d *DeviceAttributeValue) GetIndex() string {
+	return d.DeviceSecretHash
+}
+
+// IndexIsSensitive returns whether the index should be omitted from JSON API responses
+func (d *DeviceAttributeValue) IndexIsSensitive() bool {
+	return true // Device secret hashes are sensitive
 }
 
 // Session is a session for a device

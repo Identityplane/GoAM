@@ -111,11 +111,9 @@ func RunYubicoCreateNode(state *model.AuthenticationSession, node *model.GraphNo
 		Type:  model.AttributeTypeYubico,
 		Index: index,
 		Value: model.YubicoAttributeValue{
-			PublicID: publicId,
-			CredentialAttributeValue: model.CredentialAttributeValue{
-				Locked:         false,
-				FailedAttempts: 0,
-			},
+			PublicID:       publicId,
+			Locked:         false,
+			FailedAttempts: 0,
 		},
 	}
 

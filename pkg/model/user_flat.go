@@ -137,25 +137,41 @@ func (userflat *UserFlat) ToUser() *User {
 		})
 	}
 
-	// Add the username attribute
-	user.AddAttribute(&UserAttribute{
-		Type: AttributeTypeUsername,
-		Value: UsernameAttributeValue{
-			PreferredUsername: userflat.PreferredUsername,
-			Website:           userflat.Website,
-			Zoneinfo:          userflat.Zoneinfo,
-			Birthdate:         userflat.Birthdate,
-			Gender:            userflat.Gender,
-			Profile:           userflat.Profile,
-			GivenName:         userflat.GivenName,
-			MiddleName:        userflat.MiddleName,
-			Locale:            userflat.Locale,
-			Picture:           userflat.Picture,
-			Name:              userflat.Name,
-			Nickname:          userflat.Nickname,
-			FamilyName:        userflat.FamilyName,
-		},
-	})
+	// Add the username attribute (only if at least one field is present)
+	usernameValue := UsernameAttributeValue{
+		PreferredUsername: userflat.PreferredUsername,
+		Website:           userflat.Website,
+		Zoneinfo:          userflat.Zoneinfo,
+		Birthdate:         userflat.Birthdate,
+		Gender:            userflat.Gender,
+		Profile:           userflat.Profile,
+		GivenName:         userflat.GivenName,
+		MiddleName:        userflat.MiddleName,
+		Locale:            userflat.Locale,
+		Picture:           userflat.Picture,
+		Name:              userflat.Name,
+		Nickname:          userflat.Nickname,
+		FamilyName:        userflat.FamilyName,
+	}
+	// Only create username attribute if at least one field is non-empty
+	if usernameValue.PreferredUsername != "" ||
+		usernameValue.Website != "" ||
+		usernameValue.Zoneinfo != "" ||
+		usernameValue.Birthdate != "" ||
+		usernameValue.Gender != "" ||
+		usernameValue.Profile != "" ||
+		usernameValue.GivenName != "" ||
+		usernameValue.MiddleName != "" ||
+		usernameValue.Locale != "" ||
+		usernameValue.Picture != "" ||
+		usernameValue.Name != "" ||
+		usernameValue.Nickname != "" ||
+		usernameValue.FamilyName != "" {
+		user.AddAttribute(&UserAttribute{
+			Type:  AttributeTypeUsername,
+			Value: usernameValue,
+		})
+	}
 
 	return user
 }

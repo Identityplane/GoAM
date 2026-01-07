@@ -34,3 +34,8 @@ type OidcAttributeValue struct {
 func (o *OidcAttributeValue) GetIndex() string {
 	return o.Issuer + "/" + o.Sub
 }
+
+// IndexIsSensitive returns whether the index should be omitted from JSON API responses
+func (o *OidcAttributeValue) IndexIsSensitive() bool {
+	return false // OIDC issuer/sub is not sensitive
+}

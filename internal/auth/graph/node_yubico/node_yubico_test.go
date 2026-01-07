@@ -362,11 +362,9 @@ func TestYubicoVerifyNodeWithInternalError(t *testing.T) {
 		UserID: testUser.ID,
 		Type:   model.AttributeTypeYubico,
 		Value: model.YubicoAttributeValue{
-			PublicID: "cccccckdvvul",
-			CredentialAttributeValue: model.CredentialAttributeValue{
-				Locked:         false,
-				FailedAttempts: 0,
-			},
+			PublicID:       "cccccckdvvul",
+			Locked:         false,
+			FailedAttempts: 0,
 		},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -540,11 +538,9 @@ func TestYubicoVerifyNodeWithLockedYubikey(t *testing.T) {
 		UserID: testUser.ID,
 		Type:   model.AttributeTypeYubico,
 		Value: model.YubicoAttributeValue{
-			PublicID: "cccccckdvvul",
-			CredentialAttributeValue: model.CredentialAttributeValue{
-				Locked:         true, // Yubikey is locked
-				FailedAttempts: 5,
-			},
+			PublicID:       "cccccckdvvul",
+			Locked:         true, // Yubikey is locked
+			FailedAttempts: 5,
 		},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),

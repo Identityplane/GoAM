@@ -9,6 +9,7 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
+	"github.com/Identityplane/GoAM/pkg/model/attributes"
 )
 
 const (
@@ -125,21 +126,21 @@ func initSessions(device *model.DeviceAttributeValue, now time.Time, state *mode
 	mappings := getLoaToExpiryMapping()
 
 	// We always init the LOA0 session
-	device.SessionLoa0 = *model.InitSession(now, mappings[0])
+	device.SessionLoa0 = *attributes.InitSession(now, mappings[0])
 
 	// We init the LOA1 session if the loa is 1 or 2
 	if loa >= 1 && len(mappings) > 1 {
-		device.SessionLoa1 = model.InitSession(now, mappings[1])
+		device.SessionLoa1 = attributes.InitSession(now, mappings[1])
 	}
 
 	// We init the LOA2 session if the loa is 2
 	if loa >= 2 && len(mappings) > 2 {
-		device.SessionLoa2 = model.InitSession(now, mappings[2])
+		device.SessionLoa2 = attributes.InitSession(now, mappings[2])
 	}
 
 	return nil
 }
 
-func getLoaToExpiryMapping() []model.LoaToExpiryMapping {
-	return model.DEFAULT_LOA_TO_EXPIRY_MAPPINGS
+func getLoaToExpiryMapping() []attributes.LoaToExpiryMapping {
+	return attributes.DEFAULT_LOA_TO_EXPIRY_MAPPINGS
 }
