@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/Identityplane/GoAM/pkg/db"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -111,137 +110,7 @@ func setIndexFromValue(attribute *model.UserAttribute) {
 		return
 	}
 
-	// If direct conversion fails, try to convert from map[string]interface{} (for database stored values)
-	if mapValue, ok := attribute.Value.(map[string]interface{}); ok {
-		// Convert map to JSON and then try to unmarshal to known attribute types
-		jsonData, err := json.Marshal(mapValue)
-		if err != nil {
-			attribute.Index = nil
-			return
-		}
-
-		// Try each known attribute type based on the Type field
-		switch attribute.Type {
-		case model.AttributeTypeEmail:
-			var val model.EmailAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypePhone:
-			var val model.PhoneAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypeUsername:
-			var val model.UsernameAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypePassword:
-			var val model.PasswordAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypeTOTP:
-			var val model.TOTPAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypeGitHub:
-			var val model.GitHubAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypeTelegram:
-			var val model.TelegramAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypePasskey:
-			var val model.PasskeyAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypeYubico:
-			var val model.YubicoAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypeEntitlements:
-			var val model.EntitlementSetAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypeOidc:
-			var val model.OidcAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		case model.AttributeTypeDevice:
-			var val model.DeviceAttributeValue
-			if err := json.Unmarshal(jsonData, &val); err == nil {
-				index := val.GetIndex()
-				if index != "" {
-					attribute.Index = &index
-				} else {
-					attribute.Index = nil
-				}
-			}
-		}
-	}
+	// log the error and dont set the index
+	log.Error().Msgf("failed to set index from value: %v", attribute.Value)
+	attribute.Index = nil
 }

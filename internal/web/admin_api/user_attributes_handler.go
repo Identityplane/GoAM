@@ -18,6 +18,7 @@ import (
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
 // @Param id path string true "User ID"
+// @Param type query string false "Filter by attribute type"
 // @Success 200 {array} model.UserAttribute
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
@@ -49,6 +50,18 @@ func HandleListUserAttributes(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("User not found")
 		return
+	}
+
+	// Filter by type if provided
+	typeFilter := string(ctx.QueryArgs().Peek("type"))
+	if typeFilter != "" {
+		filtered := []*model.UserAttribute{}
+		for _, attr := range attributes {
+			if attr.Type == typeFilter {
+				filtered = append(filtered, attr)
+			}
+		}
+		attributes = filtered
 	}
 
 	// If no attributes, return empty array (not nil)
@@ -154,13 +167,12 @@ func HandleCreateUserAttribute(ctx *fasthttp.RequestCtx) {
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
 // @Param id path string true "User ID"
-// @Param attribute-type path string true "Attribute type"
 // @Param attribute-id path string true "Attribute ID"
 // @Success 200 {object} model.UserAttribute
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /admin/{tenant}/{realm}/users/{id}/attributes/{attribute-type}/{attribute-id} [get]
+// @Router /admin/{tenant}/{realm}/users/{id}/attributes/{attribute-id} [get]
 func HandleGetUserAttribute(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
@@ -210,14 +222,13 @@ func HandleGetUserAttribute(ctx *fasthttp.RequestCtx) {
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
 // @Param id path string true "User ID"
-// @Param attribute-type path string true "Attribute type"
 // @Param attribute-id path string true "Attribute ID"
 // @Param attribute body model.UserAttribute true "User attribute object"
 // @Success 200 {object} model.UserAttribute
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /admin/{tenant}/{realm}/users/{id}/attributes/{attribute-type}/{attribute-id} [patch]
+// @Router /admin/{tenant}/{realm}/users/{id}/attributes/{attribute-id} [patch]
 func HandleUpdateUserAttribute(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)
@@ -229,6 +240,19 @@ func HandleUpdateUserAttribute(ctx *fasthttp.RequestCtx) {
 	if !ok {
 		ctx.SetStatusCode(http.StatusNotFound)
 		ctx.SetBodyString("Realm not found")
+		return
+	}
+
+	// Get existing attribute to verify it exists and get its type
+	existingAttribute, err := service.GetServices().UserAttributeService.GetUserAttributeByID(ctx, tenant, realm, attributeID)
+	if err != nil {
+		ctx.SetStatusCode(http.StatusInternalServerError)
+		ctx.SetBodyString("Failed to get existing attribute: " + err.Error())
+		return
+	}
+	if existingAttribute == nil {
+		ctx.SetStatusCode(http.StatusNotFound)
+		ctx.SetBodyString("Attribute not found")
 		return
 	}
 
@@ -245,6 +269,9 @@ func HandleUpdateUserAttribute(ctx *fasthttp.RequestCtx) {
 	updateAttribute.Realm = realm
 	updateAttribute.ID = attributeID
 
+	// Ensure type cannot be changed - use existing type
+	updateAttribute.Type = existingAttribute.Type
+
 	// Set index from attribute value if it implements AttributeValue interface
 	if attrValue, ok := updateAttribute.Value.(model.AttributeValue); ok {
 		index := attrValue.GetIndex()
@@ -256,7 +283,7 @@ func HandleUpdateUserAttribute(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Update attribute through service
-	err := service.GetServices().UserAttributeService.UpdateUserAttribute(ctx, &updateAttribute)
+	err = service.GetServices().UserAttributeService.UpdateUserAttribute(ctx, &updateAttribute)
 	if err != nil {
 		ctx.SetStatusCode(http.StatusInternalServerError)
 		ctx.SetBodyString("Failed to update user attribute: " + err.Error())
@@ -298,13 +325,12 @@ func HandleUpdateUserAttribute(ctx *fasthttp.RequestCtx) {
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
 // @Param id path string true "User ID"
-// @Param attribute-type path string true "Attribute type"
 // @Param attribute-id path string true "Attribute ID"
 // @Success 204 "No Content"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 404 {string} string "Not Found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /admin/{tenant}/{realm}/users/{id}/attributes/{attribute-type}/{attribute-id} [delete]
+// @Router /admin/{tenant}/{realm}/users/{id}/attributes/{attribute-id} [delete]
 func HandleDeleteUserAttribute(ctx *fasthttp.RequestCtx) {
 	// Get path parameters
 	tenant := ctx.UserValue("tenant").(string)

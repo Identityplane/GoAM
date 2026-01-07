@@ -15,3 +15,6 @@ internal/db/sqlite_adapter/user_attribute_db.go
 *.fasthttp.br
 goam.yaml
 *.DS_Store
+goiam.db-shm
+.gitignore
+goiam.db-wal

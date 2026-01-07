@@ -40,9 +40,9 @@ func New() *router.Router {
 	// User attribute management routes
 	admin.GET("/{tenant}/{realm}/users/{id}/attributes", adminMiddleware(admin_api.HandleListUserAttributes))
 	admin.POST("/{tenant}/{realm}/users/{id}/attributes", adminMiddleware(admin_api.HandleCreateUserAttribute))
-	admin.GET("/{tenant}/{realm}/users/{id}/attributes/{attribute-type}/{attribute-id}", adminMiddleware(admin_api.HandleGetUserAttribute))
-	admin.PATCH("/{tenant}/{realm}/users/{id}/attributes/{attribute-type}/{attribute-id}", adminMiddleware(admin_api.HandleUpdateUserAttribute))
-	admin.DELETE("/{tenant}/{realm}/users/{id}/attributes/{attribute-type}/{attribute-id}", adminMiddleware(admin_api.HandleDeleteUserAttribute))
+	admin.GET("/{tenant}/{realm}/users/{id}/attributes/{attribute-id}", adminMiddleware(admin_api.HandleGetUserAttribute))
+	admin.PATCH("/{tenant}/{realm}/users/{id}/attributes/{attribute-id}", adminMiddleware(admin_api.HandleUpdateUserAttribute))
+	admin.DELETE("/{tenant}/{realm}/users/{id}/attributes/{attribute-id}", adminMiddleware(admin_api.HandleDeleteUserAttribute))
 
 	admin.GET("/{tenant}/{realm}/dashboard", adminMiddleware(admin_api.HandleDashboard))
 

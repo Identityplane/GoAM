@@ -20,9 +20,38 @@ var log = logger.GetGoamLogger()
 
 func Init(cfg Config) (*sql.DB, error) {
 	var err error
-	database, err := sql.Open(cfg.Driver, cfg.DSN)
+	// Add connection parameters for better concurrency
+	// _busy_timeout sets how long SQLite will wait for a lock (in milliseconds)
+	// _journal_mode=WAL enables Write-Ahead Logging for better concurrency
+	dsn := cfg.DSN
+	if !strings.Contains(dsn, "_busy_timeout") {
+		if strings.Contains(dsn, "?") {
+			dsn += "&_busy_timeout=5000&_journal_mode=WAL"
+		} else {
+			dsn += "?_busy_timeout=5000&_journal_mode=WAL"
+		}
+	}
+
+	database, err := sql.Open(cfg.Driver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("db open: %w", err)
+	}
+
+	// Set connection pool settings
+	database.SetMaxOpenConns(1) // SQLite works best with a single connection
+	database.SetMaxIdleConns(1)
+	database.SetConnMaxLifetime(0) // Keep connections alive
+
+	// Set busy timeout using PRAGMA (works with modernc.org/sqlite driver)
+	_, err = database.Exec("PRAGMA busy_timeout = 5000")
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to set busy_timeout pragma")
+	}
+
+	// Enable WAL mode for better concurrency
+	_, err = database.Exec("PRAGMA journal_mode = WAL")
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to set WAL mode")
 	}
 
 	if err = database.Ping(); err != nil {
