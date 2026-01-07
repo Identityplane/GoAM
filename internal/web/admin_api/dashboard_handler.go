@@ -7,7 +7,6 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/pkg/model"
-	services_interface "github.com/Identityplane/GoAM/pkg/services"
 
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/valyala/fasthttp"
@@ -109,10 +108,18 @@ func HandleDashboard(ctx *fasthttp.RequestCtx) {
 	ctx.SetBody(jsonData)
 }
 
+// CacheMetrics represents cache performance metrics (duplicate of services.CacheMetrics for swagger)
+type CacheMetrics struct {
+	Ratio     float64 `json:"ratio"`
+	Hits      uint64  `json:"hits"`
+	Misses    uint64  `json:"misses"`
+	KeysAdded uint64  `json:"keys_added"`
+}
+
 type SystemStats struct {
-	CacheMetrics services_interface.CacheMetrics `json:"cache_metrics"`
-	MemoryUsage  MemoryUsage                     `json:"memory_usage"`
-	GoMemory     GoMemoryStats                   `json:"go_memory"`
+	CacheMetrics CacheMetrics  `json:"cache_metrics"`
+	MemoryUsage  MemoryUsage   `json:"memory_usage"`
+	GoMemory     GoMemoryStats `json:"go_memory"`
 }
 
 type MemoryUsage struct {
@@ -139,7 +146,15 @@ type GoMemoryStats struct {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /admin/system/stats [get]
 func HandleSystemStats(ctx *fasthttp.RequestCtx) {
-	cacheMetrics := service.GetServices().CacheService.GetMetrics()
+	cacheMetricsService := service.GetServices().CacheService.GetMetrics()
+
+	// Convert services.CacheMetrics to admin_api.CacheMetrics for swagger compatibility
+	cacheMetrics := CacheMetrics{
+		Ratio:     cacheMetricsService.Ratio,
+		Hits:      cacheMetricsService.Hits,
+		Misses:    cacheMetricsService.Misses,
+		KeysAdded: cacheMetricsService.KeysAdded,
+	}
 
 	// Calculate current memory usage of the server
 	v, err := mem.VirtualMemory()

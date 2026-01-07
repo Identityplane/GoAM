@@ -19,7 +19,7 @@ import (
 // @Param realm path string true "Realm ID"
 // @Param token formData string true "The token to introspect"
 // @Param token_type_hint formData string false "A hint about the type of the token submitted for introspection"
-// @Success 200 {object} service.TokenIntrospectionResponse "Token introspection response"
+// @Success 200 {object} oauth2.TokenIntrospectionResponse "Token introspection response"
 // @Failure 400 {string} string "Bad Request - Token is required"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /{tenant}/{realm}/oauth2/introspect [post]

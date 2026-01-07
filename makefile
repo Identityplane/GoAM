@@ -58,6 +58,8 @@ k8s-shell:
 k8s-forward-db:
 	kubectl port-forward svc/postgres 5432:5432
 
+# Needs: go install github.com/swaggo/swag/cmd/swag@latest
+# Note: Uses $(HOME)/go/bin/swag (add to PATH or use full path)
 swagger:
 	# Generate the swagger documentation
-	swag init --generalInfo internal/web/admin_api/swagger_info.go --dir ./ --output ./internal/web/swagger-ui
+	$$(go env GOPATH)/bin/swag init -g cmd/main.go -o internal/web/swagger-ui --parseInternal

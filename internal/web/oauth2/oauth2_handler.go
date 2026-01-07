@@ -298,7 +298,7 @@ func FinsishOauth2AuthorizationEndpoint(ctx *fasthttp.RequestCtx) {
 // @Param grant_type formData string true "Grant Type"
 // @Param refresh_token formData string false "Refresh Token"
 // @Param scope formData string false "Scope"
-// @Success 200 {object} service.Oauth2TokenResponse "Token response"
+// @Success 200 {object} oauth2.Oauth2TokenResponse "Token response"
 // @Failure 400 {string} string "Bad Request - Invalid request body"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /{tenant}/{realm}/oauth2/token [post]
