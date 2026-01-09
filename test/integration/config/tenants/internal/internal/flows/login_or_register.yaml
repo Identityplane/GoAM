@@ -5,7 +5,7 @@ nodes:
     name: askPassword
     use: askPassword
     next:
-      submitted: validateUsernamePassword
+      submitted: validatePassword
   askUsername:
     name: askUsername
     use: askUsername
@@ -24,9 +24,9 @@ nodes:
     use: init
     next:
       start: askUsername
-  validateUsernamePassword:
-    name: validateUsernamePassword
-    use: validateUsernamePassword
+  validatePassword:
+    name: validatePassword
+    use: validatePassword
     next:
       fail: askPassword
       locked: authFailure
@@ -78,7 +78,7 @@ editor:
     init:
       x: -250.49241379310342
       'y': 71.36827586206894
-    validateUsernamePassword:
+    validatePassword:
       x: 892.8068965517239
       'y': 311.9572413793104
     node_c29533d5:

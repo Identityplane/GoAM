@@ -3,6 +3,7 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/Identityplane/GoAM/test/integration"
@@ -41,34 +42,51 @@ func TestOAuth2AuthCodeConfidential_E2E(t *testing.T) {
 		if sessionCookie == nil {
 			t.Fatal("No session cookie found")
 		}
-
 		t.Run("Authenticate User", func(t *testing.T) {
-			e.GET("/acme/customers/auth/login-or-register").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
-				Expect().
-				Status(http.StatusOK)
+			authURL := "/acme/customers/auth/login-or-register"
+			cookieValue := sessionCookie.Value().Raw()
 
-			e.POST("/acme/customers/auth/login-or-register").
+			// Get initial form and submit username
+			getResp := e.GET(authURL).
+				WithCookie("session_id", cookieValue).
+				Expect().
+				Status(http.StatusOK).
+				Body()
+
+			step := extractStepFromHTML(t, getResp.Raw())
+			usernameResp := e.POST(authURL).
 				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", "askUsername").
+				WithFormField("step", step).
 				WithFormField("username", "foobar").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
+				WithCookie("session_id", cookieValue).
 				Expect().
-				Status(http.StatusOK)
+				Status(http.StatusOK).
+				Body()
 
-			e.POST("/acme/customers/auth/login-or-register").
-				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", "node_a1e9d8fa").
-				WithFormField("confirmation", "true").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
-				Expect().
-				Status(http.StatusOK)
+			htmlContent := usernameResp.Raw()
+			step = extractStepFromHTML(t, htmlContent)
 
-			e.POST("/acme/customers/auth/login-or-register").
+			// Check if form has confirmation field
+			if strings.Contains(htmlContent, `name="confirmation"`) {
+				passwordResp := e.POST(authURL).
+					WithHeader("Content-Type", "application/x-www-form-urlencoded").
+					WithFormField("step", step).
+					WithFormField("confirmation", "true").
+					WithCookie("session_id", cookieValue).
+					Expect().
+					Status(http.StatusOK).
+					Body()
+
+				htmlContent = passwordResp.Raw()
+				step = extractStepFromHTML(t, htmlContent)
+			}
+
+			// Submit password
+			e.POST(authURL).
 				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", "node_26e37459").
+				WithFormField("step", step).
 				WithFormField("password", "foobar").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
+				WithCookie("session_id", cookieValue).
 				Expect().
 				Status(http.StatusSeeOther).
 				Header("Location").IsEqual("http://localhost:8080/acme/customers/oauth2/finishauthorize")

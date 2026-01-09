@@ -24,8 +24,8 @@ nodes:
       password: node_74bd6440
       social1: node_9d568845
   node_74bd6440:
-    name: validateUsernamePassword
-    use: validateUsernamePassword
+    name: validatePassword
+    use: validatePassword
     custom_config:
       user_lookup_method: email
     next:

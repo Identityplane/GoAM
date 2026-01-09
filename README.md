@@ -205,12 +205,12 @@ nodes:
   askPassword:
     use: askPassword
     next:
-      submitted: validateUsernamePassword
+      submitted: validatePassword
     custom_config:
       message: Please login to your account
 
-  validateUsernamePassword:
-    use: validateUsernamePassword
+  validatePassword:
+    use: validatePassword
     next:
       success: authSuccess
       fail: askPassword

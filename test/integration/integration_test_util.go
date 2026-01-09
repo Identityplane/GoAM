@@ -7,20 +7,25 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal"
+	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/web"
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/pkg/server_settings"
 	"github.com/spf13/viper"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/fasthttp/router"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
 
 	"github.com/Identityplane/GoAM/internal/service"
+	dbinit "github.com/Identityplane/GoAM/pkg/db/init"
+	services_init "github.com/Identityplane/GoAM/pkg/services/init"
 )
 
 var (
@@ -31,6 +36,8 @@ var (
 var Router *router.Router = nil
 
 func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
+
+	log := logger.GetGoamLogger()
 
 	// Debug print current working directory
 	pwd, _ := os.Getwd()
@@ -46,6 +53,14 @@ func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 	if err != nil {
 		t.Fatalf("failed to initialize server settings: %v", err)
 	}
+
+	log.Debug().Msg("Initializing in-memory database")
+
+	// Reset singleton factories to ensure each test gets a fresh database
+	// This is critical because the factories are singletons and would otherwise
+	// reuse the same database connection across tests
+	dbinit.SetDBConnectionsFactory(nil)
+	services_init.SetServicesFactory(nil)
 
 	// Overwrite settings for testing
 	serverSettings.UnsafeDisableAdminAuth = true
@@ -142,4 +157,54 @@ func CreateAccessTokenSession(t *testing.T, user model.User) string {
 	}
 
 	return token
+}
+
+// ExtractStepFromHTML extracts the step value from the hidden input field in the HTML response
+func ExtractStepFromHTML(t *testing.T, htmlContent string) string {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlContent))
+	if err != nil {
+		t.Fatalf("Failed to parse HTML: %v", err)
+	}
+
+	stepInput := doc.Find("input[type='hidden'][name='step']")
+	if stepInput.Length() == 0 {
+		t.Fatal("Expected to find hidden step field in HTML response")
+	}
+
+	stepValue, exists := stepInput.Attr("value")
+	if !exists {
+		t.Fatal("Step input field found but has no value attribute")
+	}
+
+	return stepValue
+}
+
+// SubmitAuthForm submits a form with the given field values, automatically extracting the step from the response
+func SubmitAuthForm(t *testing.T, e *httpexpect.Expect, url string, sessionCookie string, fields map[string]string) *httpexpect.Request {
+	// First, get the current form to extract the step value
+	getResp := e.GET(url).
+		WithCookie("session_id", sessionCookie).
+		Expect().
+		Status(http.StatusOK).
+		Body()
+
+	htmlContent := getResp.Raw()
+	step := ExtractStepFromHTML(t, htmlContent)
+
+	// Build form fields with step
+	formFields := map[string]string{"step": step}
+	for k, v := range fields {
+		formFields[k] = v
+	}
+
+	// Submit the form
+	req := e.POST(url).
+		WithHeader("Content-Type", "application/x-www-form-urlencoded").
+		WithCookie("session_id", sessionCookie)
+
+	for k, v := range formFields {
+		req = req.WithFormField(k, v)
+	}
+
+	return req
 }

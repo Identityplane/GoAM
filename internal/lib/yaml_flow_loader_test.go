@@ -20,7 +20,7 @@ nodes:
     name: askPassword
     use: askPassword
     next:
-      submitted: validateUsernamePassword
+      submitted: validatePassword
   askUsername:
     name: askUsername
     use: askUsername
@@ -39,9 +39,9 @@ nodes:
     use: init
     next:
       start: askUsername
-  validateUsernamePassword:
-    name: validateUsernamePassword
-    use: validateUsernamePassword
+  validatePassword:
+    name: validatePassword
+    use: validatePassword
     next:
       fail: askPassword
       locked: authFailure
@@ -56,8 +56,8 @@ nodes:
 	assert.Equal(t, "init", flow.Nodes["init"].Name)
 	assert.Equal(t, "init", flow.Nodes["init"].Use)
 	assert.Equal(t, "askUsername", flow.Nodes["init"].Next["start"])
-	assert.Equal(t, "validateUsernamePassword", flow.Nodes["askPassword"].Next["submitted"])
-	assert.Equal(t, "authSuccess", flow.Nodes["validateUsernamePassword"].Next["success"])
+	assert.Equal(t, "validatePassword", flow.Nodes["askPassword"].Next["submitted"])
+	assert.Equal(t, "authSuccess", flow.Nodes["validatePassword"].Next["success"])
 }
 
 func TestLoadFlowDefinitonsFromDir(t *testing.T) {

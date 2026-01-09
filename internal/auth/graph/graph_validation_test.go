@@ -81,7 +81,7 @@ func TestEngine_MissingNextOnLogicNode(t *testing.T) {
 			},
 			"logicStep": {
 				Name: "logicStep",
-				Use:  "validateUsernamePassword",
+				Use:  "validatePassword",
 				// Next is missing here!
 			},
 		},

@@ -1,10 +1,14 @@
 package integration
 
 import (
+	"context"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
+	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/test/integration"
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -36,6 +40,11 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 	scope := "openid profile write:flows write:realms write:applications write:user"
 	codeVerifier := "4f13a3d4d18440e490c0ebab1831820eba8d51cbfe4444e5b2d34423fdddbb6b00def2eb5b9e4712b453fe4f71230fa5"
 
+	// Create a user for the test
+	service.GetServices().UserService.CreateUser(context.Background(), "acme", "customers", model.User{
+		ID: "admin",
+	})
+
 	// Test starting OAuth2 authorization
 	t.Run("Start OAuth2 Authorization", func(t *testing.T) {
 		resp := e.GET("/acme/customers/oauth2/authorize").
@@ -59,37 +68,53 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 
 		// Test user authentication
 		t.Run("Authenticate User", func(t *testing.T) {
+			authURL := "/acme/customers/auth/login-or-register"
+			cookieValue := sessionCookie.Value().Raw()
 
-			e.GET("/acme/customers/auth/login-or-register").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
+			// Get initial form and submit username
+			getResp := e.GET(authURL).
+				WithCookie("session_id", cookieValue).
 				Expect().
-				Status(http.StatusOK)
+				Status(http.StatusOK).
+				Body()
 
-			e.POST("/acme/customers/auth/login-or-register").
+			step := extractStepFromHTML(t, getResp.Raw())
+			usernameResp := e.POST(authURL).
 				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", "askUsername").
+				WithFormField("step", step).
 				WithFormField("username", "foobar").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
+				WithCookie("session_id", cookieValue).
 				Expect().
-				Status(http.StatusOK)
+				Status(http.StatusOK).
+				Body()
 
-			e.POST("/acme/customers/auth/login-or-register").
-				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", "node_a1e9d8fa").
-				WithFormField("confirmation", "true").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
-				Expect().
-				Status(http.StatusOK)
+			htmlContent := usernameResp.Raw()
+			step = extractStepFromHTML(t, htmlContent)
 
-			e.POST("/acme/customers/auth/login-or-register").
+			// Check if form has confirmation field
+			if strings.Contains(htmlContent, `name="confirmation"`) {
+				passwordResp := e.POST(authURL).
+					WithHeader("Content-Type", "application/x-www-form-urlencoded").
+					WithFormField("step", step).
+					WithFormField("confirmation", "true").
+					WithCookie("session_id", cookieValue).
+					Expect().
+					Status(http.StatusOK).
+					Body()
+
+				htmlContent = passwordResp.Raw()
+				step = extractStepFromHTML(t, htmlContent)
+			}
+
+			// Submit password
+			e.POST(authURL).
 				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", "node_26e37459").
+				WithFormField("step", step).
 				WithFormField("password", "foobar").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
+				WithCookie("session_id", cookieValue).
 				Expect().
 				Status(http.StatusSeeOther).
 				Header("Location").IsEqual("http://localhost:8080/acme/customers/oauth2/finishauthorize")
-
 		})
 
 		// Test completing authorization and capture the auth code

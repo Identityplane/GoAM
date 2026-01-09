@@ -31,8 +31,8 @@ nodes:
       forgotPassword: node_2128ba72
       social1: node_1a1dd336
   node_7208801c:
-    name: validateUsernamePassword
-    use: validateUsernamePassword
+    name: validatePassword
+    use: validatePassword
     custom_config:
       user_lookup_method: email
     next:
