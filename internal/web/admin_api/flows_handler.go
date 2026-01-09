@@ -521,7 +521,7 @@ func HandlePutFlowDefintion(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if validationErrors != nil && len(validationErrors) > 0 {
+	if len(validationErrors) > 0 {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		ctx.SetContentType("application/json")
 		_ = json.NewEncoder(ctx).Encode(map[string]string{
