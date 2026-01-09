@@ -164,6 +164,164 @@ func TestRealmAPI_E2E(t *testing.T) {
 			Status(http.StatusNoContent)
 	})
 
+	// Test updating individual realm settings
+	t.Run("Update Individual Realm Settings", func(t *testing.T) {
+		// Create a realm with initial settings
+		realmWithSettings := map[string]interface{}{
+			"realm":          "test_realm_individual_settings",
+			"realm_name":     "Test Realm Individual Settings",
+			"base_url":       "https://individual.example.com",
+			"realm_settings": map[string]string{
+				"theme":    "dark",
+				"language": "en",
+				"timezone": "UTC",
+			},
+		}
+
+		e.POST("/admin/acme/test_realm_individual_settings/").
+			WithJSON(realmWithSettings).
+			Expect().
+			Status(http.StatusCreated)
+
+		// Verify initial settings
+		e.GET("/admin/acme/test_realm_individual_settings/").
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			Value("realm_settings").Object().
+			HasValue("theme", "dark").
+			HasValue("language", "en").
+			HasValue("timezone", "UTC")
+
+		// Update only the "theme" setting
+		themeUpdate := map[string]interface{}{
+			"realm_settings": map[string]string{
+				"theme": "light",
+			},
+		}
+
+		e.PATCH("/admin/acme/test_realm_individual_settings/").
+			WithJSON(themeUpdate).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			Value("realm_settings").Object().
+			HasValue("theme", "light").    // Updated
+			HasValue("language", "en").     // Preserved
+			HasValue("timezone", "UTC")     // Preserved
+
+		// Clean up the test realm
+		e.DELETE("/admin/acme/test_realm_individual_settings/").
+			Expect().
+			Status(http.StatusNoContent)
+	})
+
+	// Test updating multiple individual settings while preserving others
+	t.Run("Update Multiple Individual Realm Settings", func(t *testing.T) {
+		// Create a realm with initial settings
+		realmWithSettings := map[string]interface{}{
+			"realm":          "test_realm_multi_settings",
+			"realm_name":     "Test Realm Multi Settings",
+			"base_url":       "https://multi.example.com",
+			"realm_settings": map[string]string{
+				"theme":    "dark",
+				"language": "en",
+				"timezone": "UTC",
+				"currency": "USD",
+			},
+		}
+
+		e.POST("/admin/acme/test_realm_multi_settings/").
+			WithJSON(realmWithSettings).
+			Expect().
+			Status(http.StatusCreated)
+
+		// Update only "language" and "currency" settings
+		multiUpdate := map[string]interface{}{
+			"realm_settings": map[string]string{
+				"language": "fr",
+				"currency": "EUR",
+			},
+		}
+
+		e.PATCH("/admin/acme/test_realm_multi_settings/").
+			WithJSON(multiUpdate).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			Value("realm_settings").Object().
+			HasValue("theme", "dark").     // Preserved
+			HasValue("language", "fr").    // Updated
+			HasValue("timezone", "UTC").   // Preserved
+			HasValue("currency", "EUR")     // Updated
+
+		// Clean up
+		e.DELETE("/admin/acme/test_realm_multi_settings/").
+			Expect().
+			Status(http.StatusNoContent)
+	})
+
+	// Test deleting individual realm settings
+	t.Run("Delete Individual Realm Settings", func(t *testing.T) {
+		// Create a realm with initial settings
+		realmWithSettings := map[string]interface{}{
+			"realm":          "test_realm_delete_settings",
+			"realm_name":     "Test Realm Delete Settings",
+			"base_url":       "https://delete.example.com",
+			"realm_settings": map[string]string{
+				"theme":    "dark",
+				"language": "en",
+				"timezone": "UTC",
+				"currency": "USD",
+			},
+		}
+
+		e.POST("/admin/acme/test_realm_delete_settings/").
+			WithJSON(realmWithSettings).
+			Expect().
+			Status(http.StatusCreated)
+
+		// Verify initial settings
+		e.GET("/admin/acme/test_realm_delete_settings/").
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			Value("realm_settings").Object().
+			HasValue("theme", "dark").
+			HasValue("language", "en").
+			HasValue("timezone", "UTC").
+			HasValue("currency", "USD")
+
+		// Delete "timezone" and "currency" by setting them to null
+		deleteUpdate := map[string]interface{}{
+			"realm_settings": map[string]interface{}{
+				"timezone": nil,
+				"currency": nil,
+			},
+		}
+
+		e.PATCH("/admin/acme/test_realm_delete_settings/").
+			WithJSON(deleteUpdate).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			Value("realm_settings").Object().
+			HasValue("theme", "dark").     // Preserved
+			HasValue("language", "en").     // Preserved
+			NotContainsKey("timezone").     // Deleted
+			NotContainsKey("currency")      // Deleted
+
+		// Clean up the test realm
+		e.DELETE("/admin/acme/test_realm_delete_settings/").
+			Expect().
+			Status(http.StatusNoContent)
+	})
+
 	// Test deleting a realm
 	t.Run("Delete Realm", func(t *testing.T) {
 		e.DELETE("/admin/acme/test_realm/").

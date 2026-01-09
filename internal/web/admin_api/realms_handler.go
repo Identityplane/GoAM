@@ -122,13 +122,17 @@ func HandleCreateRealm(ctx *fasthttp.RequestCtx) {
 
 // HandleUpdateRealm updates an existing realm
 // @Summary Update a realm
-// @Description Updates an existing realm's configuration
+// @Description Updates an existing realm's configuration. Supports partial updates:
+// @Description - Individual keys in realm_settings can be updated by providing them in the patch
+// @Description - Individual keys in realm_settings can be deleted by setting them to null
+// @Description - Only provided fields are updated; other fields remain unchanged
+// @Description - realm_settings are merged (not replaced), allowing granular control
 // @Tags Realms
 // @Accept json
 // @Produce json
 // @Param tenant path string true "Tenant ID"
 // @Param realm path string true "Realm ID"
-// @Param request body RealmPatch true "Realm update payload"
+// @Param request body RealmPatch true "Realm update payload. For realm_settings: provide key-value pairs to update, or set keys to null to delete them"
 // @Success 200 {object} model.Realm
 // @Failure 400 {string} string "Invalid request"
 // @Failure 404 {string} string "Realm not found"
@@ -137,6 +141,14 @@ func HandleCreateRealm(ctx *fasthttp.RequestCtx) {
 func HandleUpdateRealm(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
+
+	// Parse raw JSON first to detect null values in realm_settings
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(ctx.PostBody(), &rawData); err != nil {
+		ctx.SetStatusCode(http.StatusBadRequest)
+		ctx.SetBodyString("Invalid request body: " + err.Error())
+		return
+	}
 
 	var patch RealmPatch
 	if err := json.Unmarshal(ctx.PostBody(), &patch); err != nil {
@@ -161,7 +173,27 @@ func HandleUpdateRealm(ctx *fasthttp.RequestCtx) {
 		existingRealm.Config.BaseUrl = *patch.BaseUrl
 	}
 	if patch.RealmSettings != nil {
-		existingRealm.Config.RealmSettings = *patch.RealmSettings
+		// Merge individual settings instead of replacing the entire map
+		// This allows updating individual keys while preserving others
+		if existingRealm.Config.RealmSettings == nil {
+			existingRealm.Config.RealmSettings = make(map[string]string)
+		}
+
+		// Check if realm_settings was provided in raw data to detect null values
+		if realmSettingsRaw, exists := rawData["realm_settings"]; exists {
+			if realmSettingsMap, ok := realmSettingsRaw.(map[string]interface{}); ok {
+				// Process each key in the patch
+				for key, value := range realmSettingsMap {
+					if value == nil {
+						// Delete the key if value is null
+						delete(existingRealm.Config.RealmSettings, key)
+					} else if strValue, ok := value.(string); ok {
+						// Update the key with the new value
+						existingRealm.Config.RealmSettings[key] = strValue
+					}
+				}
+			}
+		}
 	}
 
 	// Update realm

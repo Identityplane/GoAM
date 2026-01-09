@@ -9,10 +9,12 @@ type FlowPatch struct {
 }
 
 // RealmPatch represents a partial update to a realm
+// Note: For realm_settings, individual keys can be updated by providing key-value pairs,
+// or deleted by setting keys to null. Only provided keys are affected; other keys remain unchanged.
 type RealmPatch struct {
 	RealmName     *string            `json:"realm_name,omitempty"`
 	BaseUrl       *string            `json:"base_url,omitempty"`
-	RealmSettings *map[string]string `json:"realm_settings,omitempty"`
+	RealmSettings *map[string]string `json:"realm_settings,omitempty"` // Keys set to null will be deleted
 }
 
 // NodeInfo represents a node definition in the API response
