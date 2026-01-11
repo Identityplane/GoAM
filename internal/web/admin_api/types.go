@@ -29,3 +29,11 @@ type NodeInfo struct {
 	Description          string            `json:"description"`
 	CustomConfigOptions  map[string]string `json:"customConfigOptions"`
 }
+
+// AuthzEntitlement represents an authorization entitlement
+type AuthzEntitlement struct {
+	Description string `json:"description"`
+	Resource    string `json:"resource"`
+	Action      string `json:"action"`
+	Effect      string `json:"effect"`
+}

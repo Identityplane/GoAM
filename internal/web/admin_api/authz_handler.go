@@ -3,7 +3,6 @@ package admin_api
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/service"
@@ -15,21 +14,8 @@ import (
 )
 
 type AuthzResponse struct {
-	User         AuthzUser                             `json:"user"`
-	Entitlements []services_interface.AuthzEntitlement `json:"entitlements"`
-}
-
-type AuthzUser struct {
-	ID            string    `json:"id"`
-	DisplayName   string    `json:"display_name"`
-	Email         string    `json:"email"`
-	EmailVerified bool      `json:"email_verified"`
-	GivenName     string    `json:"given_name"`
-	FamilyName    string    `json:"family_name"`
-	LastLoginAt   time.Time `json:"last_login_at"`
-	Locale        string    `json:"locale"`
-	Phone         string    `json:"phone"`
-	PhoneVerified bool      `json:"phone_verified"`
+	User         UserFlatJson       `json:"user"`
+	Entitlements []AuthzEntitlement `json:"entitlements"`
 }
 
 func getUser(ctx *fasthttp.RequestCtx) *model.User {
@@ -40,6 +26,15 @@ func getUser(ctx *fasthttp.RequestCtx) *model.User {
 	return userAny.(*model.User)
 }
 
+// @Summary Get the current user
+// @Description Returns the current user and their entitlements
+// @Tags Authz
+// @Accept json
+// @Produce json
+// @Success 200 {object} AuthzResponse
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /admin/whoami [get]
 func HandleWhoAmI(ctx *fasthttp.RequestCtx) {
 	user := getUser(ctx)
 
@@ -50,18 +45,21 @@ func HandleWhoAmI(ctx *fasthttp.RequestCtx) {
 	}
 
 	services := service.GetServices()
-	entitlements := services.AdminAuthzService.GetEntitlements(user)
+	serviceEntitlements := services.AdminAuthzService.GetEntitlements(user)
 
-	lastLoginAt := time.Time{}
-	if user.LastLoginAt != nil {
-		lastLoginAt = *user.LastLoginAt
+	// Convert services_interface.AuthzEntitlement to admin_api.AuthzEntitlement
+	entitlements := make([]AuthzEntitlement, len(serviceEntitlements))
+	for i, e := range serviceEntitlements {
+		entitlements[i] = AuthzEntitlement{
+			Description: e.Description,
+			Resource:    e.Resource,
+			Action:      e.Action,
+			Effect:      e.Effect,
+		}
 	}
 
 	response := AuthzResponse{
-		User: AuthzUser{
-			ID:          user.ID,
-			LastLoginAt: lastLoginAt,
-		},
+		User:         UserToUserFlatJson(ctx, user),
 		Entitlements: entitlements,
 	}
 
