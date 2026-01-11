@@ -3,16 +3,11 @@ realm_name: IAM Management Users
 base_url: http://localhost:8081/internal/internal
 
 flows:
-  login_or_register:
-    name: Login or Register
-    route: /login
+  admin_userid_password:
+    name: Admin UserID Password
+    route: /admin-userid-password
     active: yes
-    definition_location: login_or_register.yaml
-  newlogin:
-    name: New Login
-    route: /newlogin
-    active: yes
-    definition_location: newlogin.yaml
+    definition_location: admin_userid_password.yaml
 
 applications:
   management-ui:
@@ -32,7 +27,7 @@ applications:
     redirect_uris:
       - http://localhost:3000
     allowed_authentication_flows:
-      - login_or_register
+      - admin_userid_password
     access_token_lifetime: 600
     refresh_token_lifetime: 3600
     id_token_lifetime: 600

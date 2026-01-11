@@ -16,6 +16,9 @@ unsafe_disable_admin_auth: true
 db: goiam.db?_foreign_keys=on
 run_db_migrations: true
 
+initial_admin_user_id: admin
+initial_admin_user_password: admin
+
 # Node settings are propogated down to all nodes in the realm
 node_settings:
   telegram_bottoken: "8252112456:AAHrnmKsfK0lpjHDPCngmfjdqVcIJkC008E" #throwaway bot id with goam.network activcated as url

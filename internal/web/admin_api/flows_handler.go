@@ -344,9 +344,11 @@ func HandleDeleteFlow(ctx *fasthttp.RequestCtx) {
 // @Tags Nodes
 // @Accept json
 // @Produce json
+// @Param tenant path string true "Tenant ID"
+// @Param realm path string true "Realm ID"
 // @Success 200 {array} NodeInfo
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /admin/nodes [get]
+// @Router /admin/{tenant}/{realm}/nodes [get]
 func HandleListNodes(ctx *fasthttp.RequestCtx) {
 	// Get all node definitions and convert to API format
 	nodes := make([]NodeInfo, 0, len(graph.NodeDefinitions))

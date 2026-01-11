@@ -1,15 +1,19 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Identityplane/GoAM/internal/config"
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/auth"
 	"github.com/Identityplane/GoAM/pkg/db"
 	dbinit "github.com/Identityplane/GoAM/pkg/db/init"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/pkg/server_settings"
 	services_init "github.com/Identityplane/GoAM/pkg/services/init"
 
@@ -50,6 +54,12 @@ func Initialize(serverSettings *server_settings.GoamServerSettings) {
 	err = auth.InitAssets()
 	if err != nil {
 		log.Panic().Err(err).Msg("failed to initialize assets")
+	}
+
+	// init initial admin user
+	err = initInitialAdminUser(serverSettings, service.GetServices())
+	if err != nil {
+		log.Panic().Err(err).Msg("failed to initialize initial admin user")
 	}
 
 }
@@ -109,4 +119,71 @@ func initServices(dbConnections *db.DatabaseConnections) error {
 	}
 
 	return nil
+}
+
+func initInitialAdminUser(serverSettings *server_settings.GoamServerSettings, services *services_interface.Services) error {
+
+	// if the inital admin user already exists, nothing is done
+	adminUserId := serverSettings.InitialAdminId
+	adminUserPassword := serverSettings.InitialAdminPassword
+
+	if adminUserId == "" || adminUserPassword == "" {
+		return nil
+	}
+
+	adminUser, err := services.UserService.GetUserByID(context.Background(), "internal", "internal", adminUserId)
+	if err != nil {
+		return fmt.Errorf("failed to get initial admin user: %w", err)
+	}
+	if adminUser != nil {
+		return nil
+	}
+
+	// Create the inital admin user
+	adminUser = &model.User{
+		ID:        adminUserId,
+		Tenant:    "internal",
+		Realm:     "internal",
+		Status:    "active",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// Create a password attribute
+	hashed, err := lib.HashPassword(adminUserPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+	adminUser.AddAttribute(&model.UserAttribute{
+		Type: model.AttributeTypePassword,
+		Value: model.PasswordAttributeValue{
+			PasswordHash:   string(hashed),
+			Locked:         false,
+			FailedAttempts: 0,
+		},
+	})
+
+	// Create entitlment attribute with admin access
+	adminUser.AddAttribute(&model.UserAttribute{
+		Type: model.AttributeTypeEntitlements,
+		Value: model.EntitlementSetAttributeValue{
+			Entitlements: []model.Entitlement{
+				{
+					Description: "Initial Admin User",
+					Resource:    "**",
+					Action:      "*",
+					Effect:      model.EffectTypeAllow,
+				},
+			},
+		},
+	})
+
+	// Create the user
+	_, err = services.UserService.CreateUserWithAttributes(context.Background(), "internal", "internal", *adminUser)
+	if err != nil {
+		return fmt.Errorf("failed to create initial admin user: %w", err)
+	}
+
+	return nil
+
 }

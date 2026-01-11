@@ -21,10 +21,10 @@ func TestCORS_Integration(t *testing.T) {
 		assert.Empty(t, resp.Header("Access-Control-Allow-Origin").Raw(), "CORS header should not exist")
 	})
 
-	// Test /admin/nodes endpoint - CORS enabled with OPTIONS
+	// Test /admin/{tenant}/{realm}/nodes endpoint - CORS enabled with OPTIONS
 	t.Run("admin nodes endpoint with CORS and OPTIONS", func(t *testing.T) {
 		// Test regular request
-		resp := e.GET("/admin/realms").
+		resp := e.GET("/admin/acme/customers/nodes").
 			WithHeader("Origin", "https://example.com").
 			Expect().
 			Status(200)
@@ -32,7 +32,7 @@ func TestCORS_Integration(t *testing.T) {
 		assert.NotEmpty(t, resp.Header("Access-Control-Allow-Origin").Raw(), "CORS header should exist")
 
 		// Test OPTIONS request
-		resp = e.OPTIONS("/admin/realms").
+		resp = e.OPTIONS("/admin/acme/customers/nodes").
 			WithHeader("Origin", "https://example.com").
 			WithHeader("Access-Control-Request-Method", "GET").
 			Expect().

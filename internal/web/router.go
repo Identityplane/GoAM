@@ -72,7 +72,7 @@ func New() *router.Router {
 	admin.PUT("/{tenant}/{realm}/flows/{flow}/definition", adminMiddleware(admin_api.HandlePutFlowDefintion))
 
 	// Node management routes
-	admin.GET("/nodes", adminMiddleware(admin_api.HandleListNodes))
+	admin.GET("/{tenant}/{realm}/nodes", adminMiddleware(admin_api.HandleListNodes))
 
 	// Debug routes
 	r.GET("/{tenant}/{realm}/debug/{flow}/graph.svg", adminMiddleware(debug.HandleFlowGraphSVG))

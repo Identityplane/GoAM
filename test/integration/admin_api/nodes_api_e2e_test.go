@@ -16,7 +16,7 @@ func TestNodesAPI_E2E(t *testing.T) {
 	actualNode := graph.GetNodeDefinitionByName(nodeDefinitionName)
 
 	// Act
-	response := e.GET("/admin/nodes").
+	response := e.GET("/admin/acme/customers/nodes").
 		Expect().
 		Status(http.StatusOK).JSON()
 

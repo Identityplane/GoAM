@@ -28,6 +28,9 @@ type GoamServerSettings struct {
 	InfrastructureAsCodeMode bool `mapstructure:"infrastructure_as_code_mode"`
 	ForwardingProxies        int  `mapstructure:"forwarding_proxies"`
 
+	InitialAdminPassword string `mapstructure:"initial_admin_user_password"`
+	InitialAdminId       string `mapstructure:"initial_admin_user_id"`
+
 	NodeSettings      map[string]string `mapstructure:"node_settings"`
 	ExtensionSettings map[string]string `mapstructure:"extension_settings"`
 	BaseUrlOverwrite  map[string]string `mapstructure:"realm_base_url_overwrite"`
