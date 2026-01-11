@@ -35,7 +35,7 @@ func (s *SQLiteAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, ses
 			SELECT 1 FROM auth_sessions 
 			WHERE tenant = ? AND realm = ? AND session_id_hash = ?
 		)`,
-		session.Tenant, session.Realm, session.SessionIDHash,
+		session.Tenant, session.Realm, session.PrimarySessionIDHash,
 	).Scan(&exists)
 	if err != nil {
 		return fmt.Errorf("failed to check if session exists: %w", err)
@@ -46,6 +46,7 @@ func (s *SQLiteAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, ses
 		query := `
 			UPDATE auth_sessions SET
 				run_id = ?,
+				secondary_session_id_hash = ?,
 				created_at = ?,
 				expires_at = ?,
 				session_information = ?
@@ -53,12 +54,13 @@ func (s *SQLiteAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, ses
 		`
 		_, err = s.db.ExecContext(ctx, query,
 			session.RunID,
+			session.SecondarySessionIDHash,
 			session.CreatedAt.Format(time.RFC3339),
 			session.ExpiresAt.Format(time.RFC3339),
 			session.SessionInformation,
 			session.Tenant,
 			session.Realm,
-			session.SessionIDHash,
+			session.PrimarySessionIDHash,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to update auth session: %w", err)
@@ -67,15 +69,16 @@ func (s *SQLiteAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, ses
 		// Create new session
 		query := `
 			INSERT INTO auth_sessions (
-				tenant, realm, run_id, session_id_hash,
+				tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 				created_at, expires_at, session_information
-			) VALUES (?, ?, ?, ?, ?, ?, ?)
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		`
 		_, err = s.db.ExecContext(ctx, query,
 			session.Tenant,
 			session.Realm,
 			session.RunID,
-			session.SessionIDHash,
+			session.PrimarySessionIDHash,
+			session.SecondarySessionIDHash,
 			session.CreatedAt.Format(time.RFC3339),
 			session.ExpiresAt.Format(time.RFC3339),
 			session.SessionInformation,
@@ -90,7 +93,7 @@ func (s *SQLiteAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, ses
 
 func (s *SQLiteAuthSessionDB) GetAuthSessionByID(ctx context.Context, tenant, realm, runID string) (*model.PersistentAuthSession, error) {
 	query := `
-		SELECT tenant, realm, run_id, session_id_hash,
+		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 		       created_at, expires_at, session_information
 		FROM auth_sessions
 		WHERE tenant = ? AND realm = ? AND run_id = ?
@@ -103,7 +106,8 @@ func (s *SQLiteAuthSessionDB) GetAuthSessionByID(ctx context.Context, tenant, re
 		&session.Tenant,
 		&session.Realm,
 		&session.RunID,
-		&session.SessionIDHash,
+		&session.PrimarySessionIDHash,
+		&session.SecondarySessionIDHash,
 		&createdAtStr,
 		&expiresAtStr,
 		&session.SessionInformation,
@@ -128,20 +132,21 @@ func (s *SQLiteAuthSessionDB) GetAuthSessionByID(ctx context.Context, tenant, re
 
 func (s *SQLiteAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant, realm, sessionIDHash string) (*model.PersistentAuthSession, error) {
 	query := `
-		SELECT tenant, realm, run_id, session_id_hash,
+		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 		       created_at, expires_at, session_information
 		FROM auth_sessions
-		WHERE tenant = ? AND realm = ? AND session_id_hash = ?
+		WHERE tenant = ? AND realm = ? AND (session_id_hash = ? OR secondary_session_id_hash = ?)
 	`
 
 	var session model.PersistentAuthSession
 	var createdAtStr, expiresAtStr string
 
-	err := s.db.QueryRowContext(ctx, query, tenant, realm, sessionIDHash).Scan(
+	err := s.db.QueryRowContext(ctx, query, tenant, realm, sessionIDHash, sessionIDHash).Scan(
 		&session.Tenant,
 		&session.Realm,
 		&session.RunID,
-		&session.SessionIDHash,
+		&session.PrimarySessionIDHash,
+		&session.SecondarySessionIDHash,
 		&createdAtStr,
 		&expiresAtStr,
 		&session.SessionInformation,
@@ -166,7 +171,7 @@ func (s *SQLiteAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant, 
 
 func (s *SQLiteAuthSessionDB) ListAuthSessions(ctx context.Context, tenant, realm string) ([]model.PersistentAuthSession, error) {
 	query := `
-		SELECT tenant, realm, run_id, session_id_hash,
+		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 		       created_at, expires_at, session_information
 		FROM auth_sessions
 		WHERE tenant = ? AND realm = ?
@@ -187,7 +192,8 @@ func (s *SQLiteAuthSessionDB) ListAuthSessions(ctx context.Context, tenant, real
 			&session.Tenant,
 			&session.Realm,
 			&session.RunID,
-			&session.SessionIDHash,
+			&session.PrimarySessionIDHash,
+			&session.SecondarySessionIDHash,
 			&createdAtStr,
 			&expiresAtStr,
 			&session.SessionInformation,
@@ -212,7 +218,7 @@ func (s *SQLiteAuthSessionDB) ListAuthSessions(ctx context.Context, tenant, real
 
 func (s *SQLiteAuthSessionDB) ListAllAuthSessions(ctx context.Context, tenant string) ([]model.PersistentAuthSession, error) {
 	query := `
-		SELECT tenant, realm, run_id, session_id_hash,
+		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 		       created_at, expires_at, session_information
 		FROM auth_sessions
 		WHERE tenant = ?
@@ -233,7 +239,8 @@ func (s *SQLiteAuthSessionDB) ListAllAuthSessions(ctx context.Context, tenant st
 			&session.Tenant,
 			&session.Realm,
 			&session.RunID,
-			&session.SessionIDHash,
+			&session.PrimarySessionIDHash,
+			&session.SecondarySessionIDHash,
 			&createdAtStr,
 			&expiresAtStr,
 			&session.SessionInformation,

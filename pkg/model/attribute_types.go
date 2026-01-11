@@ -19,6 +19,7 @@ const (
 	AttributeTypeYubico       = "identityplane:yubico"
 	AttributeTypeDevice       = "identityplane:device"
 	AttributeTypeOidc         = "identityplane:oidc"
+	AttributeTypeAction       = "identityplane:action"
 )
 
 // AttributeValue is the interface that all attribute value types must implement

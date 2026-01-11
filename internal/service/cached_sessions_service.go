@@ -186,7 +186,7 @@ func (c *cachedAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, ses
 	}
 
 	// Cache the session
-	cacheKey := c.getAuthSessionCacheKey(session.Tenant, session.Realm, session.SessionIDHash)
+	cacheKey := c.getAuthSessionCacheKey(session.Tenant, session.Realm, session.PrimarySessionIDHash)
 	err = c.cache.Cache(cacheKey, session, sessionCacheTTL, 1)
 	if err != nil {
 		// Log error but continue - caching is not critical

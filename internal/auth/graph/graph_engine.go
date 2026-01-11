@@ -61,15 +61,21 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 		return state, errors.New("invalid flow")
 	}
 
-	// If the state is empty we set it to the init node
-	if state.Current == "" {
+	// If the current node is empty we set it to the start node
+	if state.Current == "" && !state.IsSecondaryDevice {
 		state.Current = flow.Start
 	}
 
+	// If we are on a secondary device and the current secondary node is not set we set it to the start secondary node
+	if state.IsSecondaryDevice && state.CurrentOnSecondaryDevice == "" {
+		state.CurrentOnSecondaryDevice = flow.StartSecondary
+	}
+
 	// Check if node for current state exists in flow
-	node, ok := flow.Nodes[state.Current]
+	currentNodeName := state.GetCurrent()
+	node, ok := flow.Nodes[currentNodeName]
 	if !ok {
-		return state, fmt.Errorf("node '%s' not found in flow", state.Current)
+		return state, fmt.Errorf("node '%s' not found in flow", currentNodeName)
 	}
 
 	// Update the current node type
@@ -173,7 +179,12 @@ func Run(flow *model.FlowDefinition, state *model.AuthenticationSession, inputs 
 
 		// lookup transition in graph
 		if nextNodeName, ok := node.Next[condition]; ok {
-			state.Current = nextNodeName
+
+			if state.IsSecondaryDevice {
+				state.CurrentOnSecondaryDevice = nextNodeName
+			} else {
+				state.Current = nextNodeName
+			}
 
 			log.Debug().Str("node_name", node.Name).Str("condition", condition).Str("flow_id", state.FlowId).Msg("node transition")
 		} else {

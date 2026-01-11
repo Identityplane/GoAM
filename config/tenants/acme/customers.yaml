@@ -87,6 +87,11 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: oidc-federation.yaml
+  qr-web-to-mobile:
+    route: /qr-web-to-mobile
+    active: yes
+    debug_allowed: yes
+    definition_location: qr-web-to-mobile.yaml
 
 applications:
   customers-app:

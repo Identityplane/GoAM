@@ -2,10 +2,14 @@ package service
 
 import (
 	"bytes"
+	"encoding/base64"
+	"html/template"
+	"strings"
 	"testing"
 
 	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadTempalte(t *testing.T) {
@@ -372,4 +376,89 @@ OVERRIDE 2
 
 	output2 := buf2.String()
 	assert.Contains(t, output2, "OVERRIDE 2")
+}
+
+func TestQrCodeFunction(t *testing.T) {
+	// Test the qrCodeToBase64 function directly
+	tests := []struct {
+		name     string
+		input    string
+		validate func(t *testing.T, result template.URL)
+	}{
+		{
+			name:  "valid URL generates QR code",
+			input: "http://localhost:8081/acme/customers/auth/qrWebToMobile/action/0ec140d9-31a8-4c14-bbd0-fca765e7b356",
+			validate: func(t *testing.T, result template.URL) {
+				resultStr := string(result)
+				assert.NotEmpty(t, resultStr)
+				assert.True(t, strings.HasPrefix(resultStr, "data:image/png;base64,"), "should start with data URL prefix")
+				// Verify it's valid base64
+				base64Part := strings.TrimPrefix(resultStr, "data:image/png;base64,")
+				decoded, err := base64.StdEncoding.DecodeString(base64Part)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, decoded)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := qrCodeToBase64(tt.input)
+
+			tt.validate(t, result)
+		})
+	}
+}
+
+func TestQrCodeTemplateFunction(t *testing.T) {
+	// Test the qrCode function in a template context
+	service := NewTemplatesService().(*templatesService)
+
+	// Create a test template that uses the qrCode function
+	testTemplate := `{{ define "content" }}
+<img src="{{ qrCode .Prompts.qr_code }}" alt="QR Code" />
+{{ end }}`
+
+	// Create an override with the test template
+	err := service.CreateTemplateOverride("test", "test", "test", "qrWebToMobile", testTemplate)
+	require.NoError(t, err)
+
+	view := &ViewData{
+		Title:         "QR Test",
+		NodeName:      "qrWebToMobile",
+		Prompts:       map[string]string{"qr_code": "contentofqrcode"},
+		Debug:         false,
+		Error:         "",
+		State:         &model.AuthenticationSession{},
+		StateJSON:     "",
+		FlowName:      "test",
+		Node:          &model.GraphNode{},
+		StylePath:     "",
+		ScriptPath:    "",
+		Message:       "",
+		CustomConfig:  map[string]string{},
+		Tenant:        "test",
+		Realm:         "test",
+		FlowPath:      "test",
+		LoginUri:      "",
+		AssetsJSPath:  "",
+		AssetsCSSPath: "",
+		CspNonce:      "",
+	}
+
+	// Get the template
+	tmpl, err := service.GetTemplates("test", "test", "test", "qrWebToMobile")
+	require.NoError(t, err)
+
+	// Execute the template
+	var buf bytes.Buffer
+	err = tmpl.ExecuteTemplate(&buf, "layout", view)
+	require.NoError(t, err)
+
+	output := buf.String()
+
+	// Verify the QR code was generated
+	assert.Contains(t, output, "data:image/png;base64,")
+	assert.NotContains(t, output, "#ZgotmplZ", "should not contain template error marker")
+	assert.NotContains(t, output, "http://localhost:8081", "should not contain the raw URL in img src")
 }

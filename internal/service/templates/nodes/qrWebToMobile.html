@@ -1,0 +1,13 @@
+{{ define "content" }}
+
+<p>Scan the QR code with your mobile device to login.</p>
+<img src="{{ qrCode .Prompts.qr_code }}" alt="QR Code" />
+<p>or copy and paste the following URL into your mobile device:</p>
+<p>{{ .Prompts.qr_code }}</p>
+
+<form method="POST" class="login-form" action="{{ .LoginUri}}">
+    <input type="hidden" name="step" value="{{ .NodeName }}">
+    <input type="hidden" name="action" value="abort">
+  <button type="submit">Abort</button>
+</form>
+{{ end }}

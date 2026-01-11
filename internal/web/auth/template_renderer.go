@@ -36,7 +36,7 @@ func Render(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, state *model.A
 	}
 
 	// get the right tempalte
-	currentNode := flow.Nodes[state.Current]
+	currentNode := flow.Nodes[state.GetCurrent()]
 
 	// Get the template service and load the template
 	templatesService := service.GetServices().TemplatesService

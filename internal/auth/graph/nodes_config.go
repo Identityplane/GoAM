@@ -10,6 +10,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_options"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_passkeys"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_password"
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_qr"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_system"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_telegram"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_totp"
@@ -91,6 +92,13 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 
 	// OIDC
 	node_oidc.GenericOIDCLoginNode.Name: node_oidc.GenericOIDCLoginNode,
+
+	// Action Token
+	node_system.InitSecondaryNode.Name:   node_system.InitSecondaryNode,
+	node_system.ActionTokenInitNode.Name: node_system.ActionTokenInitNode,
+
+	// QR
+	node_qr.QrWebToMobileNode.Name: node_qr.QrWebToMobileNode,
 }
 
 func GetNodeDefinitionByName(name string) *model.NodeDefinition {

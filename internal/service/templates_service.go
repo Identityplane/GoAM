@@ -1,9 +1,12 @@
 package service
 
 import (
+	"bytes"
 	"embed"
+	"encoding/base64"
 	"fmt"
 	"html/template"
+	"image/png"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -12,6 +15,8 @@ import (
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
 	services_interface "github.com/Identityplane/GoAM/pkg/services"
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/qr"
 )
 
 // ViewData is passed to all templates for dynamic rendering
@@ -188,6 +193,10 @@ func (s *templatesService) LoadTemplateOverridesFromFS(tenant, realm string, tem
 	return nil
 }
 
+var funcMap = template.FuncMap{
+	"qrCode": qrCodeToBase64,
+}
+
 // GetTemplates returns the template for a given node
 func (s *templatesService) GetTemplates(tenant, realm, flowId, nodeName string) (*template.Template, error) {
 
@@ -197,15 +206,18 @@ func (s *templatesService) GetTemplates(tenant, realm, flowId, nodeName string) 
 		usedLayout = layoutTemplate
 	}
 
+	// Create a new template with the function map
+	tmpl := template.New("layout").Funcs(funcMap)
+
 	// Parse the layout template
-	template, err := template.New("layout").Parse(usedLayout)
+	tmpl, err := tmpl.Parse(usedLayout)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse layout template: %w", err)
 	}
 
 	// Parse all components
 	for _, componentTemplate := range componentTemplates {
-		_, err := template.Parse(componentTemplate)
+		tmpl, err = tmpl.Parse(componentTemplate)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse component template: %w", err)
 		}
@@ -218,12 +230,12 @@ func (s *templatesService) GetTemplates(tenant, realm, flowId, nodeName string) 
 	}
 
 	// Parse the node template
-	template, err = template.Parse(usedNode)
+	tmpl, err = tmpl.Parse(usedNode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse node template: %w", err)
 	}
 
-	return template, nil
+	return tmpl, nil
 }
 
 func (s *templatesService) findOverrideTemplate(tenant, realm, flowId, nodeName string) string {
@@ -307,4 +319,30 @@ func (s *templatesService) GetErrorTemplate(tenant, realm, flowId string) (*temp
 
 	// TODO this should just be an error node
 	return s.GetTemplates(tenant, realm, flowId, "error")
+}
+
+// qrCodeToBase64 generates a QR code from the input string and returns it as a base64 data URL
+// Returns template.URL to mark it as safe for use in URL contexts (like img src attributes)
+func qrCodeToBase64(data string) template.URL {
+	// Create the QR code
+	qrCode, err := qr.Encode(data, qr.M, qr.Auto)
+	if err != nil {
+		return ""
+	}
+
+	// Scale the barcode to a reasonable size (200x200 pixels)
+	qrCode, err = barcode.Scale(qrCode, 200, 200)
+	if err != nil {
+		return ""
+	}
+
+	// Encode to PNG
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, qrCode); err != nil {
+		return ""
+	}
+
+	// Convert to base64
+	base64Str := base64.StdEncoding.EncodeToString(buf.Bytes())
+	return template.URL("data:image/png;base64," + base64Str)
 }
