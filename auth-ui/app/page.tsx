@@ -4,14 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft } from 'lucide-react';
-import { LoginStep } from '@/components/auth-steps/LoginStep';
-import { RegisterStep } from '@/components/auth-steps/RegisterStep';
-import { PasswordStep } from '@/components/auth-steps/PasswordStep';
-import { OTPStep } from '@/components/auth-steps/OTPStep';
-import { TermsStep } from '@/components/auth-steps/TermsStep';
-import { SuccessStep } from '@/components/auth-steps/SuccessStep';
-import { ErrorStep } from '@/components/auth-steps/ErrorStep';
-import { NotImplementedStep } from '@/components/auth-steps/NotImplementedStep';
+import { StepRegistry } from '@/components/auth-steps';
 import { AuthAPI } from '@/lib/auth-api';
 import type { AuthStep, StepConfig, FlowInfo, MetadataResponse } from '@/lib/auth-api';
 import { cn } from '@/lib/utils';
@@ -30,6 +23,8 @@ const parseSettings = (settings: Record<string, string>) => {
 
 export default function LoginPage() {
   const [currentStep, setCurrentStep] = useState<AuthStep>('login');
+  const [executionId, setExecutionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,14 +72,9 @@ export default function LoginPage() {
       }
 
       if (flowResponse.currentNode) {
-        const node = flowResponse.currentNode as AuthStep;
-        const implementedSteps = ['login', 'register', 'password', 'otp', 'terms', 'success', 'error'];
-        
-        if (implementedSteps.includes(node)) {
-          setCurrentStep(node);
-        } else {
-          setCurrentStep('not-implemented');
-        }
+        setExecutionId(flowResponse.executionId || null);
+        setSessionId(flowResponse.sessionId || null);
+        setCurrentStep(flowResponse.currentNode as AuthStep);
       }
       
     } catch (err: any) {
@@ -107,12 +97,37 @@ export default function LoginPage() {
       setIsLoading(true);
 
       try {
-        const nextStepConfig = await AuthAPI.processInternalStep(currentStep, stepData, action);
-        
-        const implementedSteps = ['login', 'register', 'password', 'otp', 'terms', 'success', 'error'];
-        if (!implementedSteps.includes(nextStepConfig.step)) {
-          setCurrentStep('not-implemented');
+        if (settings?.backend_url && selectedFlow && executionId && sessionId) {
+          // Map stepData to responses (converting booleans to strings as expected by FlowRequest)
+          const responses: Record<string, string> = {};
+          for (const [key, value] of Object.entries(stepData)) {
+            responses[key] = String(value);
+          }
+
+          const flowResponse = await AuthAPI.continueFlow(settings.backend_url, selectedFlow, {
+            executionId,
+            sessionId,
+            currentNode: currentStep as string,
+            responses,
+          });
+
+          if (flowResponse.error) {
+            setError(flowResponse.error.error_description);
+            // Don't change step if it's just a validation error, but current implementation transitions to error step
+            setCurrentStep('error');
+            return;
+          }
+
+          if (flowResponse.result?.success) {
+            setCurrentStep('success');
+          } else if (flowResponse.currentNode) {
+            setExecutionId(flowResponse.executionId || null);
+            setSessionId(flowResponse.sessionId || null);
+            setCurrentStep(flowResponse.currentNode as AuthStep);
+          }
         } else {
+          // Fallback to internal mock
+          const nextStepConfig = await AuthAPI.processInternalStep(currentStep, stepData, action);
           setCurrentStep(nextStepConfig.step);
         }
 
@@ -128,20 +143,21 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     },
-    [currentStep]
+    [currentStep, settings, selectedFlow, executionId, sessionId]
   );
 
   const handleRestart = () => {
+    setFormData({
+      email: '',
+      password: '',
+      otp: '',
+    });
+    setError(null);
+    
     if (settings?.backend_url && selectedFlow) {
       handleStartFlow(selectedFlow);
     } else {
-      handleContinue({}, 'login');
-      setFormData({
-        email: '',
-        password: '',
-        otp: '',
-      });
-      setError(null);
+      setCurrentStep('login');
     }
   };
 
@@ -179,14 +195,9 @@ export default function LoginPage() {
                   setError(flowResponse.error.error_description);
                   setCurrentStep('error');
                 } else if (flowResponse.currentNode) {
-                  const node = flowResponse.currentNode as AuthStep;
-                  const implementedSteps = ['login', 'register', 'password', 'otp', 'terms', 'success', 'error'];
-                  if (implementedSteps.includes(node)) {
-                    setCurrentStep(node);
-                  } else {
-                    console.warn('Unknown node from backend:', node);
-                    setCurrentStep('not-implemented');
-                  }
+                  setExecutionId(flowResponse.executionId || null);
+                  setSessionId(flowResponse.sessionId || null);
+                  setCurrentStep(flowResponse.currentNode as AuthStep);
                 }
               } catch (err: any) {
                 console.error('Failed to start auto-flow:', err);
@@ -416,88 +427,21 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-4">
-              {currentStep === 'login' && (
-                <LoginStep
-                  isLoading={isLoading}
-                  onContinue={handleContinue}
-                  accentColor={settings?.accentColor}
-                  formData={formData}
-                  settings={settings}
-                  error={error}
-                />
-              )}
-
-              {currentStep === 'register' && (
-                <RegisterStep
-                  isLoading={isLoading}
-                  onContinue={handleContinue}
-                  accentColor={settings?.accentColor}
-                  formData={formData}
-                  settings={settings}
-                  error={error}
-                />
-              )}
-
-              {currentStep === 'password' && (
-                <PasswordStep
-                  isLoading={isLoading}
-                  onContinue={handleContinue}
-                  formData={formData}
-                  settings={settings}
-                  error={error}
-                />
-              )}
-
-              {currentStep === 'otp' && (
-                <OTPStep
-                  isLoading={isLoading}
-                  onContinue={handleContinue}
-                  formData={formData}
-                  settings={settings}
-                  error={error}
-                />
-              )}
-
-              {currentStep === 'terms' && (
-                <TermsStep
-                  isLoading={isLoading}
-                  onContinue={handleContinue}
-                  accentColor={settings?.accentColor}
-                  formData={formData}
-                  settings={settings}
-                  error={error}
-                />
-              )}
-
-              {currentStep === 'success' && (
-                <SuccessStep
-                  isLoading={isLoading}
-                  onContinue={handleContinue}
-                  formData={formData}
-                  settings={settings}
-                />
-              )}
-
-              {currentStep === 'error' && (
-                <ErrorStep
-                  isLoading={isLoading}
-                  onContinue={handleContinue}
-                  accentColor={settings?.accentColor}
-                  formData={formData}
-                  settings={settings}
-                  error={error}
-                />
-              )}
-
-              {currentStep === 'not-implemented' && (
-                <NotImplementedStep
-                  isLoading={isLoading}
-                  onContinue={handleContinue}
-                  formData={formData}
-                  settings={settings}
-                  onRestart={handleRestart}
-                />
-              )}
+              {(() => {
+                const StepComponent = StepRegistry[currentStep] || StepRegistry['not-implemented'];
+                return (
+                  <StepComponent
+                    isLoading={isLoading}
+                    onContinue={handleContinue}
+                    onRestart={handleRestart}
+                    accentColor={settings?.accentColor}
+                    formData={formData}
+                    settings={settings}
+                    error={error}
+                    currentStep={currentStep}
+                  />
+                );
+              })()}
             </div>
           </div>
         </div>

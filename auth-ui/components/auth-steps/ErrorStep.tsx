@@ -4,7 +4,7 @@ import { AlertCircle, RotateCcw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { AuthStepProps } from './types';
 
-export function ErrorStep({ error, onContinue, accentColor }: AuthStepProps) {
+export function ErrorStep({ error, onRestart, accentColor }: AuthStepProps) {
   return (
     <div className="text-center space-y-6 animate-in fade-in zoom-in duration-300">
       <div className="flex justify-center">
@@ -25,7 +25,7 @@ export function ErrorStep({ error, onContinue, accentColor }: AuthStepProps) {
 
       <Button
         className="w-full flex items-center justify-center gap-2 group"
-        onClick={() => onContinue({}, 'login')}
+        onClick={onRestart}
         style={{ backgroundColor: accentColor }}
       >
         <RotateCcw className="w-4 h-4 transition-transform group-hover:rotate-[-45deg]" />

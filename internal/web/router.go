@@ -97,7 +97,9 @@ func New() *router.Router {
 	r.POST("/{tenant}/{realm}/auth/{path}/{node}", WrapMiddleware(auth.HandleAuthRequest))
 
 	// JSON API authentication routes
+	r.OPTIONS("/{tenant}/{realm}/api/v1/", WrapMiddleware(handleOptions))
 	r.GET("/{tenant}/{realm}/api/v1/", cors(WrapMiddleware(auth_api.HandleMetadataRequest)))
+	r.OPTIONS("/{tenant}/{realm}/api/v1/{path}", WrapMiddleware(handleOptions))
 	r.GET("/{tenant}/{realm}/api/v1/{path}", cors(WrapMiddleware(auth_api.HandleJSONAuthRequest)))
 	r.POST("/{tenant}/{realm}/api/v1/{path}", cors(WrapMiddleware(auth_api.HandleJSONAuthRequest)))
 

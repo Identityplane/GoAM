@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
 import { AuthStepProps } from './types';
 
-export function SuccessStep({ formData, onContinue }: AuthStepProps) {
+export function SuccessStep({ formData, onRestart }: AuthStepProps) {
   const email = formData.email || '';
 
   return (
@@ -30,7 +30,7 @@ export function SuccessStep({ formData, onContinue }: AuthStepProps) {
         </p>
       </div>
 
-      <Button onClick={() => onContinue({}, 'login')} className="w-full">
+      <Button onClick={onRestart} className="w-full">
         Start Over
       </Button>
     </div>

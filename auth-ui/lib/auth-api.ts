@@ -1,4 +1,4 @@
-export type AuthStep = 'login' | 'register' | 'password' | 'otp' | 'terms' | 'success' | 'error' | 'not-implemented';
+export type AuthStep = 'login' | 'register' | 'password' | 'askEmail' | 'askPassword' | 'askUsername' | 'askUsernamePassword' | 'askEmailPassword' | 'otp' | 'terms' | 'success' | 'error' | 'not-implemented' | 'successResult' | 'failureResult' | (string & {});
 
 export interface StepConfig {
   step: AuthStep;
@@ -38,6 +38,13 @@ export interface FlowResponse {
   };
 }
 
+export interface FlowRequest {
+  executionId: string;
+  sessionId: string;
+  currentNode: string;
+  responses: Record<string, string>;
+}
+
 /**
  * Service for interacting with the Authentication API (both internal mock and external backend)
  */
@@ -68,6 +75,35 @@ export class AuthAPI {
 
     if (!response.ok) {
       // Return the error response instead of throwing
+      try {
+        return await response.json();
+      } catch (e) {
+        return {
+          error: {
+            error: 'FETCH_ERROR',
+            error_description: `Server returned ${response.status}`,
+          }
+        };
+      }
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Continues the authentication flow with user input
+   */
+  static async continueFlow(backendUrl: string, flowRoute: string, request: FlowRequest): Promise<FlowResponse> {
+    const response = await fetch(`${backendUrl}/api/v1/${flowRoute}`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json' 
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
       try {
         return await response.json();
       } catch (e) {
