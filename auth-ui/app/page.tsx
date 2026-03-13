@@ -1,0 +1,357 @@
+'use client';
+
+import { useState, useCallback, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft } from 'lucide-react';
+import { LoginStep } from '@/components/auth-steps/LoginStep';
+import { RegisterStep } from '@/components/auth-steps/RegisterStep';
+import { PasswordStep } from '@/components/auth-steps/PasswordStep';
+import { OTPStep } from '@/components/auth-steps/OTPStep';
+import { TermsStep } from '@/components/auth-steps/TermsStep';
+import { SuccessStep } from '@/components/auth-steps/SuccessStep';
+import { ErrorStep } from '@/components/auth-steps/ErrorStep';
+import type { AuthStep, StepConfig } from '@/app/api/auth/step/route';
+import { cn } from '@/lib/utils';
+
+export default function LoginPage() {
+  const [currentStep, setCurrentStep] = useState<AuthStep>('login');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [settings, setSettings] = useState<{
+    backgroundColor: string;
+    accentColor: string;
+    logoSvg: string;
+    logoName: string;
+    privacyPolicyUrl: string;
+    sidebarTitle?: string;
+    sidebarText?: string;
+    fontFamily?: string;
+    primaryButtonColor?: string;
+    primaryButtonHoverColor?: string;
+    copyrightText?: string;
+    show_sidebar?: boolean;
+    pageBackgroundColor?: string;
+    inputBackgroundColor?: string;
+  } | null>(null);
+
+  // Debug panel state
+  const [configName, setConfigName] = useState('identityplane');
+  const [showDebug, setShowDebug] = useState(false);
+
+  useEffect(() => {
+    setSettings(null); // Reset settings to show loading state on config change
+    fetch(`/api/settings?config=${configName}`)
+      .then((res) => res.json())
+      .then((data) => setSettings(data))
+      .catch((err) => console.error('Failed to load settings:', err));
+  }, [configName]);
+
+  // Form data accumulation
+  const [formData, setFormData] = useState<Record<string, any>>({
+    email: '',
+    password: '',
+    otp: '',
+  });
+
+  const handleContinue = useCallback(
+    async (stepData: Record<string, string | boolean>, action?: string) => {
+      setError(null);
+      setIsLoading(true);
+
+      try {
+        const response = await fetch('/api/auth/step', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            currentStep,
+            data: stepData,
+            action,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          setError(errorData.error || 'An error occurred');
+          return;
+        }
+
+        const nextStepConfig: StepConfig = await response.json();
+        setCurrentStep(nextStepConfig.step);
+
+        // Update form data with current values
+        setFormData((prev) => ({
+          ...prev,
+          ...stepData,
+        }));
+      } catch (err) {
+        setError('Failed to process request. Please try again.');
+        console.error('Auth error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [currentStep]
+  );
+
+  const handleRestart = () => {
+    handleContinue({}, 'login');
+    setFormData({
+      email: '',
+      password: '',
+      otp: '',
+    });
+    setError(null);
+  };
+
+  if (!settings) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex font-sans" style={settings?.fontFamily ? { fontFamily: settings.fontFamily } : {}}>
+      {settings && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          :root {
+            ${settings.primaryButtonColor ? `--primary: ${settings.primaryButtonColor} !important;` : ''}
+            --primary-hover: ${settings.primaryButtonHoverColor || settings.primaryButtonColor || 'var(--primary)'};
+            ${settings.inputBackgroundColor ? `--input-bg: ${settings.inputBackgroundColor} !important;` : ''}
+          }
+
+          /* Target only standard input types, excluding hidden ones or those specific to OTP */
+          [data-slot="input"], 
+          [data-slot="input-otp-slot"],
+          select, 
+          textarea {
+            ${settings.inputBackgroundColor ? `background-color: var(--input-bg) !important;` : ''}
+          }
+
+          /* Ensure hidden OTP input remains hidden and unstyled */
+          [data-slot="input-otp"] input {
+            background-color: transparent !important;
+            border: none !important;
+          }
+        `}} />
+      )}
+      {/* Debug Panel Toggle */}
+      <button 
+        onClick={() => setShowDebug(!showDebug)}
+        className="fixed bottom-4 right-4 z-50 bg-black/50 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-colors backdrop-blur-sm"
+        title="Toggle Debug Panel"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg>
+      </button>
+
+      {/* Debug Panel */}
+      {showDebug && (
+        <div className="fixed bottom-16 right-4 z-50 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-4 transition-all" style={{ fontFamily: 'sans-serif' }}>
+          <div className="text-sm font-semibold mb-3 border-b pb-2 flex justify-between items-center">
+            <span>Debug Panel</span>
+            <button onClick={() => setShowDebug(false)} className="text-gray-400 hover:text-gray-700">✕</button>
+          </div>
+          
+          <div className="space-y-4 text-sm">
+            <div>
+              <label className="block text-gray-500 mb-1 text-xs uppercase font-semibold">Settings Config</label>
+              <select 
+                className="w-full border rounded p-1.5 focus:ring-2 focus:ring-blue-500 outline-none"
+                value={configName}
+                onChange={(e) => setConfigName(e.target.value)}
+              >
+                <option value="identityplane">IdentityPlane</option>
+                <option value="blue">Blue Theme</option>
+                <option value="default">Light Gray</option>
+                <option value="forest">Forest Green</option>
+                <option value="sunset">Sunset Orange</option>
+                <option value="minimal">Minimal (No Sidebar)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-gray-500 mb-1 text-xs uppercase font-semibold">Current Step</label>
+              <select 
+                className="w-full border rounded p-1.5 focus:ring-2 focus:ring-blue-500 outline-none"
+                value={currentStep}
+                onChange={(e) => {
+                  setError(null);
+                  setCurrentStep(e.target.value as AuthStep);
+                }}
+              >
+                <option value="login">1. Login</option>
+                <option value="register">1. Register</option>
+                <option value="password">2. Password</option>
+                <option value="otp">3. OTP</option>
+                <option value="terms">4. Terms</option>
+                <option value="success">5. Success</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={cn(
+        "hidden relative overflow-hidden",
+        settings?.show_sidebar ? "lg:flex lg:w-1/2" : "lg:hidden"
+      )} style={{ backgroundColor: settings?.backgroundColor || '#374151' }}>
+        <div className="relative z-10 flex flex-col justify-between w-full px-12 py-12">
+          <div className="flex items-center">
+            {settings?.logoSvg ? (
+              <div
+                className="w-8 h-8 mr-3 flex items-center justify-center"
+                style={{ color: settings.accentColor }}
+                dangerouslySetInnerHTML={{ __html: settings.logoSvg }}
+              />
+            ) : (
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3">
+                <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: settings?.accentColor || '#3F3FF3' }}></div>
+              </div>
+            )}
+            <h1 className="text-xl font-semibold text-white">{settings?.logoName || 'Frello'}</h1>
+          </div>
+
+            <div className="flex-1 flex flex-col justify-center">
+              <h2 className="text-4xl text-white mb-6 leading-tight">
+                {settings?.sidebarTitle || 'Effortlessly manage your team and operations.'}
+              </h2>
+              <p className="text-white/90 text-lg leading-relaxed">
+                {settings?.sidebarText || 'Log in to access your CRM dashboard and manage your team.'}
+              </p>
+            </div>
+
+          <div className="flex justify-between items-center text-white/70 text-sm">
+            <span>{settings?.copyrightText || 'Copyright © 2025 Frello Enterprises LTD.'}</span>
+            {settings?.privacyPolicyUrl ? (
+              <a href={settings.privacyPolicyUrl} className="hover:text-white/90 cursor-pointer">Privacy Policy</a>
+            ) : (
+              <span className="cursor-pointer hover:text-white/90">Privacy Policy</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className={cn(
+        "flex items-center justify-center p-8 relative transition-colors duration-300",
+        settings?.show_sidebar ? "w-full lg:w-1/2" : "w-full"
+      )} style={{ backgroundColor: settings?.pageBackgroundColor || '#ffffff' }}>
+        {(currentStep === 'password' || currentStep === 'otp') && (
+          <Button
+            variant="ghost"
+            onClick={() => setCurrentStep('login')}
+            className="absolute left-8 top-8 p-2 hover:bg-gray-100 cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
+
+        <div className="w-full max-w-md space-y-8">
+          <div className={cn("text-center mb-8", settings?.show_sidebar ? "lg:hidden" : "block")}>
+            {settings?.logoSvg ? (
+              <div
+                className="w-8 h-8 mx-auto mb-3 flex items-center justify-center"
+                style={{ color: settings.accentColor }}
+                dangerouslySetInnerHTML={{ __html: settings.logoSvg }}
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: settings?.accentColor || '#3F3FF3' }}>
+                <div className="w-4 h-4 bg-white rounded-sm"></div>
+              </div>
+            )}
+            <h1 className="text-xl font-semibold text-foreground">{settings?.logoName || 'Frello'}</h1>
+          </div>
+
+          <div className="space-y-6">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {currentStep === 'login' && (
+                <LoginStep
+                  isLoading={isLoading}
+                  onContinue={handleContinue}
+                  accentColor={settings?.accentColor}
+                  formData={formData}
+                  settings={settings}
+                  error={error}
+                />
+              )}
+
+              {currentStep === 'register' && (
+                <RegisterStep
+                  isLoading={isLoading}
+                  onContinue={handleContinue}
+                  accentColor={settings?.accentColor}
+                  formData={formData}
+                  settings={settings}
+                  error={error}
+                />
+              )}
+
+              {currentStep === 'password' && (
+                <PasswordStep
+                  isLoading={isLoading}
+                  onContinue={handleContinue}
+                  formData={formData}
+                  settings={settings}
+                  error={error}
+                />
+              )}
+
+              {currentStep === 'otp' && (
+                <OTPStep
+                  isLoading={isLoading}
+                  onContinue={handleContinue}
+                  formData={formData}
+                  settings={settings}
+                  error={error}
+                />
+              )}
+
+              {currentStep === 'terms' && (
+                <TermsStep
+                  isLoading={isLoading}
+                  onContinue={handleContinue}
+                  accentColor={settings?.accentColor}
+                  formData={formData}
+                  settings={settings}
+                  error={error}
+                />
+              )}
+
+              {currentStep === 'success' && (
+                <SuccessStep
+                  isLoading={isLoading}
+                  onContinue={handleContinue}
+                  formData={formData}
+                  settings={settings}
+                />
+              )}
+
+              {currentStep === 'error' && (
+                <ErrorStep
+                  isLoading={isLoading}
+                  onContinue={handleContinue}
+                  accentColor={settings?.accentColor}
+                  formData={formData}
+                  settings={settings}
+                  error={error}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
