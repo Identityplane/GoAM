@@ -31,6 +31,7 @@ type FlowResponse struct {
 	Prompts     map[string]string         `json:"prompts,omitempty"`
 	Result      *model.SimpleAuthResponse `json:"result,omitempty"`
 	Error       *model.AuthError          `json:"error,omitempty"`
+	ErrorMessage *string                   `json:"errorMessage,omitempty"`
 	Debug       any                       `json:"debug,omitempty"`
 }
 
@@ -240,6 +241,8 @@ func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSes
 	if session.Debug {
 		response.Debug = session
 	}
+
+	response.ErrorMessage = session.Error
 
 	// If there are prompts, add them
 	if len(session.Prompts) > 0 {

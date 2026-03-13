@@ -9,6 +9,8 @@ import { NotImplementedStep } from './NotImplementedStep';
 import { AskEmailPasswordStep } from './AskEmailPasswordStep';
 import { AskEmailStep } from './AskEmailStep';
 import { AskPasswordStep } from './AskPasswordStep';
+import { AskUsernameStep } from './AskUsernameStep';
+import { AskUsernamePasswordStep } from './AskUsernamePasswordStep';
 import { LoginPasskeyStep } from './LoginPasskeyStep';
 import { RegisterPasskeyStep } from './RegisterPasskeyStep';
 import { AuthStep } from '@/lib/auth-api';
@@ -26,6 +28,10 @@ export const StepRegistry: Record<AuthStep, React.ComponentType<AuthStepProps>> 
   'askEmailPassword': AskEmailPasswordStep,
   'askEmail': AskEmailStep,
   'askPassword': AskPasswordStep,
+  'askUsername': AskUsernameStep,
+  'askUsernamePassword': AskUsernamePasswordStep,
+  'successResult': SuccessStep,
+  'failureResult': ErrorStep,
   // Add these if they are relevant AuthSteps (they might need to be added to the AuthStep union)
   // 'login-passkey': LoginPasskeyStep,
   // 'register-passkey': RegisterPasskeyStep,

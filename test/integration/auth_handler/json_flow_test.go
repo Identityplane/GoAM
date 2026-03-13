@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/test/integration"
+	"github.com/google/uuid"
 )
 
 func TestJSONFlow_MockSuccessFlow(t *testing.T) {
@@ -140,6 +142,65 @@ func TestJSONFlow_UsernamePasswordRegisterFlow(t *testing.T) {
 
 }
 
+func TestJSONFlow_InvalidPassword(t *testing.T) {
+	e := integration.SetupIntegrationTest(t, "")
+
+	tenant := "acme"
+	realm := "customers"
+	username := "testuser-" + uuid.NewString()
+	password := "correct-password"
+
+	// Step 1: Register a user first so we can try to login
+	t.Run("Register user", func(t *testing.T) {
+		request := FlowRequest{
+			Responses: map[string]string{
+				"username": username,
+				"password": password,
+			},
+		}
+
+		e.POST("/" + tenant + "/" + realm + "/api/v1/username-password-register").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(request).
+			Expect().
+			Status(http.StatusOK)
+	})
+
+	// Step 2: Try to login with wrong password
+	t.Run("Login with wrong password", func(t *testing.T) {
+		// Start login flow
+		resp := e.GET("/" + tenant + "/" + realm + "/api/v1/email-password-login").
+			WithHeader("Accept", "application/json").
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		sessionID := resp.Object().Value("sessionId").String().Raw()
+		currentNode := resp.Object().Value("currentNode").String().Raw()
+
+		// Submit wrong password
+		request := FlowRequest{
+			SessionID:   sessionID,
+			CurrentNode: currentNode,
+			Responses: map[string]string{
+				"email":    username,
+				"password": "wrong-password",
+			},
+		}
+
+		resp = e.POST("/" + tenant + "/" + realm + "/api/v1/email-password-login").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(request).
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		// Should still be at the same node but with an error message
+		resp.Object().HasValue("currentNode", currentNode)
+		resp.Object().Value("errorMessage").String().Contains("invalid")
+	})
+}
+
 func TestJSONFlow_FlowWithoutApplication(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
 
@@ -188,6 +249,8 @@ type FlowResponse struct {
 	CurrentNode string            `json:"currentNode"`
 	Prompts     map[string]string `json:"prompts,omitempty"`
 	Result      *FlowResult       `json:"result,omitempty"`
+	Error       *model.AuthError  `json:"error,omitempty"`
+	ErrorMessage *string          `json:"errorMessage,omitempty"`
 	Debug       any               `json:"debug,omitempty"`
 }
 

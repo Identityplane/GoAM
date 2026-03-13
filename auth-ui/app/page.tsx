@@ -124,6 +124,10 @@ export default function LoginPage() {
             setExecutionId(flowResponse.executionId || null);
             setSessionId(flowResponse.sessionId || null);
             setCurrentStep(flowResponse.currentNode as AuthStep);
+
+            if (flowResponse.errorMessage) {
+              setError(flowResponse.errorMessage);
+            }
           }
         } else {
           // Fallback to internal mock
@@ -420,12 +424,6 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-6">
-            {error && currentStep !== 'error' && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
             <div className="space-y-4">
               {(() => {
                 const StepComponent = StepRegistry[currentStep] || StepRegistry['not-implemented'];

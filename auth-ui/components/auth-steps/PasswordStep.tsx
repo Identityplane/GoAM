@@ -48,6 +48,7 @@ export function PasswordStep({ isLoading, onContinue, formData, error }: AuthSte
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </Field>
         </FieldGroup>
 

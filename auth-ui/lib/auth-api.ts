@@ -36,6 +36,7 @@ export interface FlowResponse {
     error: string;
     error_description: string;
   };
+  errorMessage?: string;
 }
 
 export interface FlowRequest {
