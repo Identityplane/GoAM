@@ -23,11 +23,6 @@ export function LoginStep({ isLoading, onContinue, accentColor, formData, settin
         <p className="text-muted-foreground">Enter your email and password to access your account.</p>
       </div>
 
-      {error && (
-        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md animate-in fade-in slide-in-from-top-1 text-center">
-          {error}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <FieldGroup>

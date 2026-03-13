@@ -21,8 +21,9 @@ type realmYaml struct {
 	RealmName    string                        `yaml:"realm_name"`
 	Tenant       string                        `yaml:"tenant"`
 	BaseUrl      string                        `yaml:"base_url"`
-	Applications map[string]*model.Application `yaml:"applications"`
-	Flows        map[string]*model.Flow        `yaml:"flows"`
+	Applications  map[string]*model.Application `yaml:"applications"`
+	Flows         map[string]*model.Flow        `yaml:"flows"`
+	RealmSettings map[string]string             `yaml:"realm_settings"`
 }
 
 type staticConfigurationServiceImpl struct {
@@ -53,10 +54,11 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 		if !exists {
 			log.Debug().Str("realm", realm.Realm).Msg("creating realm")
 			err := realmService.CreateRealm(&model.Realm{
-				Realm:     realm.Realm,
-				RealmName: realm.RealmName,
-				Tenant:    realm.Tenant,
-				BaseUrl:   realm.BaseUrl,
+				Realm:         realm.Realm,
+				RealmName:     realm.RealmName,
+				Tenant:        realm.Tenant,
+				BaseUrl:       realm.BaseUrl,
+				RealmSettings: realm.RealmSettings,
 			})
 			if err != nil {
 				log.Panic().Err(err).Str("realm", realm.Realm).Msg("failed to create realm")
@@ -66,10 +68,11 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 		if exists && config.ServerSettings.InfrastructureAsCodeMode {
 			log.Debug().Str("realm", realm.Realm).Msg("updating realm")
 			err := realmService.UpdateRealm(&model.Realm{
-				Realm:     realm.Realm,
-				RealmName: realm.RealmName,
-				Tenant:    realm.Tenant,
-				BaseUrl:   realm.BaseUrl,
+				Realm:         realm.Realm,
+				RealmName:     realm.RealmName,
+				Tenant:        realm.Tenant,
+				BaseUrl:       realm.BaseUrl,
+				RealmSettings: realm.RealmSettings,
 			})
 			if err != nil {
 				log.Panic().Err(err).Str("realm", realm.Realm).Msg("failed to update realm")

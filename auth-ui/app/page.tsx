@@ -16,6 +16,18 @@ import { AuthAPI } from '@/lib/auth-api';
 import type { AuthStep, StepConfig, FlowInfo, MetadataResponse } from '@/lib/auth-api';
 import { cn } from '@/lib/utils';
 
+// Helper to parse strings from settings into correct types (boolean, numbers etc)
+const parseSettings = (settings: Record<string, string>) => {
+  const parsed: Record<string, any> = {};
+  for (const [key, value] of Object.entries(settings)) {
+    if (value === 'true') parsed[key] = true;
+    else if (value === 'false') parsed[key] = false;
+    else if (!isNaN(Number(value)) && value.trim() !== '') parsed[key] = Number(value);
+    else parsed[key] = value;
+  }
+  return parsed;
+};
+
 export default function LoginPage() {
   const [currentStep, setCurrentStep] = useState<AuthStep>('login');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,9 +36,9 @@ export default function LoginPage() {
   const [settings, setSettings] = useState<{
     backgroundColor: string;
     accentColor: string;
-    logoSvg: string;
-    logoName: string;
-    privacyPolicyUrl: string;
+    logoSvg?: string;
+    logoName?: string;
+    privacyPolicyUrl?: string;
     sidebarTitle?: string;
     sidebarText?: string;
     fontFamily?: string;
@@ -37,36 +49,50 @@ export default function LoginPage() {
     pageBackgroundColor?: string;
     inputBackgroundColor?: string;
     backend_url?: string;
+    enable_register?: boolean;
+    [key: string]: any;
   } | null>(null);
 
   const [metadata, setMetadata] = useState<MetadataResponse | null>(null);
   const [selectedFlow, setSelectedFlow] = useState<string>('');
 
   // Debug panel state
-  const [configName, setConfigName] = useState('identityplane');
+  const [configName, setConfigName] = useState('acme');
   const [showDebug, setShowDebug] = useState(false);
 
-  useEffect(() => {
-    setSettings(null); // Reset settings to show loading state on config change
-    setMetadata(null);
-    fetch(`/api/settings?config=${configName}`)
-      .then((res) => res.json())
-      .then(async (data) => {
-        setSettings(data);
-        if (data.backend_url) {
-          try {
-            const meta = await AuthAPI.fetchMetadata(data.backend_url);
-            setMetadata(meta);
-            if (meta.flows?.length > 0) {
-              setSelectedFlow(meta.flows[0].route);
-            }
-          } catch (err) {
-            console.error('Failed to load metadata:', err);
-          }
+  const handleStartFlow = async (flowOverride?: string) => {
+    const flowToStart = flowOverride || selectedFlow;
+    if (!settings?.backend_url || !flowToStart) return;
+
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const flowResponse = await AuthAPI.startFlow(settings.backend_url, flowToStart);
+      
+      if (flowResponse.error) {
+        setError(flowResponse.error.error_description);
+        setCurrentStep('error');
+        return;
+      }
+
+      if (flowResponse.currentNode) {
+        const node = flowResponse.currentNode as AuthStep;
+        const implementedSteps = ['login', 'register', 'password', 'otp', 'terms', 'success', 'error'];
+        
+        if (implementedSteps.includes(node)) {
+          setCurrentStep(node);
+        } else {
+          setCurrentStep('not-implemented');
         }
-      })
-      .catch((err) => console.error('Failed to load settings:', err));
-  }, [configName]);
+      }
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to start flow');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Form data accumulation
   const [formData, setFormData] = useState<Record<string, any>>({
@@ -106,47 +132,82 @@ export default function LoginPage() {
   );
 
   const handleRestart = () => {
-    handleContinue({}, 'login');
-    setFormData({
-      email: '',
-      password: '',
-      otp: '',
-    });
-    setError(null);
-  };
-
-  const handleStartFlow = async (flowOverride?: string) => {
-    const flowToStart = flowOverride || selectedFlow;
-    if (!settings?.backend_url || !flowToStart) return;
-
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      const flowResponse = await AuthAPI.startFlow(settings.backend_url, flowToStart);
-      
-      if (flowResponse.error) {
-        setError(flowResponse.error.errorDescription);
-        return;
-      }
-
-      if (flowResponse.currentNode) {
-        const node = flowResponse.currentNode as AuthStep;
-        const implementedSteps = ['login', 'register', 'password', 'otp', 'terms', 'success', 'error'];
-        
-        if (implementedSteps.includes(node)) {
-          setCurrentStep(node);
-        } else {
-          setCurrentStep('not-implemented');
-        }
-      }
-      
-    } catch (err: any) {
-      setError(err.message || 'Failed to start flow');
-    } finally {
-      setIsLoading(false);
+    if (settings?.backend_url && selectedFlow) {
+      handleStartFlow(selectedFlow);
+    } else {
+      handleContinue({}, 'login');
+      setFormData({
+        email: '',
+        password: '',
+        otp: '',
+      });
+      setError(null);
     }
   };
+
+  useEffect(() => {
+    setSettings(null); // Reset settings to show loading state on config change
+    setMetadata(null);
+    setCurrentStep('login'); // Reset to default step
+    setError(null);
+
+    fetch(`/api/settings?config=${configName}`)
+      .then((res) => res.json())
+      .then(async (data) => {
+        let finalSettings = { ...data };
+        
+        if (data.backend_url) {
+          try {
+            const meta = await AuthAPI.fetchMetadata(data.backend_url);
+            setMetadata(meta);
+            
+            // Merge realm settings if present
+            if (meta.realm?.settings) {
+              const parsedRealmSettings = parseSettings(meta.realm.settings);
+              finalSettings = { ...finalSettings, ...parsedRealmSettings };
+            }
+
+            if (meta.flows?.length > 0) {
+              const firstFlow = meta.flows[0].route;
+              setSelectedFlow(firstFlow);
+              
+              // Automatically start the first flow
+              setIsLoading(true);
+              try {
+                const flowResponse = await AuthAPI.startFlow(data.backend_url, firstFlow);
+                if (flowResponse.error) {
+                  setError(flowResponse.error.error_description);
+                  setCurrentStep('error');
+                } else if (flowResponse.currentNode) {
+                  const node = flowResponse.currentNode as AuthStep;
+                  const implementedSteps = ['login', 'register', 'password', 'otp', 'terms', 'success', 'error'];
+                  if (implementedSteps.includes(node)) {
+                    setCurrentStep(node);
+                  } else {
+                    console.warn('Unknown node from backend:', node);
+                    setCurrentStep('not-implemented');
+                  }
+                }
+              } catch (err: any) {
+                console.error('Failed to start auto-flow:', err);
+                setError(err.message || 'Failed to start flow');
+              } finally {
+                setIsLoading(false);
+              }
+            }
+          } catch (err) {
+            console.error('Failed to load metadata:', err);
+            setError('Failed to connect to authentication backend');
+          }
+        }
+        
+        setSettings(finalSettings);
+      })
+      .catch((err) => {
+        console.error('Failed to load settings:', err);
+        setError('Failed to load application settings');
+      });
+  }, [configName]);
 
   if (!settings) {
     return (
@@ -348,7 +409,7 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-6">
-            {error && (
+            {error && currentStep !== 'error' && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
                 {error}
               </div>

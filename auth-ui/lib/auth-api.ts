@@ -34,7 +34,7 @@ export interface FlowResponse {
   };
   error?: {
     error: string;
-    errorDescription: string;
+    error_description: string;
   };
 }
 
@@ -67,8 +67,17 @@ export class AuthAPI {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.errorDescription || 'Failed to start flow');
+      // Return the error response instead of throwing
+      try {
+        return await response.json();
+      } catch (e) {
+        return {
+          error: {
+            error: 'FETCH_ERROR',
+            error_description: `Server returned ${response.status}`,
+          }
+        };
+      }
     }
 
     return response.json();
