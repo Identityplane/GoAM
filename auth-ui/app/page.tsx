@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [currentStep, setCurrentStep] = useState<AuthStep>('login');
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [prompts, setPrompts] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +75,7 @@ export default function LoginPage() {
       if (flowResponse.currentNode) {
         setExecutionId(flowResponse.executionId || null);
         setSessionId(flowResponse.sessionId || null);
+        setPrompts(flowResponse.prompts || {});
         setCurrentStep(flowResponse.currentNode as AuthStep);
       }
       
@@ -123,6 +125,7 @@ export default function LoginPage() {
           } else if (flowResponse.currentNode) {
             setExecutionId(flowResponse.executionId || null);
             setSessionId(flowResponse.sessionId || null);
+            setPrompts(flowResponse.prompts || {});
             setCurrentStep(flowResponse.currentNode as AuthStep);
 
             if (flowResponse.errorMessage) {
@@ -437,6 +440,7 @@ export default function LoginPage() {
                     settings={settings}
                     error={error}
                     currentStep={currentStep}
+                    prompts={prompts}
                   />
                 );
               })()}

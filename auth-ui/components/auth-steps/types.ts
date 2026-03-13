@@ -10,6 +10,7 @@ export interface AuthStepProps {
   settings?: any;
   error?: string | null;
   currentStep?: string;
+  prompts?: Record<string, string>;
 }
 
 
