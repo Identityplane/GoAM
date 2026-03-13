@@ -1,4 +1,4 @@
-import { AuthStep } from '@/app/api/auth/step/route';
+import { AuthStep } from '@/lib/auth-api';
 
 export interface AuthStepProps {
   isLoading: boolean;

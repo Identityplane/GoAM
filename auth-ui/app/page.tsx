@@ -11,7 +11,9 @@ import { OTPStep } from '@/components/auth-steps/OTPStep';
 import { TermsStep } from '@/components/auth-steps/TermsStep';
 import { SuccessStep } from '@/components/auth-steps/SuccessStep';
 import { ErrorStep } from '@/components/auth-steps/ErrorStep';
-import type { AuthStep, StepConfig } from '@/app/api/auth/step/route';
+import { NotImplementedStep } from '@/components/auth-steps/NotImplementedStep';
+import { AuthAPI } from '@/lib/auth-api';
+import type { AuthStep, StepConfig, FlowInfo, MetadataResponse } from '@/lib/auth-api';
 import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
@@ -34,7 +36,11 @@ export default function LoginPage() {
     show_sidebar?: boolean;
     pageBackgroundColor?: string;
     inputBackgroundColor?: string;
+    backend_url?: string;
   } | null>(null);
+
+  const [metadata, setMetadata] = useState<MetadataResponse | null>(null);
+  const [selectedFlow, setSelectedFlow] = useState<string>('');
 
   // Debug panel state
   const [configName, setConfigName] = useState('identityplane');
@@ -42,9 +48,23 @@ export default function LoginPage() {
 
   useEffect(() => {
     setSettings(null); // Reset settings to show loading state on config change
+    setMetadata(null);
     fetch(`/api/settings?config=${configName}`)
       .then((res) => res.json())
-      .then((data) => setSettings(data))
+      .then(async (data) => {
+        setSettings(data);
+        if (data.backend_url) {
+          try {
+            const meta = await AuthAPI.fetchMetadata(data.backend_url);
+            setMetadata(meta);
+            if (meta.flows?.length > 0) {
+              setSelectedFlow(meta.flows[0].route);
+            }
+          } catch (err) {
+            console.error('Failed to load metadata:', err);
+          }
+        }
+      })
       .catch((err) => console.error('Failed to load settings:', err));
   }, [configName]);
 
@@ -61,32 +81,22 @@ export default function LoginPage() {
       setIsLoading(true);
 
       try {
-        const response = await fetch('/api/auth/step', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            currentStep,
-            data: stepData,
-            action,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          setError(errorData.error || 'An error occurred');
-          return;
+        const nextStepConfig = await AuthAPI.processInternalStep(currentStep, stepData, action);
+        
+        const implementedSteps = ['login', 'register', 'password', 'otp', 'terms', 'success', 'error'];
+        if (!implementedSteps.includes(nextStepConfig.step)) {
+          setCurrentStep('not-implemented');
+        } else {
+          setCurrentStep(nextStepConfig.step);
         }
-
-        const nextStepConfig: StepConfig = await response.json();
-        setCurrentStep(nextStepConfig.step);
 
         // Update form data with current values
         setFormData((prev) => ({
           ...prev,
           ...stepData,
         }));
-      } catch (err) {
-        setError('Failed to process request. Please try again.');
+      } catch (err: any) {
+        setError(err.message || 'An error occurred');
         console.error('Auth error:', err);
       } finally {
         setIsLoading(false);
@@ -103,6 +113,39 @@ export default function LoginPage() {
       otp: '',
     });
     setError(null);
+  };
+
+  const handleStartFlow = async (flowOverride?: string) => {
+    const flowToStart = flowOverride || selectedFlow;
+    if (!settings?.backend_url || !flowToStart) return;
+
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const flowResponse = await AuthAPI.startFlow(settings.backend_url, flowToStart);
+      
+      if (flowResponse.error) {
+        setError(flowResponse.error.errorDescription);
+        return;
+      }
+
+      if (flowResponse.currentNode) {
+        const node = flowResponse.currentNode as AuthStep;
+        const implementedSteps = ['login', 'register', 'password', 'otp', 'terms', 'success', 'error'];
+        
+        if (implementedSteps.includes(node)) {
+          setCurrentStep(node);
+        } else {
+          setCurrentStep('not-implemented');
+        }
+      }
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to start flow');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!settings) {
@@ -167,6 +210,7 @@ export default function LoginPage() {
                 onChange={(e) => setConfigName(e.target.value)}
               >
                 <option value="identityplane">IdentityPlane</option>
+                <option value="acme">Acme (External Backend)</option>
                 <option value="blue">Blue Theme</option>
                 <option value="default">Light Gray</option>
                 <option value="forest">Forest Green</option>
@@ -174,6 +218,42 @@ export default function LoginPage() {
                 <option value="minimal">Minimal (No Sidebar)</option>
               </select>
             </div>
+
+            {settings?.backend_url && metadata && (
+              <div className="pt-2 border-t">
+                <label className="block text-blue-600 mb-1 text-xs uppercase font-bold">Backend Flow</label>
+                <div className="flex gap-2">
+                  <select 
+                    className="flex-1 border rounded p-1.5 focus:ring-2 focus:ring-blue-500 outline-none truncate"
+                    value={selectedFlow}
+                    onChange={(e) => {
+                      const newFlow = e.target.value;
+                      setSelectedFlow(newFlow);
+                      handleStartFlow(newFlow);
+                    }}
+                  >
+                    {metadata.flows.map(flow => (
+                      <option key={flow.id} value={flow.route}>
+                        {flow.id}
+                      </option>
+                    ))}
+                  </select>
+                  <button 
+                    onClick={() => handleStartFlow()}
+                    disabled={isLoading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 rounded flex items-center justify-center disabled:opacity-50"
+                    title="Start Flow"
+                  >
+                    🚀
+                  </button>
+                </div>
+                {metadata.realm && (
+                  <div className="mt-2 text-[10px] text-gray-400 italic">
+                    Connected to: {metadata.realm.name}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-gray-500 mb-1 text-xs uppercase font-semibold">Current Step</label>
@@ -345,6 +425,16 @@ export default function LoginPage() {
                   formData={formData}
                   settings={settings}
                   error={error}
+                />
+              )}
+
+              {currentStep === 'not-implemented' && (
+                <NotImplementedStep
+                  isLoading={isLoading}
+                  onContinue={handleContinue}
+                  formData={formData}
+                  settings={settings}
+                  onRestart={handleRestart}
                 />
               )}
             </div>
