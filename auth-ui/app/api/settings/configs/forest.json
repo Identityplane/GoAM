@@ -1,4 +1,5 @@
 {
+  "mock": true,
   "backgroundColor": "#064E3B",
   "accentColor": "#10B981",
   "logoSvg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 2L3 9l9 7 9-7-9-7z\"/><path d=\"M3 19l9-7 9 7\"/></svg>",

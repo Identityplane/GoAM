@@ -191,6 +191,12 @@ export default function LoginPage(): React.ReactElement | null {
       .then(async (data) => {
         let finalSettings = { ...data };
         
+        // If mock is true, we skip all backend calls and just show the UI
+        if (data.mock === true) {
+          setSettings(finalSettings);
+          return;
+        }
+
         if (data.backend_url) {
           try {
             const meta = await AuthAPI.fetchMetadata(data.backend_url);
