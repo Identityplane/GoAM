@@ -1,72 +1,154 @@
-description: ''
+description: 'State-of-the-art login flow with account listing, passkeys, TOTP, and LOA management.'
 start: init
 nodes:
-  askPassword:
-    name: askPassword
-    use: askPassword
-    next:
-      submitted: validatePassword
-  askUsername:
-    name: askUsername
-    use: askUsername
-    next:
-      submitted: checkPasskeyRegistered
-  authFailure:
-    name: failureResult
-    use: failureResult
-    next: {}
-  authSuccess:
-    name: successResult
-    use: successResult
-    next: {}
-  checkPasskeyRegistered:
-    name: checkPasskeyRegistered
-    use: checkPasskeyRegistered
-    next:
-      not_registered: askPassword
-      registered: verifyPasskey
-      user_not_found: authFailure
   init:
     name: init
     use: init
+    custom_config: {}
     next:
-      start: askUsername
+      start: listAvailableUsers
+
+  listAvailableUsers:
+    name: listAvailableUsers
+    use: listAvailableUsers
+    next:
+      success: getLoa
+      none: passwordOrSocialLogin
+
+  getLoa:
+    name: getLoa
+    use: getLoa
+    next:
+      '2': successResult
+      '1': hasTOTP
+      '0': askPassword
+      'none': passwordOrSocialLogin
+
+  passwordOrSocialLogin:
+    name: passwordOrSocialLogin
+    use: passwordOrSocialLogin
+    custom_config:
+      useUsername: false
+      useEmail: true
+      usePassword: true
+      usePasskeys: true
+      showForgotPassword: true
+      disablePasskeyBtn: false
+      showRegistrationLink: false
+      title: "Welcome back"
+      message: "Please choose a login method"
+    next:
+      password: validatePassword
+      passkey: verifyPasskey
+      forgotPassword: forgotPassword_AskEmail
+
+  forgotPassword_AskEmail:
+    name: askEmail
+    use: askEmail
+    next:
+      submitted: forgotPassword_EmailOTP
+
+  forgotPassword_EmailOTP:
+    name: emailOTP
+    use: emailOTP
+    next:
+      success-registered-email: forgotPassword_HasTOTP
+      success-new-email-for-user: forgotPassword_HasTOTP 
+      success-unkown-email: forgotPassword_AccountNotFound
+
+  forgotPassword_AccountNotFound:
+    name: forgotPassword_AccountNotFound
+    use: failureResult
+    custom_config:
+      message: Please register, account does not exist.
+    next: {}
+
+  forgotPassword_HasTOTP:
+    name: hasTOTP
+    use: hasTOTP
+    next:
+      yes: forgotPassword_VerifyTOTP
+      no: forgotPassword_AskNewPassword
+
+  forgotPassword_VerifyTOTP:
+    name: verifyTOTP
+    use: verifyTOTP
+    next:
+      success: forgotPassword_AskNewPassword
+      fail: forgotPassword_VerifyTOTP
+
+  forgotPassword_AskNewPassword:
+    name: askPassword
+    use: askPassword
+    custom_config:
+      message: Please choose a new password for your account.
+    next:
+      submitted: forgotPassword_UpdatePassword
+
+  forgotPassword_UpdatePassword:
+    name: updatePassword
+    use: updatePassword
+    next:
+      success: forgotPassword_CheckMFAUsed
+  
+  forgotPassword_CheckMFAUsed:
+    name: hasTOTP
+    use: hasTOTP
+    next:
+      yes: setLoa2
+      no: setLoa1
+
+  askPassword:
+    name: askPassword
+    use: askPassword
+    custom_config:
+      message: Your session has expired. Please enter your password to continue.
+    next:
+      submitted: validatePassword
+
   validatePassword:
     name: validatePassword
     use: validatePassword
     next:
-      fail: askPassword
-      locked: authFailure
-      success: authSuccess
+      success: setLoa1
+      fail: passwordOrSocialLogin
+
+  setLoa1:
+    name: setLoa1
+    use: setLoa1
+    next:
+      success: hasTOTP
+
+  hasTOTP:
+    name: hasTOTP
+    use: hasTOTP
+    next:
+      yes: verifyTOTP
+      no: successResult
+
+  verifyTOTP:
+    name: verifyTOTP
+    use: verifyTOTP
+    next:
+      success: setLoa2
+      fail: verifyTOTP
+
   verifyPasskey:
     name: verifyPasskey
     use: verifyPasskey
     next:
-      failure: authFailure
-      success: authSuccess
-editor:
-  nodes:
-    askPassword:
-      x: 1066
-      'y': -83.77463861668271
-    askUsername:
-      x: 154
-      'y': -52
-    authFailure:
-      x: 1996.4
-      'y': 344
-    authSuccess:
-      x: 2007.6
-      'y': -212
-    checkPasskeyRegistered:
-      x: 506
-      'y': -150
-    init:
-      x: -20.399999999999977
-      'y': -34
-    validatePassword:
-      x: 1528
-      'y': -34.40000000000009
-    verifyPasskey:
-      x: 1068
-      'y': -256.8
+      success: setLoa2
+      failure: passwordOrSocialLogin
+
+  setLoa2:
+    name: setLoa2
+    use: setLoa2
+    next:
+      success: successResult
+
+  successResult:
+    name: successResult
+    use: successResult
+    custom_config:
+      message: Login successful!
+    next: {}

@@ -31,6 +31,11 @@ realm_settings:
   inputBackgroundColor: "#f9fafb"
 
 flows:
+  login:
+    route: /login
+    active: yes
+    debug_allowed: yes
+    definition_location: login.yaml
   username-password-register:
     route: /username-password-register
     active: yes

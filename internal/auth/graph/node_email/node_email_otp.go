@@ -63,7 +63,9 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 	// Max attempts for the OTP
 	mfa_max_attempts := 10
 	if v, ok := node.CustomConfig[EMAIL_OTP_OPTION_MAX_ATTEMPTS]; ok {
-		mfa_max_attempts, _ = strconv.Atoi(v)
+		if v != "" {
+			mfa_max_attempts, _ = strconv.Atoi(v)
+		}
 	}
 	resendInSeconds := 30
 	if node.CustomConfig[EMAIL_RESEND_IN_SECONDS] != "" {
