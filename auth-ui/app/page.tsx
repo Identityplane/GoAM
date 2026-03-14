@@ -362,18 +362,26 @@ export default function LoginPage() {
       )} style={{ backgroundColor: settings?.backgroundColor || '#374151' }}>
         <div className="relative z-10 flex flex-col justify-between w-full px-12 py-12">
           <div className="flex items-center">
-            {settings?.logoSvg ? (
-              <div
-                className="w-8 h-8 mr-3 flex items-center justify-center"
-                style={{ color: settings.accentColor }}
-                dangerouslySetInnerHTML={{ __html: settings.logoSvg }}
-              />
+            {settings?.logoSvg !== undefined ? (
+              settings.logoSvg ? (
+                <div
+                  className="w-8 h-8 mr-3 flex items-center justify-center"
+                  style={{ color: settings.accentColor }}
+                  dangerouslySetInnerHTML={{ __html: settings.logoSvg }}
+                />
+              ) : null
             ) : (
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3">
                 <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: settings?.accentColor || '#3F3FF3' }}></div>
               </div>
             )}
-            <h1 className="text-xl font-semibold text-white">{settings?.logoName || 'Frello'}</h1>
+            {settings?.logoName !== undefined ? (
+              settings.logoName ? (
+                <h1 className="text-xl font-semibold text-white">{settings.logoName}</h1>
+              ) : null
+            ) : (
+              <h1 className="text-xl font-semibold text-white">Frello</h1>
+            )}
           </div>
 
             <div className="flex-1 flex flex-col justify-center">
@@ -412,18 +420,26 @@ export default function LoginPage() {
 
         <div className="w-full max-w-md space-y-8">
           <div className={cn("text-center mb-8", settings?.show_sidebar ? "lg:hidden" : "block")}>
-            {settings?.logoSvg ? (
-              <div
-                className="w-8 h-8 mx-auto mb-3 flex items-center justify-center"
-                style={{ color: settings.accentColor }}
-                dangerouslySetInnerHTML={{ __html: settings.logoSvg }}
-              />
+            {settings?.logoSvg !== undefined ? (
+              settings.logoSvg ? (
+                <div
+                  className="w-8 h-8 mx-auto mb-3 flex items-center justify-center"
+                  style={{ color: settings.accentColor }}
+                  dangerouslySetInnerHTML={{ __html: settings.logoSvg }}
+                />
+              ) : null
             ) : (
               <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: settings?.accentColor || '#3F3FF3' }}>
                 <div className="w-4 h-4 bg-white rounded-sm"></div>
               </div>
             )}
-            <h1 className="text-xl font-semibold text-foreground">{settings?.logoName || 'Frello'}</h1>
+            {settings?.logoName !== undefined ? (
+              settings.logoName ? (
+                <h1 className="text-xl font-semibold text-foreground">{settings.logoName}</h1>
+              ) : null
+            ) : (
+              <h1 className="text-xl font-semibold text-foreground">Frello</h1>
+            )}
           </div>
 
           <div className="space-y-6">

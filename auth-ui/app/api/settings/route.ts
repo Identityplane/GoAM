@@ -16,12 +16,12 @@ export async function GET(request: Request) {
     return NextResponse.json({
       backgroundColor: '#3F3FF3',
       accentColor: '#3F3FF3',
-      logoSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="currentColor"/><rect x="8" y="8" width="16" height="16" rx="4" fill="white"/></svg>',
-      logoName: 'IdentityPlane',
+      logoSvg: '',
+      logoName: '',
       privacyPolicyUrl: '#',
-      sidebarTitle: 'Effortlessly manage your team and operations.',
-      sidebarText: 'Access your CRM dashboard and manage your team.',
-      fontFamily: 'Inter, "Inter Fallback"',
+      sidebarTitle: '',
+      sidebarText: '',
+      fontFamily: '',
       show_sidebar: true,
       pageBackgroundColor: '#ffffff',
       inputBackgroundColor: '#ffffff'
