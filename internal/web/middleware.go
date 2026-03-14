@@ -161,8 +161,11 @@ func securityHeaders(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		// If the response has a cspNonce, we set the CSP, otherwise we set a very strict CSP as default
 		cspNonce := ctx.UserValue("cspNonce")
 		csp := ctx.UserValue("csp")
+		cspDisable := ctx.UserValue("cspDisable")
 
-		if csp != nil {
+		if cspDisable != nil && cspDisable.(bool) {
+			// CSP is disabled for this request (e.g. for proxying to a dev server that handles its own CSP)
+		} else if csp != nil {
 			// This is used for example for the swagger UI where we need to allow the swagger UI to load the swagger.js file
 			ctx.Response.Header.Set("Content-Security-Policy", csp.(string))
 		} else if cspNonce != nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/web/admin_api"
 	"github.com/Identityplane/GoAM/internal/web/auth"
 	"github.com/Identityplane/GoAM/internal/web/auth_api"
+	"github.com/Identityplane/GoAM/internal/web/auth_ui"
 	"github.com/Identityplane/GoAM/internal/web/debug"
 	"github.com/Identityplane/GoAM/internal/web/oauth2"
 
@@ -95,6 +96,20 @@ func New() *router.Router {
 	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
 	r.GET("/{tenant}/{realm}/auth/{path}/{node}", WrapMiddleware(auth.HandleAuthRequest))
 	r.POST("/{tenant}/{realm}/auth/{path}/{node}", WrapMiddleware(auth.HandleAuthRequest))
+
+	// Auth UI reverse proxy (Development)
+	r.GET("/{tenant}/{realm}/authui", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		auth_ui.HandleAuthUIProxy(ctx)
+	}))
+	r.GET("/{tenant}/{realm}/authui/{path:*}", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		auth_ui.HandleAuthUIProxy(ctx)
+	}))
+	r.GET("/_next/{path:*}", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		auth_ui.HandleAuthUIProxy(ctx)
+	}))
+	r.GET("/__nextjs_font/{path:*}", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		auth_ui.HandleAuthUIProxy(ctx)
+	}))
 
 	// JSON API authentication routes
 	r.OPTIONS("/{tenant}/{realm}/api/v1/", WrapMiddleware(handleOptions))
