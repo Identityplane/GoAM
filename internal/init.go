@@ -11,6 +11,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/auth"
+	"github.com/Identityplane/GoAM/internal/web/auth_ui"
 	"github.com/Identityplane/GoAM/pkg/db"
 	dbinit "github.com/Identityplane/GoAM/pkg/db/init"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -32,6 +33,7 @@ var (
 func Initialize(serverSettings *server_settings.GoamServerSettings) {
 
 	config.InitConfiguration(serverSettings)
+	auth_ui.InitProxy(serverSettings.AuthUIUriBase)
 
 	// Print config path
 	log := logger.GetGoamLogger()

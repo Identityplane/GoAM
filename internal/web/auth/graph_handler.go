@@ -268,6 +268,12 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session *mod
 
 func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, bool) {
 
+	// If we have a session id in the query parameters, we use it
+	secretSessionId := ctx.QueryArgs().Peek("session")
+	if secretSessionId != nil {
+		return service.GetServices().SessionsService.GetAuthenticationSessionByID(ctx, tenant, realm, string(secretSessionId))
+	}
+
 	// Try load the session cookie from the request (there can be multiple cookies with the same name)
 	all_cookie_values := make([]string, 0)
 	ctx.Request.Header.VisitAllCookie(func(key []byte, value []byte) {

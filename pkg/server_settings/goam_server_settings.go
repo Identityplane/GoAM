@@ -19,6 +19,8 @@ type GoamServerSettings struct {
 	TlsKeyFile    string `mapstructure:"tls_key_file"`
 	DBConnString  string `mapstructure:"db"`
 
+	AuthUIUriBase string `mapstructure:"authui_uri_base"`
+
 	Banner                   string `mapstructure:"banner"`
 	RealmConfigurationFolder string `mapstructure:"realm_configuration_folder"`
 	NotFoundRedirectUrl      string `mapstructure:"not_found_redirect_url"`
@@ -178,6 +180,13 @@ func GetConfigDocumentation() []ConfigDocumentation {
 			Default:     4069,
 			Examples:    []string{"4096", "8192", "16384"},
 			EnvVar:      "GOAM_WRITE_BUFFER_SIZE",
+		},
+		{
+			Field:       "authui_uri_base",
+			Description: "Base URL of the Auth UI dev server/deployment",
+			Default:     "http://localhost:3000",
+			Examples:    []string{"http://localhost:3000", "http://localhost:4000"},
+			EnvVar:      "GOAM_AUTHUI_URI_BASE",
 		},
 	}
 }

@@ -3,6 +3,7 @@ package auth_api
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/Identityplane/GoAM/internal/auth/graph"
 	"github.com/Identityplane/GoAM/internal/lib"
@@ -34,6 +35,7 @@ type FlowResponse struct {
 	Error           *model.AuthError          `json:"error,omitempty"`
 	ErrorMessage    *string                   `json:"errorMessage,omitempty"`
 	Debug           any                       `json:"debug,omitempty"`
+	Flow            string                    `json:"flow,omitempty"`
 }
 
 // FlowResult represents the final result of a successful flow
@@ -136,6 +138,67 @@ func initializeSimpleFlow(queryArgs *fasthttp.Args, tenant string, realm string,
 	}
 
 	return false
+}
+
+// HandleResumeSession resumes an existing session
+func HandleResumeSession(ctx *fasthttp.RequestCtx) {
+	tenant := ctx.UserValue("tenant").(string)
+	realmName := ctx.UserValue("realm").(string)
+
+	// Set JSON content type
+	ctx.SetContentType("application/json")
+
+	// Parse request body for sessionId
+	var req FlowRequest
+	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
+		sendErrorResponse(ctx, fasthttp.StatusBadRequest, "INVALID_JSON", "Invalid JSON request", "")
+		return
+	}
+
+	if req.SessionID == "" {
+		sendErrorResponse(ctx, fasthttp.StatusBadRequest, "MISSING_SESSION_ID", "Session ID is required", "")
+		return
+	}
+
+	// Load realm
+	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realmName)
+	if !ok {
+		sendErrorResponse(ctx, fasthttp.StatusNotFound, "REALM_NOT_FOUND", "Realm not found", "")
+		return
+	}
+
+	// Load session
+	session, ok := getJSONSessionByIDs(ctx, tenant, realmName, req.SessionID)
+	if !ok {
+		sendErrorResponse(ctx, fasthttp.StatusNotFound, "SESSION_NOT_FOUND", "Session not found", "")
+		return
+	}
+
+	// Find the flow. session.FlowId is the ID, not the route.
+	flows, err := service.GetServices().FlowService.ListFlows(tenant, realmName)
+	if err != nil {
+		sendErrorResponse(ctx, fasthttp.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Could not load flows", "")
+		return
+	}
+
+	var foundFlow *model.Flow
+	for i := range flows {
+		if flows[i].Id == session.FlowId {
+			foundFlow = &flows[i]
+			break
+		}
+	}
+
+	if foundFlow == nil {
+		sendErrorResponse(ctx, fasthttp.StatusNotFound, "FLOW_NOT_FOUND", "Flow not found", "")
+		return
+	}
+
+	// Apply any response modifications (headers/cookies)
+	auth.SetHttpAuthContextToResponse(session, ctx, loadedRealm.Config)
+
+	// Send response
+	sendFlowResponse(ctx, session, foundFlow, loadedRealm.Config, req.SessionID)
 }
 
 // handleJSONPostRequest handles POST requests to submit flow responses
@@ -246,6 +309,7 @@ func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSes
 		SessionID:       sessionId, // Sensitive session id
 		CurrentNode:     session.Current,
 		CurrentNodeType: session.CurrentType,
+		Flow:            flow.Route,
 	}
 
 	if session.Debug {
@@ -273,7 +337,8 @@ func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSes
 			}
 		} else {
 			response.Result = &model.SimpleAuthResponse{
-				Success: session.DidResultAuthenticated(),
+				Success:  session.DidResultAuthenticated(),
+				Redirect: session.FinishUri,
 			}
 		}
 	}
@@ -298,18 +363,25 @@ func sendErrorResponse(ctx *fasthttp.RequestCtx, statusCode int, code, message, 
 func setHttpAuthContext(ctx *fasthttp.RequestCtx, session *model.AuthenticationSession) {
 	if session.HttpAuthContext == nil {
 		session.HttpAuthContext = &model.HttpAuthContext{
-			RequestHeaders: make(map[string]string),
-			RequestCookies: make(map[string]string),
+			RequestIP:                 ctx.RemoteIP().String(),
+			RequestHeaders:            webutils.GetRequestHeaders(ctx),
+			RequestCookies:            webutils.GetRequestCookies(ctx),
+			AdditionalResponseHeaders: make(map[string]string),
+			AdditionalResponseCookies: make(map[string]http.Cookie),
+		}
+	} else {
+		// Update IP each time
+		session.HttpAuthContext.RequestIP = ctx.RemoteIP().String()
+		// We might want to refresh headers/cookies here too if they changed
+		session.HttpAuthContext.RequestHeaders = webutils.GetRequestHeaders(ctx)
+		session.HttpAuthContext.RequestCookies = webutils.GetRequestCookies(ctx)
+
+		// Ensure response maps are initialized if they were somehow serialized as nil
+		if session.HttpAuthContext.AdditionalResponseHeaders == nil {
+			session.HttpAuthContext.AdditionalResponseHeaders = make(map[string]string)
+		}
+		if session.HttpAuthContext.AdditionalResponseCookies == nil {
+			session.HttpAuthContext.AdditionalResponseCookies = make(map[string]http.Cookie)
 		}
 	}
-
-	session.HttpAuthContext.RequestIP = ctx.RemoteIP().String()
-
-	ctx.Request.Header.VisitAll(func(key, value []byte) {
-		session.HttpAuthContext.RequestHeaders[string(key)] = string(value)
-	})
-
-	ctx.Request.Header.VisitAllCookie(func(key, value []byte) {
-		session.HttpAuthContext.RequestCookies[string(key)] = string(value)
-	})
 }

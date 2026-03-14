@@ -16,10 +16,9 @@ var (
 	proxy        *httputil.ReverseProxy
 )
 
-func init() {
-	// In development, the Next.js server typically runs on port 3000
+func InitProxy(uriBase string) {
 	var err error
-	devServerURL, err = url.Parse("http://localhost:3000")
+	devServerURL, err = url.Parse(uriBase)
 	if err != nil {
 		log.Fatalf("Failed to parse dev server URL: %v", err)
 	}
@@ -33,6 +32,11 @@ func init() {
 
 // HandleAuthUIProxy proxies requests from /tenant/realm/authui/... to the local Next.js dev server.
 func HandleAuthUIProxy(ctx *fasthttp.RequestCtx) {
+	if proxy == nil {
+		ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+		ctx.SetBodyString("Auth UI proxy not initialized")
+		return
+	}
 	// Let the proxied server handle its own security headers (e.g. Next.js in dev mode)
 	ctx.SetUserValue("cspDisable", true)
 

@@ -101,6 +101,10 @@ func RunAddKnownDeviceNode(state *model.AuthenticationSession, node *model.Graph
 		Secure:   true,
 	}
 
+	if state.HttpAuthContext == nil || state.HttpAuthContext.AdditionalResponseCookies == nil {
+		return model.NewNodeResultWithError(fmt.Errorf("failed to add cookie: http context is nil"))
+	}
+
 	state.HttpAuthContext.AdditionalResponseCookies[cookieName] = *cookie
 
 	// Set the device ID in the context

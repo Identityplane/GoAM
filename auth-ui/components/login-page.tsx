@@ -131,7 +131,11 @@ export default function LoginPage(): React.ReactElement | null {
           }
 
           if (flowResponse.result?.success) {
-            setCurrentStep('success');
+            if (flowResponse.result.redirect) {
+              window.location.href = flowResponse.result.redirect;
+            } else {
+              setCurrentStep('success');
+            }
           } else if (flowResponse.currentNodeType || flowResponse.currentNode) {
             setExecutionId(flowResponse.executionId || null);
             setSessionId(flowResponse.sessionId || null);
@@ -197,6 +201,11 @@ export default function LoginPage(): React.ReactElement | null {
       .then(async (data) => {
         let finalSettings = { ...data };
 
+        // Check for session ID in URL fragment
+        const hash = window.location.hash;
+        const sessionMatch = hash.match(/#session=([a-zA-Z0-9-]+)/);
+        const resumeSessionId = sessionMatch ? sessionMatch[1] : null;
+
         // If mock is true, we skip all backend calls and just show the UI
         if (data.mock === true) {
           setSettings(finalSettings);
@@ -214,7 +223,36 @@ export default function LoginPage(): React.ReactElement | null {
               finalSettings = { ...finalSettings, ...parsedRealmSettings };
             }
 
-            if (meta.flows?.length > 0) {
+            // If we have a session ID to resume, do that first
+            if (resumeSessionId) {
+              setIsLoading(true);
+              try {
+                const flowResponse = await AuthAPI.resumeSession(data.backend_url, resumeSessionId);
+                if (flowResponse.error) {
+                  setError(flowResponse.error.error_description);
+                  setCurrentStep('error');
+                } else if (flowResponse.currentNodeType || flowResponse.currentNode) {
+                  setExecutionId(flowResponse.executionId || null);
+                  setSessionId(flowResponse.sessionId || null);
+                  setCurrentNode(flowResponse.currentNode || null);
+                  setCurrentNodeType(flowResponse.currentNodeType || null);
+                  setPrompts(flowResponse.prompts || {});
+                  setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
+                  
+                  if (flowResponse.flow) {
+                    setSelectedFlow(flowResponse.flow);
+                  }
+                  
+                  // Clear the hash to avoid multiple resumptions using a cleaner method
+                  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
+              } catch (err: any) {
+                console.error('Failed to resume session:', err);
+                setError(err.message || 'Failed to resume session');
+              } finally {
+                setIsLoading(false);
+              }
+            } else if (meta.flows?.length > 0) {
               const firstFlow = meta.flows[0].route;
               setSelectedFlow(firstFlow);
 

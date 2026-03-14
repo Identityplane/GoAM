@@ -18,7 +18,7 @@ run_db_migrations: true
 initial_admin_user_id: admin
 initial_admin_user_password: admin
 
-authui_uri_base: http://localhost:3000
+authui_uri_base: http://localhost:4000
 
 # Node settings are propogated down to all nodes in the realm
 node_settings:

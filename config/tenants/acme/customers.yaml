@@ -131,7 +131,7 @@ applications:
       - simple-cookie
       - refresh_token
     redirect_uris:
-      - http://localhost:3000
+      - http://localhost:4000
     allowed_authentication_flows:
       - "*"
     access_token_lifetime: 3600

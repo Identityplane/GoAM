@@ -31,6 +31,7 @@ export interface FlowResponse {
   prompts?: Record<string, string>;
   result?: {
     success: boolean;
+    redirect?: string;
     [key: string]: any;
   };
   error?: {
@@ -38,6 +39,7 @@ export interface FlowResponse {
     error_description: string;
   };
   errorMessage?: string;
+  flow?: string;
 }
 
 export interface FlowRequest {
@@ -103,6 +105,35 @@ export class AuthAPI {
         'Accept': 'application/json' 
       },
       body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      try {
+        return await response.json();
+      } catch (e) {
+        return {
+          error: {
+            error: 'FETCH_ERROR',
+            error_description: `Server returned ${response.status}`,
+          }
+        };
+      }
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Resumes an existing authentication session using its ID
+   */
+  static async resumeSession(backendUrl: string, sessionId: string): Promise<FlowResponse> {
+    const response = await fetch(`${backendUrl}/api/v1/`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json' 
+      },
+      body: JSON.stringify({ sessionId }),
     });
 
     if (!response.ok) {

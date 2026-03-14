@@ -142,26 +142,11 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	// We create a new session for this auth request
 	var session *model.AuthenticationSession
 	var authErr *model.AuthError
-	session, authErr = auth.CreateNewAuthenticationSession(ctx, loadedRealm.Config, flow, false)
+	session, authErr = CreateSessionForOauth2Flow(ctx, loadedRealm.Config, flow, oauth2request, acrValue)
 	if authErr != nil {
 		RenderOauth2Error(ctx, oauth2.ErrorServerError, "Internal server error. Cannot create session", oauth2request, redirectUri, application)
 		return
 	}
-
-	// Set the http auth context from the request
-	auth.SetHttpAuthContextFromRequest(session, ctx)
-
-	// We set the finish url of the auth session to the oauth2/finishauthorize endpoint
-	baseUrl := loadedRealm.Config.BaseUrl
-	if baseUrl == "" {
-		baseUrl = webutils.GetFallbackUrl(ctx, tenant, realm)
-	}
-	session.FinishUri = fmt.Sprintf("%s/oauth2/finishauthorize", baseUrl)
-
-	// Set the oauth2 context to the session
-	session.Oauth2SessionInformation = &model.Oauth2Session{}
-	session.Oauth2SessionInformation.AuthorizeRequest = oauth2request
-	session.Oauth2SessionInformation.Acr = acrValue
 
 	session, oauth2error = peekGraphExecutionForPromptParameter(session, flow, loadedRealm)
 
@@ -180,10 +165,10 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Otherwise we redirect to the login page where the user will be prompted
-
 	// Save the session
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, *session)
+
+	// Add a cookie with the session id
 
 	// Redirect to the login page
 	webutils.RedirectTo(ctx, session.LoginUriNext)
