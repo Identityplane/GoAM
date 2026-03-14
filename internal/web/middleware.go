@@ -153,7 +153,10 @@ func securityHeaders(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 		next(ctx)
 
-		ctx.Response.Header.Set("Strict-Transport-Security", "max-age=31536000;")
+		// Only set HSTS if not on localhost to avoid ERR_SSL_PROTOCOL_ERROR in dev
+		if !strings.HasPrefix(string(ctx.Host()), "localhost") {
+			ctx.Response.Header.Set("Strict-Transport-Security", "max-age=31536000;")
+		}
 		ctx.Response.Header.Set("X-Content-Type-Options", "nosniff")
 		ctx.Response.Header.Set("X-Frame-Options", "DENY")
 		ctx.Response.Header.Set("Referrer-Policy", "strict-origin-when-cross-origin")

@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"net/http/httputil"
+
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
-	"net/http/httputil"
 )
 
 var (
@@ -23,6 +24,11 @@ func init() {
 		log.Fatalf("Failed to parse dev server URL: %v", err)
 	}
 	proxy = httputil.NewSingleHostReverseProxy(devServerURL)
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.Host = devServerURL.Host
+	}
 }
 
 // HandleAuthUIProxy proxies requests from /tenant/realm/authui/... to the local Next.js dev server.

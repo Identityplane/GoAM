@@ -38,6 +38,7 @@ export const StepRegistry: Record<AuthStep, React.ComponentType<AuthStepProps>> 
   'passwordOrSocialLogin': PasswordOrSocialLoginStep,
   'verifyYubikeyOtp': VerifyYubikeyOTPStep,
   'askUserID': AskUserIDStep,
+  'registerPasskey': RegisterPasskeyStep,
   'successResult': SuccessStep,
   'failureResult': ErrorStep,
   // Add these if they are relevant AuthSteps (they might need to be added to the AuthStep union)
