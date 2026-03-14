@@ -18,6 +18,7 @@ const (
 
 	CONDITION_KNOWN_DEVICE        = "known_device"
 	CONDITION_UNKNOWN_DEVICE      = "unknown_device"
+	CONDITION_MULTIPLE_DEVICES    = "multiple"
 	CONDITION_OIDC_REQUIRES_LOGIN = "oidc_requires_login"
 )
 
@@ -29,7 +30,7 @@ var IsKnownDeviceNode = &model.NodeDefinition{
 	Type:                 model.NodeTypeLogic,
 	RequiredContext:      []string{},
 	OutputContext:        []string{"device", "user"},
-	PossibleResultStates: []string{CONDITION_KNOWN_DEVICE, CONDITION_UNKNOWN_DEVICE, CONDITION_OIDC_REQUIRES_LOGIN},
+	PossibleResultStates: []string{CONDITION_KNOWN_DEVICE, CONDITION_UNKNOWN_DEVICE, CONDITION_MULTIPLE_DEVICES, CONDITION_OIDC_REQUIRES_LOGIN},
 	CustomConfigOptions: map[string]string{
 		CONFIG_COOKIE_NAME: "The name of the cookie to check for the device id (required)",
 	},
@@ -41,15 +42,37 @@ func RunIsKnownDeviceNode(state *model.AuthenticationSession, node *model.GraphN
 	now := time.Now()
 	ctx := context.Background()
 
-	// Get the device from the request
-	device, attr, user, err := getDeviceFromRequest(state, services, node)
+	// Get all devices from the request
+	deviceInfos, err := getDevicesFromRequest(state, services, node)
 	if err != nil {
 		return model.NewNodeResultWithError(err)
 	}
 
-	if user == nil {
+	if len(deviceInfos) == 0 {
 		return model.NewNodeResultWithCondition(CONDITION_UNKNOWN_DEVICE)
 	}
+
+	// Deduplicate by UserID, keeping the one with the highest LOA
+	bestDevicePerUser := make(map[string]deviceInfo)
+	for _, info := range deviceInfos {
+		loa := info.Device.CurrentLoa(now)
+		if existing, ok := bestDevicePerUser[info.User.ID]; !ok || loa > existing.Device.CurrentLoa(now) {
+			bestDevicePerUser[info.User.ID] = info
+		}
+	}
+
+	if len(bestDevicePerUser) > 1 {
+		return model.NewNodeResultWithCondition(CONDITION_MULTIPLE_DEVICES)
+	}
+
+	// Exactly one user found (potentially from multiple devices/sessions)
+	var info deviceInfo
+	for _, i := range bestDevicePerUser {
+		info = i
+	}
+	device := info.Device
+	attr := info.Attribute
+	user := info.User
 
 	// Check if the device is still valid
 	if device.LatestExpiry(now).Before(now) {
@@ -70,7 +93,7 @@ func RunIsKnownDeviceNode(state *model.AuthenticationSession, node *model.GraphN
 		// create a new cookie with the device secret hash
 		cookie := &http.Cookie{
 			Name:     device.CookieName,
-			Value:    device.DeviceSecretHash,
+			Value:    info.CookieValue, // We need the original secret from the cookie
 			Expires:  device.CookieExpires,
 			SameSite: getSameSiteModeFromString(device.CookieSameSite),
 			HttpOnly: device.CookieHttpOnly,
@@ -117,54 +140,67 @@ func RunIsKnownDeviceNode(state *model.AuthenticationSession, node *model.GraphN
 	return model.NewNodeResultWithCondition(CONDITION_KNOWN_DEVICE)
 }
 
-func getDeviceFromRequest(state *model.AuthenticationSession, services *model.Repositories, node *model.GraphNode) (*model.DeviceAttributeValue, *model.UserAttribute, *model.User, error) {
-	cookieName := node.CustomConfig[CONFIG_COOKIE_NAME]
-	if cookieName == "" {
-		cookieName = DEFAULT_COOKIE_NAME
-	}
+type deviceInfo struct {
+	Device      *model.DeviceAttributeValue
+	Attribute   *model.UserAttribute
+	User        *model.User
+	CookieValue string
+}
 
+func getDevicesFromRequest(state *model.AuthenticationSession, services *model.Repositories, node *model.GraphNode) ([]deviceInfo, error) {
 	if state.HttpAuthContext == nil {
-		return nil, nil, nil, errors.New("http auth context is not set")
+		return nil, errors.New("http auth context is not set")
 	}
 
-	cookieValue := state.HttpAuthContext.RequestCookies[cookieName]
-	if cookieValue == "" {
-		return nil, nil, nil, nil
-	}
+	var results []deviceInfo
 
-	// Hash the device cookie and retreive the attribute if present
-	deviceHash := lib.HashString(cookieValue)
-	user, err := services.UserRepo.GetByAttributeIndex(context.Background(), model.AttributeTypeDevice, deviceHash)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	for cookieName, cookieValue := range state.HttpAuthContext.RequestCookies {
+		// Only check cookies starting with device_
+		if len(cookieName) < 7 || cookieName[:7] != "device_" {
+			continue
+		}
 
-	// Check if the device is know for a user
-	if user == nil {
-		return nil, nil, nil, nil
-	}
+		if cookieValue == "" {
+			continue
+		}
 
-	// Get the right device attribute of the user
-	devices, attributes, err := model.GetAttributes[model.DeviceAttributeValue](user, model.AttributeTypeDevice)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	if len(devices) == 0 {
-		return nil, nil, nil, nil
-	}
+		// Hash the device cookie and retreive the attribute if present
+		// The cookie contains the secret, the index is the hash of the secret
+		deviceHash := lib.HashString(cookieValue)
+		user, err := services.UserRepo.GetByAttributeIndex(context.Background(), model.AttributeTypeDevice, deviceHash)
+		if err != nil {
+			return nil, err
+		}
 
-	// find the right device attribute by the device hash
-	var attribute *model.UserAttribute
-	var device *model.DeviceAttributeValue
-	for i, deviceAttribute := range attributes {
-		if *deviceAttribute.Index == deviceHash {
-			attribute = attributes[i]
-			device = &devices[i]
-			break
+		// Check if the device is know for a user
+		if user == nil {
+			continue
+		}
+
+		// Get the right device attribute of the user
+		devices, attributes, err := model.GetAttributes[model.DeviceAttributeValue](user, model.AttributeTypeDevice)
+		if err != nil {
+			return nil, err
+		}
+		if len(devices) == 0 {
+			continue
+		}
+
+		// find the right device attribute by the device hash
+		for i, deviceAttribute := range attributes {
+			if *deviceAttribute.Index == deviceHash {
+				results = append(results, deviceInfo{
+					Device:      &devices[i],
+					Attribute:   attributes[i],
+					User:        user,
+					CookieValue: cookieValue,
+				})
+				break
+			}
 		}
 	}
 
-	return device, attribute, user, nil
+	return results, nil
 }
 
 func getSameSiteModeFromString(sameSite string) http.SameSite {

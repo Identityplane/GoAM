@@ -17,6 +17,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_user"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_username"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_yubico"
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_loa"
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
@@ -87,8 +88,9 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	node_github.GithubLoginNode.Name: node_github.GithubLoginNode,
 
 	// Device
-	node_device.AddKnownDeviceNode.Name: node_device.AddKnownDeviceNode,
-	node_device.IsKnownDeviceNode.Name:  node_device.IsKnownDeviceNode,
+	node_device.AddKnownDeviceNode.Name:     node_device.AddKnownDeviceNode,
+	node_device.IsKnownDeviceNode.Name:      node_device.IsKnownDeviceNode,
+	node_device.ListAvailableUsersNode.Name: node_device.ListAvailableUsersNode,
 
 	// OIDC
 	node_oidc.GenericOIDCLoginNode.Name: node_oidc.GenericOIDCLoginNode,
@@ -99,6 +101,11 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 
 	// QR
 	node_qr.QrWebToMobileNode.Name: node_qr.QrWebToMobileNode,
+
+	// LOA
+	node_loa.SetLOA1Node.Name: node_loa.SetLOA1Node,
+	node_loa.SetLOA2Node.Name: node_loa.SetLOA2Node,
+	node_loa.GetLOANode.Name:  node_loa.GetLOANode,
 }
 
 func GetNodeDefinitionByName(name string) *model.NodeDefinition {

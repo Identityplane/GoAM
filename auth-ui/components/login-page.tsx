@@ -268,6 +268,7 @@ export default function LoginPage(): React.ReactElement | null {
                   setSessionId(flowResponse.sessionId || null);
                   setCurrentNode(flowResponse.currentNode || null);
                   setCurrentNodeType(flowResponse.currentNodeType || null);
+                  setPrompts(flowResponse.prompts || {});
                   setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
                 }
               } catch (err: any) {

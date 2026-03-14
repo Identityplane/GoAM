@@ -56,6 +56,9 @@ func RunAddKnownDeviceNode(state *model.AuthenticationSession, node *model.Graph
 	deviceSecret := lib.GenerateSecureSessionID()
 	deviceSecretHash := lib.HashString(deviceSecret)
 
+	// Cookie name is based on the device ID
+	cookieName = fmt.Sprintf("device_%s", deviceId[:8])
+
 	// create a new device attribute value
 	device := model.DeviceAttributeValue{
 		DeviceID:         deviceId,

@@ -1,4 +1,4 @@
-export type AuthStep = 'login' | 'register' | 'password' | 'askUserID' | 'askEmail' | 'askPassword' | 'askUsername' | 'askUsernamePassword' | 'askEmailPassword' | 'emailOTP' | 'passwordOrSocialLogin' | 'verifyYubikeyOtp' | 'registerPasskey' | 'otp' | 'terms' | 'success' | 'error' | 'not-implemented' | 'successResult' | 'failureResult' | (string & {});
+export type AuthStep = 'login' | 'register' | 'password' | 'askUserID' | 'askEmail' | 'askPassword' | 'askUsername' | 'askUsernamePassword' | 'askEmailPassword' | 'emailOTP' | 'passwordOrSocialLogin' | 'verifyYubikeyOtp' | 'registerPasskey' | 'otp' | 'terms' | 'success' | 'error' | 'not-implemented' | 'successResult' | 'failureResult' | 'listAvailableUsers' | (string & {});
 
 export interface StepConfig {
   step: AuthStep;
