@@ -1,7 +1,6 @@
 banner: "GOAM 0.0.1 with yaml config"
 
 
-
 # Http configuration
 listener_http: :8081
 
@@ -18,6 +17,8 @@ run_db_migrations: true
 
 initial_admin_user_id: admin
 initial_admin_user_password: admin
+
+authui_uri_base: http://localhost:3000
 
 # Node settings are propogated down to all nodes in the realm
 node_settings:
