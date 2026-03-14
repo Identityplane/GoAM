@@ -9,7 +9,9 @@ export interface AuthStepProps {
   formData: Record<string, any>;
   settings?: any;
   error?: string | null;
-  currentStep?: string;
+  currentStep?: AuthStep;
+  currentNode?: string;
+  currentNodeType?: string;
   prompts?: Record<string, string>;
 }
 

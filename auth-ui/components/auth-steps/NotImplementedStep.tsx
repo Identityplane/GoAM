@@ -4,12 +4,16 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 import { AuthStepProps } from './types';
 
-export function NotImplementedStep({ onRestart, currentStep }: AuthStepProps & { onRestart?: () => void }) {
+export function NotImplementedStep({ onRestart, currentStep, currentNode, currentNodeType }: AuthStepProps) {
   return (
     <div className="space-y-6 text-center">
       <div className="space-y-2 text-center mb-4">
         <h2 className="text-3xl text-foreground">Step Not Found</h2>
-        <p className="text-muted-foreground">The requested authentication step <code className="bg-muted px-1 rounded">{currentStep}</code> is not yet implemented in this UI.</p>
+        <p className="text-muted-foreground">
+          The requested authentication step node <code className="bg-muted px-1 rounded">{currentNode || currentStep}</code> 
+          (Type: <code className="bg-muted px-1 rounded">{currentNodeType || 'unknown'}</code>) 
+          is not yet implemented in this UI.
+        </p>
       </div>
 
       <div className="flex justify-center">

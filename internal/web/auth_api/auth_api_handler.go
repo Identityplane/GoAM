@@ -25,14 +25,15 @@ type FlowRequest struct {
 
 // FlowResponse represents a JSON API response for flow processing
 type FlowResponse struct {
-	RunId       string                    `json:"executionId,omitempty"`
-	SessionID   string                    `json:"sessionId,omitempty"`
-	CurrentNode string                    `json:"currentNode,omitempty"`
-	Prompts     map[string]string         `json:"prompts,omitempty"`
-	Result      *model.SimpleAuthResponse `json:"result,omitempty"`
-	Error       *model.AuthError          `json:"error,omitempty"`
-	ErrorMessage *string                   `json:"errorMessage,omitempty"`
-	Debug       any                       `json:"debug,omitempty"`
+	RunId           string                    `json:"executionId"`
+	SessionID       string                    `json:"sessionId,omitempty"`
+	CurrentNode     string                    `json:"currentNode"`
+	CurrentNodeType string                    `json:"currentNodeType"`
+	Prompts         map[string]string         `json:"prompts,omitempty"`
+	Result          *model.SimpleAuthResponse `json:"result,omitempty"`
+	Error           *model.AuthError          `json:"error,omitempty"`
+	ErrorMessage    *string                   `json:"errorMessage,omitempty"`
+	Debug           any                       `json:"debug,omitempty"`
 }
 
 // FlowResult represents the final result of a successful flow
@@ -109,6 +110,7 @@ func handleJSONGetRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *mo
 	}
 
 	// Process the flow to get current state
+	setHttpAuthContext(ctx, session)
 	newSession, err := processJSONFlow(ctx, flow, *session)
 	if err != nil {
 		sendErrorResponse(ctx, fasthttp.StatusBadRequest, "FLOW_ERROR", err.Error(), "")
@@ -117,6 +119,9 @@ func handleJSONGetRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *mo
 
 	// Save updated session
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
+
+	// Apply any response modifications (headers/cookies)
+	auth.SetHttpAuthContextToResponse(newSession, ctx, realm)
 
 	// Send response
 	sendFlowResponse(ctx, newSession, flow, realm, sessionId)
@@ -156,6 +161,7 @@ func handleJSONPostRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *m
 	}
 
 	// Process the flow with user responses
+	setHttpAuthContext(ctx, session)
 	newSession, err := processJSONFlowWithResponses(ctx, flow, *session, req.Responses)
 	if err != nil {
 		sendErrorResponse(ctx, fasthttp.StatusBadRequest, "FLOW_ERROR", err.Error(), "")
@@ -164,6 +170,9 @@ func handleJSONPostRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *m
 
 	// Save updated session
 	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
+
+	// Apply any response modifications (headers/cookies)
+	auth.SetHttpAuthContextToResponse(newSession, ctx, realm)
 
 	// Send response
 	sendFlowResponse(ctx, newSession, flow, realm, req.SessionID)
@@ -233,9 +242,10 @@ func processJSONFlowWithResponses(ctx *fasthttp.RequestCtx, flow *model.Flow, se
 func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSession, flow *model.Flow, realm *model.Realm, sessionId string) {
 
 	response := FlowResponse{
-		RunId:       session.RunID,
-		SessionID:   sessionId, // Sensitive session id
-		CurrentNode: session.Current,
+		RunId:           session.RunID,
+		SessionID:       sessionId, // Sensitive session id
+		CurrentNode:     session.Current,
+		CurrentNodeType: session.CurrentType,
 	}
 
 	if session.Debug {
@@ -283,4 +293,23 @@ func sendErrorResponse(ctx *fasthttp.RequestCtx, statusCode int, code, message, 
 		},
 	}
 	json.NewEncoder(ctx).Encode(errorResp)
+}
+
+func setHttpAuthContext(ctx *fasthttp.RequestCtx, session *model.AuthenticationSession) {
+	if session.HttpAuthContext == nil {
+		session.HttpAuthContext = &model.HttpAuthContext{
+			RequestHeaders: make(map[string]string),
+			RequestCookies: make(map[string]string),
+		}
+	}
+
+	session.HttpAuthContext.RequestIP = ctx.RemoteIP().String()
+
+	ctx.Request.Header.VisitAll(func(key, value []byte) {
+		session.HttpAuthContext.RequestHeaders[string(key)] = string(value)
+	})
+
+	ctx.Request.Header.VisitAllCookie(func(key, value []byte) {
+		session.HttpAuthContext.RequestCookies[string(key)] = string(value)
+	})
 }
