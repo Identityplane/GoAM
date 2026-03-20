@@ -9,6 +9,7 @@ import { AuthAPI } from '@/lib/auth-api';
 import type { AuthStep, StepConfig, FlowInfo, MetadataResponse } from '@/lib/auth-api';
 import { cn } from '@/lib/utils';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { DebugInspector } from './debug-inspector';
 
 // Helper to parse strings from settings into correct types (boolean, numbers etc)
 const parseSettings = (settings: Record<string, string>) => {
@@ -63,6 +64,8 @@ export default function LoginPage(): React.ReactElement | null {
 
   const [metadata, setMetadata] = useState<MetadataResponse | null>(null);
   const [selectedFlow, setSelectedFlow] = useState<string>('');
+  const [debugData, setDebugData] = useState<any>(null);
+  const [showDebugSheet, setShowDebugSheet] = useState(isDebug);
 
   // Debug panel state
   const [configName, setConfigName] = useState('acme');
@@ -91,6 +94,7 @@ export default function LoginPage(): React.ReactElement | null {
         setCurrentNodeType(flowResponse.currentNodeType || null);
         setPrompts(flowResponse.prompts || {});
         setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
+        setDebugData(flowResponse.debug || null);
 
         // Update URL if flow picked from debug utility is different from current URL
         if (flowToStart !== flowParam) {
@@ -141,6 +145,7 @@ export default function LoginPage(): React.ReactElement | null {
           }
 
           if (flowResponse.result?.success) {
+            setDebugData(flowResponse.debug || null);
             if (flowResponse.result.redirect) {
               window.location.href = flowResponse.result.redirect;
             } else {
@@ -153,6 +158,7 @@ export default function LoginPage(): React.ReactElement | null {
             setCurrentNodeType(flowResponse.currentNodeType || null);
             setPrompts(flowResponse.prompts || {});
             setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
+            setDebugData(flowResponse.debug || null);
 
             if (flowResponse.errorMessage) {
               setError(flowResponse.errorMessage);
@@ -248,6 +254,7 @@ export default function LoginPage(): React.ReactElement | null {
                   setCurrentNodeType(flowResponse.currentNodeType || null);
                   setPrompts(flowResponse.prompts || {});
                   setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
+                  setDebugData(flowResponse.debug || null);
                   
                   if (flowResponse.flow) {
                     setSelectedFlow(flowResponse.flow);
@@ -280,6 +287,7 @@ export default function LoginPage(): React.ReactElement | null {
                   setCurrentNodeType(flowResponse.currentNodeType || null);
                   setPrompts(flowResponse.prompts || {});
                   setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
+                  setDebugData(flowResponse.debug || null);
                 }
               } catch (err: any) {
                 console.error('Failed to start flow:', err);
@@ -428,13 +436,34 @@ export default function LoginPage(): React.ReactElement | null {
                 <option value="success">5. Success</option>
               </select>
             </div>
+
+            {isDebug && (
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowDebugSheet(!showDebugSheet)}
+                  className={cn(
+                    "w-full py-1.5 rounded transition-colors text-xs font-semibold border",
+                    showDebugSheet ? "bg-primary text-primary-foreground" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  )}
+                >
+                  {showDebugSheet ? "✕ Close Debug Inspector" : "🔍 View Debug Data"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
+      {showDebugSheet && (
+        <DebugInspector 
+          debugData={debugData} 
+          onClose={() => setShowDebugSheet(false)} 
+        />
+      )}
+
       <div className={cn(
-        "hidden relative overflow-hidden",
-        settings?.show_sidebar ? "lg:flex lg:w-1/2" : "lg:hidden"
+        "hidden relative overflow-hidden transition-all duration-300 shrink-0",
+        (settings?.show_sidebar && !showDebugSheet) ? "lg:flex lg:w-1/2" : "w-0"
       )} style={{ backgroundColor: settings?.backgroundColor || '#374151' }}>
         <div className="relative z-10 flex flex-col justify-between w-full px-12 py-12">
           <div className="flex items-center">
@@ -481,8 +510,8 @@ export default function LoginPage(): React.ReactElement | null {
       </div>
 
       <div className={cn(
-        "flex items-center justify-center p-8 relative transition-colors duration-300",
-        settings?.show_sidebar ? "w-full lg:w-1/2" : "w-full"
+        "flex items-center justify-center p-8 relative transition-all duration-300 shrink-0",
+        showDebugSheet ? "w-full lg:w-2/3" : (settings?.show_sidebar ? "w-full lg:w-1/2" : "w-full")
       )} style={{ backgroundColor: settings?.pageBackgroundColor || '#ffffff' }}>
         {(currentStep === 'password' || currentStep === 'otp') && (
           <Button
