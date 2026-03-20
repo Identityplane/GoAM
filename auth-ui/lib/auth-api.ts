@@ -40,6 +40,7 @@ export interface FlowResponse {
   };
   errorMessage?: string;
   flow?: string;
+  debug?: any;
 }
 
 export interface FlowRequest {
@@ -56,8 +57,11 @@ export class AuthAPI {
   /**
    * Fetches realm metadata from the backend
    */
-  static async fetchMetadata(backendUrl: string): Promise<MetadataResponse> {
-    const response = await fetch(`${backendUrl}/api/v1/`, {
+  static async fetchMetadata(backendUrl: string, debug?: boolean): Promise<MetadataResponse> {
+    const url = new URL(`${backendUrl}/api/v1/`);
+    if (debug) url.searchParams.set('debug', 'true');
+
+    const response = await fetch(url.toString(), {
       headers: { 'Accept': 'application/json' },
     });
 
@@ -71,8 +75,11 @@ export class AuthAPI {
   /**
    * Starts a specific authentication flow
    */
-  static async startFlow(backendUrl: string, flowRoute: string): Promise<FlowResponse> {
-    const response = await fetch(`${backendUrl}/api/v1/${flowRoute}`, {
+  static async startFlow(backendUrl: string, flowRoute: string, debug?: boolean): Promise<FlowResponse> {
+    const url = new URL(`${backendUrl}/api/v1/${flowRoute}`);
+    if (debug) url.searchParams.set('debug', 'true');
+
+    const response = await fetch(url.toString(), {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
     });
@@ -97,8 +104,11 @@ export class AuthAPI {
   /**
    * Continues the authentication flow with user input
    */
-  static async continueFlow(backendUrl: string, flowRoute: string, request: FlowRequest): Promise<FlowResponse> {
-    const response = await fetch(`${backendUrl}/api/v1/${flowRoute}`, {
+  static async continueFlow(backendUrl: string, flowRoute: string, request: FlowRequest, debug?: boolean): Promise<FlowResponse> {
+    const url = new URL(`${backendUrl}/api/v1/${flowRoute}`);
+    if (debug) url.searchParams.set('debug', 'true');
+
+    const response = await fetch(url.toString(), {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -126,8 +136,11 @@ export class AuthAPI {
   /**
    * Resumes an existing authentication session using its ID
    */
-  static async resumeSession(backendUrl: string, sessionId: string): Promise<FlowResponse> {
-    const response = await fetch(`${backendUrl}/api/v1/`, {
+  static async resumeSession(backendUrl: string, sessionId: string, debug?: boolean): Promise<FlowResponse> {
+    const url = new URL(`${backendUrl}/api/v1/`);
+    if (debug) url.searchParams.set('debug', 'true');
+
+    const response = await fetch(url.toString(), {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',

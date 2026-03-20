@@ -18,7 +18,7 @@ func CreateSessionForOauth2Flow(ctx *fasthttp.RequestCtx, realm *model.Realm, fl
 	}
 
 	// Use the new auth-ui for login
-	loginUri := fmt.Sprintf("%s/authui", baseUrl)
+	loginUri := fmt.Sprintf("%s/authui/%s", baseUrl, flow.Route)
 	session, sessionID := service.GetServices().SessionsService.CreateAuthSessionObject(realm.Tenant, realm.Realm, flow.Id, loginUri)
 
 	// set the session id in the url fragment

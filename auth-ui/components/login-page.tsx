@@ -8,7 +8,7 @@ import { StepRegistry } from '@/components/auth-steps';
 import { AuthAPI } from '@/lib/auth-api';
 import type { AuthStep, StepConfig, FlowInfo, MetadataResponse } from '@/lib/auth-api';
 import { cn } from '@/lib/utils';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 
 // Helper to parse strings from settings into correct types (boolean, numbers etc)
 const parseSettings = (settings: Record<string, string>) => {
@@ -23,9 +23,13 @@ const parseSettings = (settings: Record<string, string>) => {
 };
 
 export default function LoginPage(): React.ReactElement | null {
+  const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const tenantParam = params?.tenant as string;
   const realmParam = params?.realm as string;
+  const flowParam = params?.flow as string;
+  const isDebug = searchParams.has('debug');
   const isDynamicRoute = !!tenantParam && !!realmParam;
 
   const [currentStep, setCurrentStep] = useState<AuthStep>('login');
@@ -72,7 +76,7 @@ export default function LoginPage(): React.ReactElement | null {
     setIsLoading(true);
 
     try {
-      const flowResponse = await AuthAPI.startFlow(settings.backend_url, flowToStart);
+      const flowResponse = await AuthAPI.startFlow(settings.backend_url, flowToStart, isDebug);
 
       if (flowResponse.error) {
         setError(flowResponse.error.error_description);
@@ -87,6 +91,12 @@ export default function LoginPage(): React.ReactElement | null {
         setCurrentNodeType(flowResponse.currentNodeType || null);
         setPrompts(flowResponse.prompts || {});
         setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
+
+        // Update URL if flow picked from debug utility is different from current URL
+        if (flowToStart !== flowParam) {
+           const debugQuery = isDebug ? '?debug' : '';
+           router.push(`/${tenantParam}/${realmParam}/authui/${flowToStart}${debugQuery}`);
+        }
       }
 
     } catch (err: any) {
@@ -121,7 +131,7 @@ export default function LoginPage(): React.ReactElement | null {
             sessionId,
             currentNode: currentNode as string,
             responses,
-          });
+          }, isDebug);
 
           if (flowResponse.error) {
             setError(flowResponse.error.error_description);
@@ -214,7 +224,7 @@ export default function LoginPage(): React.ReactElement | null {
 
         if (data.backend_url) {
           try {
-            const meta = await AuthAPI.fetchMetadata(data.backend_url);
+            const meta = await AuthAPI.fetchMetadata(data.backend_url, isDebug);
             setMetadata(meta);
 
             // Merge realm settings if present
@@ -227,7 +237,7 @@ export default function LoginPage(): React.ReactElement | null {
             if (resumeSessionId) {
               setIsLoading(true);
               try {
-                const flowResponse = await AuthAPI.resumeSession(data.backend_url, resumeSessionId);
+                const flowResponse = await AuthAPI.resumeSession(data.backend_url, resumeSessionId, isDebug);
                 if (flowResponse.error) {
                   setError(flowResponse.error.error_description);
                   setCurrentStep('error');
@@ -252,14 +262,14 @@ export default function LoginPage(): React.ReactElement | null {
               } finally {
                 setIsLoading(false);
               }
-            } else if (meta.flows?.length > 0) {
-              const firstFlow = meta.flows[0].route;
-              setSelectedFlow(firstFlow);
-
-              // Automatically start the first flow
+            } else if (flowParam || meta.flows?.length > 0) {
+              const flowToStart = flowParam || meta.flows[0].route;
+              setSelectedFlow(flowToStart);
+ 
+              // Automatically start the flow
               setIsLoading(true);
               try {
-                const flowResponse = await AuthAPI.startFlow(data.backend_url, firstFlow);
+                const flowResponse = await AuthAPI.startFlow(data.backend_url, flowToStart, isDebug);
                 if (flowResponse.error) {
                   setError(flowResponse.error.error_description);
                   setCurrentStep('error');
@@ -272,7 +282,7 @@ export default function LoginPage(): React.ReactElement | null {
                   setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
                 }
               } catch (err: any) {
-                console.error('Failed to start auto-flow:', err);
+                console.error('Failed to start flow:', err);
                 setError(err.message || 'Failed to start flow');
               } finally {
                 setIsLoading(false);
@@ -290,7 +300,7 @@ export default function LoginPage(): React.ReactElement | null {
         console.error('Failed to load settings:', err);
         setError('Failed to load application settings');
       });
-  }, [configName, isDynamicRoute, tenantParam, realmParam]);
+  }, [configName, isDynamicRoute, tenantParam, realmParam, flowParam]);
 
   if (!settings) {
     return (

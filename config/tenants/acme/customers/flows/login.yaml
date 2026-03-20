@@ -1,4 +1,4 @@
-description: 'State-of-the-art login flow with account listing, passkeys, TOTP, and LOA management.'
+description: ''
 start: init
 nodes:
   init:
@@ -7,23 +7,20 @@ nodes:
     custom_config: {}
     next:
       start: listAvailableUsers
-
   listAvailableUsers:
     name: listAvailableUsers
     use: listAvailableUsers
     next:
       success: getLoa
       none: passwordOrSocialLogin
-
   getLoa:
     name: getLoa
     use: getLoa
     next:
-      '2': successResult
-      '1': hasTOTP
       '0': askPassword
-      'none': passwordOrSocialLogin
-
+      '1': hasTOTP
+      '2': successResult
+      none: passwordOrSocialLogin
   passwordOrSocialLogin:
     name: passwordOrSocialLogin
     use: passwordOrSocialLogin
@@ -35,48 +32,42 @@ nodes:
       showForgotPassword: true
       disablePasskeyBtn: false
       showRegistrationLink: false
-      title: "Welcome back"
-      message: "Please choose a login method"
+      title: Welcome back
+      message: Please choose a login method
     next:
       password: validatePassword
       passkey: verifyPasskey
       forgotPassword: forgotPassword_AskEmail
-
   forgotPassword_AskEmail:
     name: askEmail
     use: askEmail
     next:
       submitted: forgotPassword_EmailOTP
-
   forgotPassword_EmailOTP:
     name: emailOTP
     use: emailOTP
     next:
       success-registered-email: forgotPassword_HasTOTP
-      success-new-email-for-user: forgotPassword_HasTOTP 
+      success-new-email-for-user: forgotPassword_HasTOTP
       success-unkown-email: forgotPassword_AccountNotFound
-
   forgotPassword_AccountNotFound:
-    name: forgotPassword_AccountNotFound
+    name: failureResult
     use: failureResult
     custom_config:
       message: Please register, account does not exist.
     next: {}
-
   forgotPassword_HasTOTP:
     name: hasTOTP
     use: hasTOTP
     next:
-      yes: forgotPassword_VerifyTOTP
-      no: forgotPassword_AskNewPassword
-
+      'yes': forgotPassword_VerifyTOTP
+      'no': forgotPassword_AskNewPassword
   forgotPassword_VerifyTOTP:
     name: verifyTOTP
     use: verifyTOTP
     next:
       success: forgotPassword_AskNewPassword
       fail: forgotPassword_VerifyTOTP
-
   forgotPassword_AskNewPassword:
     name: askPassword
     use: askPassword
@@ -84,20 +75,17 @@ nodes:
       message: Please choose a new password for your account.
     next:
       submitted: forgotPassword_UpdatePassword
-
   forgotPassword_UpdatePassword:
     name: updatePassword
     use: updatePassword
     next:
       success: forgotPassword_CheckMFAUsed
-  
   forgotPassword_CheckMFAUsed:
     name: hasTOTP
     use: hasTOTP
     next:
-      yes: setLoa2
-      no: setLoa1
-
+      'yes': setLoa2
+      'no': setLoa1
   askPassword:
     name: askPassword
     use: askPassword
@@ -105,50 +93,105 @@ nodes:
       message: Your session has expired. Please enter your password to continue.
     next:
       submitted: validatePassword
-
   validatePassword:
     name: validatePassword
     use: validatePassword
     next:
       success: setLoa1
       fail: passwordOrSocialLogin
-
   setLoa1:
     name: setLoa1
     use: setLoa1
     next:
       success: hasTOTP
-
   hasTOTP:
     name: hasTOTP
     use: hasTOTP
     next:
-      yes: verifyTOTP
-      no: successResult
-
+      'yes': verifyTOTP
+      'no': successResult
   verifyTOTP:
     name: verifyTOTP
     use: verifyTOTP
     next:
       success: setLoa2
       fail: verifyTOTP
-
   verifyPasskey:
     name: verifyPasskey
     use: verifyPasskey
     next:
       success: setLoa2
       failure: passwordOrSocialLogin
-
   setLoa2:
     name: setLoa2
     use: setLoa2
     next:
       success: successResult
-
   successResult:
     name: successResult
     use: successResult
     custom_config:
       message: Login successful!
     next: {}
+editor:
+  nodes:
+    init:
+      x: -235
+      'y': 385
+    listAvailableUsers:
+      x: 2.5
+      'y': 395
+    getLoa:
+      x: 387.5
+      'y': -247.5
+    passwordOrSocialLogin:
+      x: 447.5
+      'y': 337.5
+    forgotPassword_AskEmail:
+      x: 865.350902028069
+      'y': 1196.3599223087572
+    forgotPassword_EmailOTP:
+      x: 1144.0679961154378
+      'y': 1152.4344712947227
+    forgotPassword_AccountNotFound:
+      x: 2157.6643880031625
+      'y': 1625.7678990013844
+    forgotPassword_HasTOTP:
+      x: 1431.2829059126307
+      'y': 1126.798479063847
+    forgotPassword_VerifyTOTP:
+      x: 1700.7127255070172
+      'y': 1125.5813849764781
+    forgotPassword_AskNewPassword:
+      x: 1970.3618234789487
+      'y': 1108.5748321059502
+    forgotPassword_UpdatePassword:
+      x: 2253.6843297347305
+      'y': 1130.1758756940117
+    forgotPassword_CheckMFAUsed:
+      x: 2519.747957269816
+      'y': 1132.818420795415
+    askPassword:
+      x: 1876.7760699221185
+      'y': 554.1010435880612
+    validatePassword:
+      x: 2214.188415195097
+      'y': 530.3181376754301
+    setLoa1:
+      x: 2559.528395772287
+      'y': 554.1010435880612
+    hasTOTP:
+      x: 2862.5876547270213
+      'y': 546.1734082838509
+    verifyTOTP:
+      x: 3155.076733276142
+      'y': 197.35745489859642
+    verifyPasskey:
+      x: 1830.3282097663546
+      'y': -93.32250625578203
+    setLoa2:
+      x: 3491.655650842459
+      'y': 231.7105412168413
+    successResult:
+      x: 4364.976142680055
+      'y': 448.3992395319235
