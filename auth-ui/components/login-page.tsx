@@ -69,7 +69,7 @@ export default function LoginPage(): React.ReactElement | null {
 
   // Debug panel state
   const [configName, setConfigName] = useState('acme');
-  const [showDebug, setShowDebug] = useState(false);
+  const [showDebug, setShowDebug] = useState(isDebug);
 
   const handleStartFlow = async (flowOverride?: string) => {
     const flowToStart = flowOverride || selectedFlow;

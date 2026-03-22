@@ -17,11 +17,11 @@ func CreateSessionForOauth2Flow(ctx *fasthttp.RequestCtx, realm *model.Realm, fl
 		baseUrl = webutils.GetFallbackUrl(ctx, realm.Tenant, realm.Realm)
 	}
 
-	// Use the new auth-ui for login
-	loginUri := fmt.Sprintf("%s/authui/%s", baseUrl, flow.Route)
+	// Use the legacy auth path for integration tests and consistency
+	loginUri := fmt.Sprintf("%s/auth/%s", baseUrl, flow.Route)
 	session, sessionID := service.GetServices().SessionsService.CreateAuthSessionObject(realm.Tenant, realm.Realm, flow.Id, loginUri)
 
-	// set the session id in the url fragment
+	// set the session id in both cookie and url fragment for bridge between flows
 	uri := fmt.Sprintf("%s#session=%s", loginUri, sessionID)
 	session.LoginUriNext = uri
 
@@ -35,6 +35,12 @@ func CreateSessionForOauth2Flow(ctx *fasthttp.RequestCtx, realm *model.Realm, fl
 	session.Oauth2SessionInformation = &model.Oauth2Session{}
 	session.Oauth2SessionInformation.AuthorizeRequest = oauth2request
 	session.Oauth2SessionInformation.Acr = acrValue
+
+	// Set the session cookie for compatibility and integration tests
+	c, _ := auth.GetCookieForSessionId(ctx, sessionID, realm)
+	if c != nil {
+		ctx.Response.Header.SetCookie(c)
+	}
 
 	return session, nil
 }

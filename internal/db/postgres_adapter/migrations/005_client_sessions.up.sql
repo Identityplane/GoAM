@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS client_sessions (
     access_token_hash VARCHAR(255),
     refresh_token_hash VARCHAR(255),
     auth_code_hash VARCHAR(255),
-    user_id VARCHAR(36),
+    user_id VARCHAR(255),
     scope TEXT DEFAULT '',
     login_session_state_json TEXT,
     code_challenge VARCHAR(255),
@@ -23,4 +23,4 @@ CREATE INDEX IF NOT EXISTS idx_client_sessions_access_token ON client_sessions(a
 CREATE INDEX IF NOT EXISTS idx_client_sessions_refresh_token ON client_sessions(refresh_token_hash);
 CREATE INDEX IF NOT EXISTS idx_client_sessions_auth_code ON client_sessions(auth_code_hash);
 CREATE INDEX IF NOT EXISTS idx_client_sessions_client_id ON client_sessions(client_id);
-CREATE INDEX IF NOT EXISTS idx_client_sessions_user_id ON client_sessions(user_id); 
+CREATE INDEX IF NOT EXISTS idx_client_sessions_user_id ON client_sessions(user_id);

@@ -318,7 +318,7 @@ func GetAuthenticationSessionForSecondaryDevice(ctx *fasthttp.RequestCtx, tenant
 	}
 
 	// Set a cookie with the secondary session id
-	cookie, err := getCookieForSessionId(ctx, string(secretSessionId), loadedRealm.Config)
+	cookie, err := GetCookieForSessionId(ctx, string(secretSessionId), loadedRealm.Config)
 	if err != nil {
 		return nil, false
 	}
@@ -384,7 +384,7 @@ func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, realm *model.Realm
 	// Set the debug flag
 	session.Debug = debug
 
-	c, err := getCookieForSessionId(ctx, sessionID, realm)
+	c, err := GetCookieForSessionId(ctx, sessionID, realm)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +396,7 @@ func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, realm *model.Realm
 	return session, nil
 }
 
-func getCookieForSessionId(ctx *fasthttp.RequestCtx, sessionId string, realm *model.Realm) (*fasthttp.Cookie, *model.AuthError) {
+func GetCookieForSessionId(ctx *fasthttp.RequestCtx, sessionId string, realm *model.Realm) (*fasthttp.Cookie, *model.AuthError) {
 
 	baseUrl := webutils.GetUrlForRealm(ctx, realm)
 	isHttps := strings.HasPrefix(baseUrl, "https://")

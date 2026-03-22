@@ -1,6 +1,7 @@
 .PHONY: all vet sec staticcheck test build swagger
 
 IMAGE_NAME=goiam
+IMAGE_AUTHUI=goiam-authui
 TAG=latest
 PORT=8080
 
@@ -13,11 +14,16 @@ test:           ; go test -short -timeout 30000ms ./...
 test-all:           ; go test -timeout 30000ms ./...
 build:          ; go build -o bin/goiam ./cmd
 
-podman-build:
-	podman build -t $(IMAGE_NAME):$(TAG) .
+docker:
+	docker build -t $(IMAGE_NAME):$(TAG) .
 
-podman-run:
-	podman run --rm -p $(PORT):$(PORT) \
+docker-authui:
+	docker build -t $(IMAGE_AUTHUI):$(TAG) ./auth-ui
+
+docker-all: docker docker-authui
+
+docker-run:
+	docker run --rm -p $(PORT):$(PORT) \
 		--name $(IMAGE_NAME)-dev \
 		$(IMAGE_NAME):$(TAG)
 
