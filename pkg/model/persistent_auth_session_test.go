@@ -42,7 +42,7 @@ func TestPersistentAuthSession_MarshalUnmarshal(t *testing.T) {
 	assert.NotEmpty(t, persistentSession.SessionInformation)
 
 	// Convert back to AuthenticationSession
-	recoveredSession, err := persistentSession.ToAuthenticationSession()
+	recoveredSession, err := persistentSession.ToAuthenticationSession(session.SessionIdHash)
 	assert.NoError(t, err)
 	assert.NotNil(t, recoveredSession)
 

@@ -126,7 +126,7 @@ func (s *PostgresAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant
 		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 		       created_at, expires_at, session_information
 		FROM auth_sessions
-		WHERE tenant = $1 AND realm = $2 AND session_id_hash = $3
+		WHERE tenant = $1 AND realm = $2 AND (session_id_hash = $3 OR secondary_session_id_hash = $3)
 	`
 
 	var session model.PersistentAuthSession

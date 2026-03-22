@@ -121,7 +121,7 @@ func New() *router.Router {
 
 	// Oauth + OIDC
 	r.GET("/{tenant}/{realm}/oauth2/authorize", WrapMiddleware(oauth2.HandleAuthorizeEndpoint))
-	r.GET("/{tenant}/{realm}/oauth2/finishauthorize", WrapMiddleware(oauth2.FinsishOauth2AuthorizationEndpoint))
+	r.GET("/{tenant}/{realm}/oauth2/finishauthorize", WrapMiddleware(oauth2.FinishOauth2AuthorizationEndpoint))
 
 	r.GET("/{tenant}/{realm}/oauth2/.well-known/openid-configuration", cors(WrapMiddleware(oauth2.HandleOpenIDConfiguration)))
 	r.POST("/{tenant}/{realm}/oauth2/token", cors(WrapMiddleware(oauth2.HandleTokenEndpoint)))

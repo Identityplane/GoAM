@@ -158,10 +158,10 @@ func HandleAuthorizeEndpoint(ctx *fasthttp.RequestCtx) {
 	// Set the http auth context to the response
 	auth.SetHttpAuthContextToResponse(session, ctx, loadedRealm.Config)
 
-	// If the resulting state is a result node we directly process the FinsishOauth2AuthorizationEndpoint
+	// If the resulting state is a result node we directly process the FinishOauth2AuthorizationEndpoint
 	if session.Result != nil {
 		ctx.SetUserValue("session", session)
-		FinsishOauth2AuthorizationEndpoint(ctx)
+		FinishOauth2AuthorizationEndpoint(ctx)
 		return
 	}
 
@@ -222,7 +222,7 @@ func peekGraphExecutionForPromptParameter(session *model.AuthenticationSession, 
 // FinishOauth2AuthorizationEndpoint finishes the OAuth2 authorization endpoint
 // This endpoint is called by the login page after the flow has been completed
 
-func FinsishOauth2AuthorizationEndpoint(ctx *fasthttp.RequestCtx) {
+func FinishOauth2AuthorizationEndpoint(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realm := ctx.UserValue("realm").(string)
 

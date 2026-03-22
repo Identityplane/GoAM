@@ -2,6 +2,7 @@ package flowse2e
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Identityplane/GoAM/test/integration"
@@ -12,6 +13,7 @@ func TestDeviceLoginFlow(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
 	var sessionCookie string
 	var deviceCookie string
+	var deviceCookieName string
 	testUserID := "testuser"
 
 	t.Run("Step 1: First run - get prompt for user_id", func(t *testing.T) {
@@ -34,12 +36,19 @@ func TestDeviceLoginFlow(t *testing.T) {
 			Status(http.StatusOK)
 
 		// Check if the device cookie is set
-		deviceCookieValue := resp.Cookie("device")
-		if deviceCookieValue != nil {
-			deviceCookie = deviceCookieValue.Value().Raw()
+		for _, nameAny := range resp.Cookies().Raw() {
+			name := nameAny.(string)
+			if strings.HasPrefix(name, "device_") {
+				deviceCookieName = name
+				deviceCookie = resp.Cookie(name).Value().Raw()
+				break
+			}
+		}
+
+		if deviceCookieName != "" {
 			assert.NotEmpty(t, deviceCookie, "Device cookie should be set on first run")
 		} else {
-			t.Fatal("Device cookie 'device' should be set after submitting user_id")
+			t.Fatal("Device cookie starting with 'device_' should be set after submitting user_id")
 		}
 
 		// Verify we reached success
@@ -50,7 +59,7 @@ func TestDeviceLoginFlow(t *testing.T) {
 		// Make a fresh request with the device cookie from step 2
 		// This simulates a user returning with their device cookie
 		resp := e.GET("/acme/customers/auth/device-login").
-			WithCookie("device", deviceCookie).
+			WithCookie(deviceCookieName, deviceCookie).
 			Expect().
 			Status(http.StatusOK)
 

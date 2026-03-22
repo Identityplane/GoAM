@@ -152,9 +152,35 @@ func TestJSONFlow_InvalidPassword(t *testing.T) {
 
 	// Step 1: Register a user first so we can try to login
 	t.Run("Register user", func(t *testing.T) {
+		// Start registration flow to get session ID
+		resp := e.GET("/" + tenant + "/" + realm + "/api/v1/username-password-register").
+			WithHeader("Accept", "application/json").
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		sessionID := resp.Object().Value("sessionId").String().Raw()
+
+		// Submit first step (username)
 		request := FlowRequest{
+			SessionID:   sessionID,
+			CurrentNode: "askUsername",
 			Responses: map[string]string{
 				"username": username,
+			},
+		}
+
+		e.POST("/" + tenant + "/" + realm + "/api/v1/username-password-register").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(request).
+			Expect().
+			Status(http.StatusOK)
+
+		// Submit second step (password)
+		request = FlowRequest{
+			SessionID:   sessionID,
+			CurrentNode: "askPassword",
+			Responses: map[string]string{
 				"password": password,
 			},
 		}
@@ -169,26 +195,40 @@ func TestJSONFlow_InvalidPassword(t *testing.T) {
 	// Step 2: Try to login with wrong password
 	t.Run("Login with wrong password", func(t *testing.T) {
 		// Start login flow
-		resp := e.GET("/" + tenant + "/" + realm + "/api/v1/email-password-login").
+		resp := e.GET("/" + tenant + "/" + realm + "/api/v1/login").
 			WithHeader("Accept", "application/json").
 			Expect().
 			Status(http.StatusOK).
 			JSON()
 
 		sessionID := resp.Object().Value("sessionId").String().Raw()
-		currentNode := resp.Object().Value("currentNode").String().Raw()
+
+		// Submit username to get to password prompt
+		resp = e.POST("/" + tenant + "/" + realm + "/api/v1/login").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(FlowRequest{
+				SessionID:   sessionID,
+				CurrentNode: "askUsername",
+				Responses: map[string]string{
+					"username": username,
+				},
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		resp.Object().HasValue("currentNode", "askPassword")
 
 		// Submit wrong password
 		request := FlowRequest{
 			SessionID:   sessionID,
-			CurrentNode: currentNode,
+			CurrentNode: "askPassword",
 			Responses: map[string]string{
-				"email":    username,
 				"password": "wrong-password",
 			},
 		}
 
-		resp = e.POST("/" + tenant + "/" + realm + "/api/v1/email-password-login").
+		resp = e.POST("/" + tenant + "/" + realm + "/api/v1/login").
 			WithHeader("Content-Type", "application/json").
 			WithJSON(request).
 			Expect().
@@ -196,8 +236,8 @@ func TestJSONFlow_InvalidPassword(t *testing.T) {
 			JSON()
 
 		// Should still be at the same node but with an error message
-		resp.Object().HasValue("currentNode", currentNode)
-		resp.Object().Value("errorMessage").String().Contains("invalid")
+		resp.Object().HasValue("currentNode", "askPassword")
+		resp.Object().Value("errorMessage").String().Contains("Invalid")
 	})
 }
 

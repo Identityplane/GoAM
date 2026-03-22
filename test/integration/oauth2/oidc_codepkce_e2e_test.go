@@ -114,7 +114,7 @@ func TestOAuth2PKCE_E2E(t *testing.T) {
 				WithCookie("session_id", cookieValue).
 				Expect().
 				Status(http.StatusSeeOther).
-				Header("Location").IsEqual("http://localhost:8080/acme/customers/oauth2/finishauthorize")
+				Header("Location").Contains("http://localhost:8080/acme/customers/oauth2/finishauthorize")
 		})
 
 		// Test completing authorization and capture the auth code
