@@ -98,17 +98,53 @@ func handleJSONGetRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *mo
 	// Check if query contains a debug param (any value)
 	debug := queryArgs.Has("debug")
 
-	// Create new session for GET requests (starting a new flow)
-	session, sessionId, err := createNewJSONSession(ctx, realm, flow, debug)
-	if err != nil {
-		sendErrorResponse(ctx, fasthttp.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Could not create session", "")
-		return
+	var session *model.AuthenticationSession
+	var sessionId string
+	var err error
+
+	isContinue := queryArgs.Has("continue")
+	isInit := queryArgs.Has("init")
+
+	// Try to get existing session first from cookies
+	session, ok := auth.GetAuthenticationSession(ctx, realm.Tenant, realm.Realm)
+
+	// Determine if we should resume or create new
+	shouldResume := ok && session != nil && !session.Finished() && session.FlowId == flow.Id
+
+	if isInit {
+		// If init is requested, we force a new session
+		if ok && session != nil {
+			service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, realm.Tenant, realm.Realm, session.SessionIdHash)
+		}
+		shouldResume = false
 	}
 
-	// Get the client ID from the query parameters
-	shouldReturn := initializeSimpleFlow(queryArgs, realm.Tenant, realm.Realm, ctx, flow, session)
-	if shouldReturn {
+	// If we should resume, we use the existing session
+	if shouldResume {
+		sessionId = session.PrimarySecretSessionID
+	} else if isContinue {
+		// If continue is set but no session found, return error
+		sendErrorResponse(ctx, fasthttp.StatusNotFound, "SESSION_NOT_FOUND", "No active session found to continue", "")
 		return
+	} else {
+		// Otherwise create new session for GET requests (starting a new flow)
+		session, sessionId, err = createNewJSONSession(ctx, realm, flow, debug)
+		if err != nil {
+			sendErrorResponse(ctx, fasthttp.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Could not create session", "")
+			return
+		}
+
+		// Set the session cookie for the new session
+		cookie, authErr := auth.GetCookieForSessionId(ctx, sessionId, realm)
+		if authErr == nil {
+			ctx.Response.Header.SetCookie(cookie)
+		}
+
+		// Get the client ID from the query parameters
+		shouldReturn := initializeSimpleFlow(queryArgs, realm.Tenant, realm.Realm, ctx, flow, session)
+		if shouldReturn {
+			return
+		}
 	}
 
 	// Process the flow to get current state

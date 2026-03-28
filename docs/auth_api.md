@@ -1,8 +1,6 @@
 # JSON Authentication API
 
-## Overview
-
-The JSON Authentication API is designed to integrate with native mobile applications and other first party clients. This API allows applications to directly interact with login, registration, and management flows without requiring web-based redirects or OAuth2 flows.
+The JSON Authentication API is designed to integrate with native mobile applications, the built-in Auth UI, and other first-party clients. This API allows applications to directly interact with login, registration, and management flows without requiring web-based redirects or OAuth2 flows (though it supports them internally).
 
 #### First Party Application:
 An application that the owner of the realm directly controls. This could be the mobile app or web page. In that case the simple flow can be used but it should be considered if standard OAuth2 offers better decoupling.
@@ -15,13 +13,14 @@ Any application that is controlled by somebody else than the owner of the realm 
 ## Core Concepts
 
 ### Purpose
-- **Native Mobile Apps**: Login on 1. party mobile app applications that display a native login screen.
-- **User Management** User management flows like change password, add email, add device etc can be executed through this api.
-- **Future GoAM Internal Use**: In the future we might use this api internally. e.g. to replace the html renderer with a SPA that uses this api.
+- **Native Mobile Apps**: Login on 1st party mobile applications that display a native login screen.
+- **User Management**: User management flows like change password, add email, add device, etc., can be executed through this API.
+- **Auth UI**: The built-in GoAM Auth UI (Next.js based) uses this API for all authentication flows.
 
 ### Key Principles
-1. **Session-based Flow Management**: Each flow starts with a GET request to obtain session credentials
-2. **Application Integration**: Uses `client_id` for OAuth2 token generation and flow authorization
+1. **Session-based Flow Management**: Each flow starts with a GET request to obtain session credentials.
+2. **Cookie Support**: The API uses cookies to maintain session state, supporting resumption even when the session ID is not present in the URL (e.g., after a redirect).
+3. **Application Integration**: Uses `client_id` for OAuth2 token generation and flow authorization.
 
 ## API Schema (Example Flow)
 
@@ -236,6 +235,16 @@ if (nextStep.result) {
 - **Purpose**: Controls token generation behavior
 - **Usage**: `?response_type=refresh_token`
 - **Effect**: Determines if refresh tokens are issued
+
+#### init (Optional)
+- **Purpose**: Forces the initialization of a new session
+- **Usage**: `?init=true`
+- **Effect**: Creates a new session even if one already exists in the cookies. Any previous session for this flow is invalidated.
+
+#### continue (Optional)
+- **Purpose**: Enforces the resumption of an existing session
+- **Usage**: `?continue=true`
+- **Effect**: If no active session is found in the cookies, the API returns a `SESSION_NOT_FOUND` error instead of creating a new one. This is useful for callback handlers.
 
 
 ## Security Considerations

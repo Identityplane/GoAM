@@ -75,9 +75,11 @@ export class AuthAPI {
   /**
    * Starts a specific authentication flow
    */
-  static async startFlow(backendUrl: string, flowRoute: string, debug?: boolean): Promise<FlowResponse> {
+  static async startFlow(backendUrl: string, flowRoute: string, debug?: boolean, isContinue?: boolean, isInit?: boolean): Promise<FlowResponse> {
     const url = new URL(`${backendUrl}/api/v1/${flowRoute}`);
     if (debug) url.searchParams.set('debug', 'true');
+    if (isContinue) url.searchParams.set('continue', 'true');
+    if (isInit) url.searchParams.set('init', 'true');
 
     const response = await fetch(url.toString(), {
       method: 'GET',

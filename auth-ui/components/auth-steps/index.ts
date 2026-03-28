@@ -18,6 +18,7 @@ import { EmailOTPStep } from './EmailOTPStep';
 import { PasswordOrSocialLoginStep } from './PasswordOrSocialLoginStep';
 import { AskUserIDStep } from './AskUserIDStep';
 import { ListAvailableUsersStep } from './ListAvailableUsersStep';
+import { GitHubLoginStep } from './GitHubLoginStep';
 import { AuthStep } from '@/lib/auth-api';
 import { AuthStepProps } from './types';
 
@@ -41,6 +42,7 @@ export const StepRegistry: Record<AuthStep, React.ComponentType<AuthStepProps>> 
   'askUserID': AskUserIDStep,
   'registerPasskey': RegisterPasskeyStep,
   'listAvailableUsers': ListAvailableUsersStep,
+  'githubLogin': GitHubLoginStep,
   'successResult': SuccessStep,
   'failureResult': ErrorStep,
   // Add these if they are relevant AuthSteps (they might need to be added to the AuthStep union)

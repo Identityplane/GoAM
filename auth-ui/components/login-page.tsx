@@ -79,7 +79,7 @@ export default function LoginPage(): React.ReactElement | null {
     setIsLoading(true);
 
     try {
-      const flowResponse = await AuthAPI.startFlow(settings.backend_url, flowToStart, isDebug);
+      const flowResponse = await AuthAPI.startFlow(settings.backend_url, flowToStart, isDebug, false, true);
 
       if (flowResponse.error) {
         setError(flowResponse.error.error_description);

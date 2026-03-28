@@ -275,6 +275,81 @@ func TestJSONFlow_FlowWithFailureResult(t *testing.T) {
 	})
 }
 
+func TestJSONFlow_SessionResumption(t *testing.T) {
+	e := integration.SetupIntegrationTest(t, "")
+	flowRoute := "username-password-register"
+
+	t.Run("init with no existing session", func(t *testing.T) {
+		resp := e.GET("/acme/customers/api/v1/" + flowRoute).
+			WithQuery("init", "true").
+			Expect().
+			Status(http.StatusOK)
+
+		resp.JSON().Object().Value("sessionId").String().NotEmpty()
+
+		// Verify cookie is set
+		resp.Cookie("session_id").Value().NotEmpty()
+	})
+
+	t.Run("init with existing sessions", func(t *testing.T) {
+		// 1. Create initial session
+		resp1 := e.GET("/acme/customers/api/v1/" + flowRoute).
+			Expect().
+			Status(http.StatusOK)
+
+		sessionID1 := resp1.JSON().Object().Value("sessionId").String().Raw()
+		cookie1 := resp1.Cookie("session_id").Value().Raw()
+
+		// 2. Call with init=true and existing cookie
+		resp2 := e.GET("/acme/customers/api/v1/" + flowRoute).
+			WithQuery("init", "true").
+			WithCookie("session_id", cookie1).
+			Expect().
+			Status(http.StatusOK)
+
+		sessionID2 := resp2.JSON().Object().Value("sessionId").String().Raw()
+		if sessionID1 == sessionID2 {
+			t.Errorf("Expected different session ID after init=true, got same: %s", sessionID1)
+		}
+
+		// The new cookie should also be different
+		cookie2 := resp2.Cookie("session_id").Value().Raw()
+		if cookie1 == cookie2 {
+			t.Errorf("Expected different cookie value after init=true")
+		}
+	})
+
+	t.Run("continue with no existing session", func(t *testing.T) {
+		e.GET("/acme/customers/api/v1/" + flowRoute).
+			WithQuery("continue", "true").
+			Expect().
+			Status(http.StatusNotFound).
+			JSON().Object().Value("error").Object().Value("error").IsEqual("SESSION_NOT_FOUND")
+	})
+
+	t.Run("continue with existing session", func(t *testing.T) {
+		// 1. Create initial session
+		resp1 := e.GET("/acme/customers/api/v1/" + flowRoute).
+			Expect().
+			Status(http.StatusOK)
+
+		sessionID1 := resp1.JSON().Object().Value("sessionId").String().Raw()
+		cookie1 := resp1.Cookie("session_id").Value().Raw()
+
+		// 2. Call with continue=true and existing cookie
+		resp2 := e.GET("/acme/customers/api/v1/" + flowRoute).
+			WithQuery("continue", "true").
+			WithCookie("session_id", cookie1).
+			Expect().
+			Status(http.StatusOK)
+
+		sessionID2 := resp2.JSON().Object().Value("sessionId").String().Raw()
+		if sessionID1 != sessionID2 {
+			t.Errorf("Expected same session ID after continue=true, got different: %s vs %s", sessionID1, sessionID2)
+		}
+	})
+}
+
 // JSON API request/response structures
 type FlowRequest struct {
 	ExecutionID string            `json:"executionId"`
