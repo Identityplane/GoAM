@@ -13,7 +13,7 @@
           "GOAM_INFRASTRUCTURE_AS_CODE_MODE": "true"
         },
         "args": [],
-        "showLog": true
+        "showLog": false
       },
       {
         "name": "Goiam Postgres",
@@ -27,7 +27,7 @@
           "GOIAM_ENABLE_REQUEST_TIMING": "true"
         },
         "args": ["--db", "postgres://goiam:secret123@localhost:5432/goiamdb"],
-        "showLog": true
+        "showLog": false
       }
     ]
   }

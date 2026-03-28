@@ -1,17 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { AuthAPI } from '@/lib/auth-api';
 import { Loader2 } from 'lucide-react';
+import { DebugInspector } from '@/components/debug-inspector';
+
+const DEBUG_STORAGE_KEY = 'goam_debug_execution_id';
 
 export default function CallbackPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [debugData, setDebugData] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
+  const [showDebugSheet, setShowDebugSheet] = useState(false);
+  const [isDebug, setIsDebug] = useState(false);
+  const processedRef = useRef(false);
 
   useEffect(() => {
+    if (processedRef.current) return;
+    processedRef.current = true;
+    
     const tenant = params?.tenant as string;
     const realm = params?.realm as string;
     const flow = params?.flow as string;
@@ -25,13 +36,27 @@ export default function CallbackPage() {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
         const backendUrl = `${baseUrl}/${tenant}/${realm}`;
-        const isDebug = searchParams.has('debug');
+        const isDebugUrl = searchParams.has('debug') || window.location.href.includes('debug=true') || window.location.href.includes('?debug');
+        const storedDebugId = localStorage.getItem(DEBUG_STORAGE_KEY);
+        const activeDebug = isDebugUrl || !!storedDebugId;
+        setIsDebug(activeDebug);
+        setShowDebugSheet(activeDebug);
+        setShowDebug(activeDebug);
+        if (activeDebug) {
+          setDebugData({ status: 'Processing callback...', tenant, realm, flow });
+        }
 
         // 1. Load current state via GET request (now supports cookie resumption in backend)
         // We use isContinue: true to enforce resumption and error if no session exists.
-        const sessionResponse = await AuthAPI.startFlow(backendUrl, flow, isDebug, true);
+        const sessionResponse = await AuthAPI.startFlow(backendUrl, flow, activeDebug, true);
         if (sessionResponse.error) {
+          setDebugData(sessionResponse.debug || sessionResponse);
           throw new Error(sessionResponse.error.error_description);
+        }
+        
+        // Persist debug if we have executionId
+        if (activeDebug && sessionResponse.executionId) {
+          localStorage.setItem(DEBUG_STORAGE_KEY, sessionResponse.executionId);
         }
 
         const resSessionId = sessionResponse.sessionId;
@@ -43,28 +68,44 @@ export default function CallbackPage() {
 
         // 2. Submit callback parameters as responses
         const responses: Record<string, string> = {};
+        
+        // From Query Params
         searchParams.forEach((value, key) => {
           if (key !== 'debug') { // Don't send debug as a response
             responses[key] = value;
           }
         });
 
+        // From Fragment (Hash) - used by some OIDC providers (Implicit Flow)
+        if (typeof window !== 'undefined' && window.location.hash) {
+          const hash = window.location.hash.substring(1);
+          const hashParams = new URLSearchParams(hash);
+          hashParams.forEach((value, key) => {
+            responses[key] = value;
+          });
+        }
+
         const continueResponse = await AuthAPI.continueFlow(backendUrl, flow, {
           sessionId: resSessionId,
           executionId: sessionResponse.executionId!,
           currentNode,
           responses,
-        }, isDebug);
+        }, activeDebug);
 
         if (continueResponse.error) {
+          setDebugData(continueResponse.debug || continueResponse);
           throw new Error(continueResponse.error.error_description);
         }
+        
+        setDebugData(continueResponse.debug || continueResponse);
 
         // 3. Redirect back to the main auth UI page with the session hash
-        router.push(`/${tenant}/${realm}/authui/${flow}#session=${resSessionId}${isDebug ? '?debug' : ''}`);
+        const debugQuery = activeDebug ? '?debug' : '';
+        router.push(`/${tenant}/${realm}/authui/${flow}${debugQuery}#session=${resSessionId}`);
       } catch (err: any) {
         console.error('Callback processing error:', err);
         setError(err.message || 'An error occurred during callback processing.');
+        setDebugData((prev: any) => prev || { error: err.message, source: 'callback catch block' });
       }
     };
 
@@ -85,6 +126,21 @@ export default function CallbackPage() {
             Return to Login
           </button>
         </div>
+        {showDebug && (
+          <button
+            onClick={() => setShowDebugSheet(!showDebugSheet)}
+            className="fixed bottom-4 right-4 z-50 bg-black/50 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-colors backdrop-blur-sm"
+            title="Toggle Debug Panel"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" /></svg>
+          </button>
+        )}
+        {showDebugSheet && (
+          <DebugInspector 
+            debugData={debugData} 
+            onClose={() => setShowDebugSheet(false)} 
+          />
+        )}
       </div>
     );
   }
@@ -97,6 +153,21 @@ export default function CallbackPage() {
           Finalizing authentication...
         </p>
       </div>
+      {showDebug && (
+          <button
+            onClick={() => setShowDebugSheet(!showDebugSheet)}
+            className="fixed bottom-4 right-4 z-50 bg-black/50 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-colors backdrop-blur-sm"
+            title="Toggle Debug Panel"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" /></svg>
+          </button>
+        )}
+      {showDebugSheet && (
+        <DebugInspector 
+          debugData={debugData} 
+          onClose={() => setShowDebugSheet(false)} 
+        />
+      )}
     </div>
   );
 }

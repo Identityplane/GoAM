@@ -87,9 +87,13 @@ func RunGenericOIDCLoginNode(state *model.AuthenticationSession, node *model.Gra
 
 func performOidcLogin(ctx context.Context, state *model.AuthenticationSession, node *model.GraphNode, oauth2Config *oauth2.Config, provider *oidc.Provider) (*model.NodeResult, error) {
 
-	// Generate a random state and safe it to the state
-	randomState := lib.GenerateSecureSessionID()
-	state.Context["oidc_state"] = randomState
+	// Generate a random state and safe it to the state if it doesn't exist yet
+	// This ensures that double-initiation (e.g. via Next.js dev mode) doesn't invalidate the state
+	randomState := state.Context["oidc_state"]
+	if randomState == "" {
+		randomState = lib.GenerateSecureSessionID()
+		state.Context["oidc_state"] = randomState
+	}
 
 	// Ensure we remember the same redirect url as in the authorize request
 	state.Context["oidc_redirect_url"] = oauth2Config.RedirectURL
@@ -238,8 +242,11 @@ func getRedirectUrl(node *model.GraphNode, state *model.AuthenticationSession) s
 		return redirectUrl
 	}
 
-	// Otherwise we use the base url from the state
-	return state.LoginUriNext
+	// Otherwise we use the login url but directed to the Auth UI callback
+	// We assumes the Auth UI is reachable at [RealmBaseUrl]/authui/[FlowRoute]/callback
+	// We extract the flow route from the LoginUriBase which is [RealmBaseUrl]/api/v1/[FlowRoute]
+	authUiCallbackURL := strings.Replace(state.LoginUriBase, "/api/v1/", "/authui/", 1) + "/callback"
+	return authUiCallbackURL
 }
 
 // Get the oidc attribute value from the oauth2 token and config

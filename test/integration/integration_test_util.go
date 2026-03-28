@@ -33,7 +33,10 @@ var (
 	DefaultRealm  = "customers"
 )
 
-var Router *router.Router = nil
+var (
+	Router           *router.Router              = nil
+	InmemoryListener *fasthttputil.InmemoryListener = nil
+)
 
 func SetupIntegrationTest(t *testing.T, flowYaml string) *httpexpect.Expect {
 

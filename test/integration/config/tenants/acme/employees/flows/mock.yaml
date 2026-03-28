@@ -1,0 +1,6 @@
+name: Mock Success
+nodes:
+  success:
+    type: success
+    config:
+      message: Success!

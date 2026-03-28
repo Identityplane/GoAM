@@ -42,26 +42,26 @@ func Initialize(serverSettings *server_settings.GoamServerSettings) {
 	// Step 1: Initialize database connections
 	dbConnections, err := initDatabase()
 	if err != nil {
-		log.Panic().Err(err).Msg("failed to initialize database connections")
+		log.Fatal().Err(err).Msg("failed to initialize database connections")
 	}
 	DBConnections = dbConnections
 
 	// Step 2: Initialize services and realms
 	err = initServices(dbConnections)
 	if err != nil {
-		log.Panic().Err(err).Msg("failed to initialize services")
+		log.Fatal().Err(err).Msg("failed to initialize services")
 	}
 
 	// init assets
 	err = auth.InitAssets()
 	if err != nil {
-		log.Panic().Err(err).Msg("failed to initialize assets")
+		log.Fatal().Err(err).Msg("failed to initialize assets")
 	}
 
 	// init initial admin user
 	err = initInitialAdminUser(serverSettings, service.GetServices())
 	if err != nil {
-		log.Panic().Err(err).Msg("failed to initialize initial admin user")
+		log.Fatal().Err(err).Msg("failed to initialize initial admin user")
 	}
 
 }

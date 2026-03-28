@@ -40,7 +40,7 @@ func RunPasswordOrSocialLoginNode(state *model.AuthenticationSession, node *mode
 	// if option is not set we return the prompt
 	// check if starts with passwordOrSocialLogin:prompted
 	latestHistory := state.GetLatestHistory()
-	latestIsOptionsNdoe := strings.HasPrefix(latestHistory, "passwordOrSocialLogin:prompted")
+	latestIsOptionsNdoe := strings.HasPrefix(latestHistory, node.Name+":prompted")
 
 	option, ok := input["option"]
 	if !latestIsOptionsNdoe || !ok {

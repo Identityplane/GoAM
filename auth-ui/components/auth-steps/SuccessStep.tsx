@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
 import { AuthStepProps } from './types';
 
-export function SuccessStep({ formData, onRestart }: AuthStepProps) {
-  const email = formData.email || '';
+export function SuccessStep({ formData, onRestart, result, executionId }: AuthStepProps) {
+  const identifier = result?.user_id || formData.email || '';
 
   return (
     <div className="space-y-6 text-center">
@@ -18,16 +18,26 @@ export function SuccessStep({ formData, onRestart }: AuthStepProps) {
         <CheckCircle2 className="w-16 h-16 text-green-500" />
       </div>
 
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Success!
-        </h2>
-        <p className="text-gray-600 mb-4">
-          You have successfully authenticated.
-        </p>
-        <p className="text-sm text-gray-500">
-          Email: <span className="font-medium text-gray-700">{email}</span>
-        </p>
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Success!
+          </h2>
+          <p className="text-gray-600">
+            You have successfully authenticated.
+          </p>
+        </div>
+        
+        <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-left border border-gray-100">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">User ID:</span>
+            <span className="font-mono font-medium text-gray-700 break-all ml-4">{identifier}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Execution ID:</span>
+            <span className="font-mono font-medium text-gray-700 break-all ml-4">{executionId}</span>
+          </div>
+        </div>
       </div>
 
       <Button onClick={onRestart} className="w-full">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft } from 'lucide-react';
@@ -10,6 +10,7 @@ import type { AuthStep, StepConfig, FlowInfo, MetadataResponse } from '@/lib/aut
 import { cn } from '@/lib/utils';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { DebugInspector } from './debug-inspector';
+const DEBUG_STORAGE_KEY = 'goam_debug_execution_id';
 
 // Helper to parse strings from settings into correct types (boolean, numbers etc)
 const parseSettings = (settings: Record<string, string>) => {
@@ -41,6 +42,7 @@ export default function LoginPage(): React.ReactElement | null {
   const [prompts, setPrompts] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<any>(null);
 
   const [settings, setSettings] = useState<{
     backgroundColor: string;
@@ -71,19 +73,30 @@ export default function LoginPage(): React.ReactElement | null {
   const [configName, setConfigName] = useState('acme');
   const [showDebug, setShowDebug] = useState(isDebug);
 
+  const lastInitRef = useRef<string>('');
+  const lastStartRef = useRef<string>('');
+  const isTransitioningRef = useRef(false);
+
   const handleStartFlow = async (flowOverride?: string) => {
     const flowToStart = flowOverride || selectedFlow;
-    if (!settings?.backend_url || !flowToStart) return;
+    if (!settings?.backend_url || !flowToStart || isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
 
     setError(null);
     setIsLoading(true);
 
     try {
+      if (lastStartRef.current === flowToStart) return;
+      lastStartRef.current = flowToStart;
+      
       const flowResponse = await AuthAPI.startFlow(settings.backend_url, flowToStart, isDebug, false, true);
 
       if (flowResponse.error) {
         setError(flowResponse.error.error_description);
         setCurrentStep('error');
+        setExecutionId(flowResponse.executionId || null);
+        setDebugData(flowResponse.debug || null);
+        if (isDebug) setShowDebugSheet(true);
         return;
       }
 
@@ -96,6 +109,11 @@ export default function LoginPage(): React.ReactElement | null {
         setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
         setDebugData(flowResponse.debug || null);
 
+        // Persist debug state if enabled
+        if (isDebug && flowResponse.executionId) {
+          localStorage.setItem(DEBUG_STORAGE_KEY, flowResponse.executionId);
+        }
+
         // Update URL if flow picked from debug utility is different from current URL
         if (flowToStart !== flowParam) {
            const debugQuery = isDebug ? '?debug' : '';
@@ -107,6 +125,7 @@ export default function LoginPage(): React.ReactElement | null {
       setError(err.message || 'Failed to start flow');
     } finally {
       setIsLoading(false);
+      isTransitioningRef.current = false;
     }
   };
 
@@ -119,6 +138,9 @@ export default function LoginPage(): React.ReactElement | null {
 
   const handleContinue = useCallback(
     async (stepData: Record<string, string | boolean>, action?: string) => {
+      if (isTransitioningRef.current) return;
+      isTransitioningRef.current = true;
+
       setError(null);
       setIsLoading(true);
 
@@ -130,6 +152,10 @@ export default function LoginPage(): React.ReactElement | null {
             responses[key] = String(value);
           }
 
+          if (action) {
+            responses['option'] = action;
+          }
+
           const flowResponse = await AuthAPI.continueFlow(settings.backend_url, selectedFlow, {
             executionId,
             sessionId,
@@ -139,12 +165,16 @@ export default function LoginPage(): React.ReactElement | null {
 
           if (flowResponse.error) {
             setError(flowResponse.error.error_description);
-            // Don't change step if it's just a validation error, but current implementation transitions to error step
             setCurrentStep('error');
+            setExecutionId(flowResponse.executionId || null);
+            setDebugData(flowResponse.debug || null);
+            if (isDebug) setShowDebugSheet(true);
             return;
           }
 
           if (flowResponse.result?.success) {
+            setResult(flowResponse.result);
+            setExecutionId(flowResponse.executionId || null);
             setDebugData(flowResponse.debug || null);
             if (flowResponse.result.redirect) {
               window.location.href = flowResponse.result.redirect;
@@ -159,6 +189,11 @@ export default function LoginPage(): React.ReactElement | null {
             setPrompts(flowResponse.prompts || {});
             setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
             setDebugData(flowResponse.debug || null);
+
+            // Persist debug state if enabled
+            if (isDebug && flowResponse.executionId) {
+              localStorage.setItem(DEBUG_STORAGE_KEY, flowResponse.executionId);
+            }
 
             if (flowResponse.errorMessage) {
               setError(flowResponse.errorMessage);
@@ -180,6 +215,7 @@ export default function LoginPage(): React.ReactElement | null {
         console.error('Auth error:', err);
       } finally {
         setIsLoading(false);
+        isTransitioningRef.current = false;
       }
     },
     [currentStep, settings, selectedFlow, executionId, sessionId]
@@ -192,6 +228,8 @@ export default function LoginPage(): React.ReactElement | null {
       otp: '',
     });
     setError(null);
+    setResult(null);
+    lastStartRef.current = '';
 
     if (settings?.backend_url && selectedFlow) {
       handleStartFlow(selectedFlow);
@@ -201,6 +239,10 @@ export default function LoginPage(): React.ReactElement | null {
   };
 
   useEffect(() => {
+    const initKey = `${configName}-${isDynamicRoute}-${tenantParam}-${realmParam}-${flowParam}`;
+    if (lastInitRef.current === initKey) return;
+    lastInitRef.current = initKey;
+
     setSettings(null); // Reset settings to show loading state on config change
     setMetadata(null);
     setCurrentStep('login'); // Reset to default step
@@ -243,10 +285,18 @@ export default function LoginPage(): React.ReactElement | null {
             if (resumeSessionId) {
               setIsLoading(true);
               try {
-                const flowResponse = await AuthAPI.resumeSession(data.backend_url, resumeSessionId, isDebug);
+                // Check if we should enable debug mode based on stored execution ID
+                let shouldEnableDebug = isDebug;
+                const storedDebugId = localStorage.getItem(DEBUG_STORAGE_KEY);
+                
+                const flowResponse = await AuthAPI.resumeSession(data.backend_url, resumeSessionId, isDebug || !!storedDebugId);
+                
                 if (flowResponse.error) {
                   setError(flowResponse.error.error_description);
                   setCurrentStep('error');
+                  setExecutionId(flowResponse.executionId || null);
+                  setDebugData(flowResponse.debug || null);
+                  if (isDebug || !!storedDebugId) setShowDebugSheet(true);
                 } else if (flowResponse.currentNodeType || flowResponse.currentNode) {
                   setExecutionId(flowResponse.executionId || null);
                   setSessionId(flowResponse.sessionId || null);
@@ -254,7 +304,20 @@ export default function LoginPage(): React.ReactElement | null {
                   setCurrentNodeType(flowResponse.currentNodeType || null);
                   setPrompts(flowResponse.prompts || {});
                   setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
+                  setResult(flowResponse.result || null);
                   setDebugData(flowResponse.debug || null);
+                  
+                  // If we resumed with a matching debug ID, ensure debug mode is active in URL
+                  if (storedDebugId === flowResponse.executionId && !isDebug) {
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('debug', 'true');
+                    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`);
+                    // Force a local state update since searchParams won't react to replaceState immediately for derived 'isDebug'
+                    setShowDebug(true);
+                    setShowDebugSheet(true);
+                  } else if (isDebug && flowResponse.executionId) {
+                    localStorage.setItem(DEBUG_STORAGE_KEY, flowResponse.executionId);
+                  }
                   
                   if (flowResponse.flow) {
                     setSelectedFlow(flowResponse.flow);
@@ -276,10 +339,12 @@ export default function LoginPage(): React.ReactElement | null {
               // Automatically start the flow
               setIsLoading(true);
               try {
-                const flowResponse = await AuthAPI.startFlow(data.backend_url, flowToStart, isDebug);
+                const flowResponse = await AuthAPI.startFlow(data.backend_url, flowToStart, isDebug, false, true);
                 if (flowResponse.error) {
                   setError(flowResponse.error.error_description);
                   setCurrentStep('error');
+                  setDebugData(flowResponse.debug || null);
+                  if (isDebug) setShowDebugSheet(true);
                 } else if (flowResponse.currentNodeType || flowResponse.currentNode) {
                   setExecutionId(flowResponse.executionId || null);
                   setSessionId(flowResponse.sessionId || null);
@@ -287,6 +352,7 @@ export default function LoginPage(): React.ReactElement | null {
                   setCurrentNodeType(flowResponse.currentNodeType || null);
                   setPrompts(flowResponse.prompts || {});
                   setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
+                  setResult(flowResponse.result || null);
                   setDebugData(flowResponse.debug || null);
                 }
               } catch (err: any) {
@@ -560,6 +626,8 @@ export default function LoginPage(): React.ReactElement | null {
                     currentNode={currentNode || undefined}
                     currentNodeType={currentNodeType || undefined}
                     prompts={prompts}
+                    result={result}
+                    executionId={executionId}
                   />
                 );
               })()}

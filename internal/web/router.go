@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/web/admin_api"
@@ -124,6 +125,16 @@ func New() *router.Router {
 	r.GET("/{tenant}/{realm}/oauth2/finishauthorize", WrapMiddleware(oauth2.FinishOauth2AuthorizationEndpoint))
 
 	r.GET("/{tenant}/{realm}/oauth2/.well-known/openid-configuration", cors(WrapMiddleware(oauth2.HandleOpenIDConfiguration)))
+	r.GET("/{tenant}/{realm}/.well-known/openid-configuration", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		tenant := ctx.UserValue("tenant").(string)
+		realm := ctx.UserValue("realm").(string)
+		ctx.Redirect(fmt.Sprintf("/%s/%s/oauth2/.well-known/openid-configuration", tenant, realm), fasthttp.StatusSeeOther)
+	}))
+	r.GET("/{tenant}/{realm}/.well-known/jwks.json", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		tenant := ctx.UserValue("tenant").(string)
+		realm := ctx.UserValue("realm").(string)
+		ctx.Redirect(fmt.Sprintf("/%s/%s/oauth2/.well-known/jwks.json", tenant, realm), fasthttp.StatusSeeOther)
+	}))
 	r.POST("/{tenant}/{realm}/oauth2/token", cors(WrapMiddleware(oauth2.HandleTokenEndpoint)))
 
 	// OIDC Userinfo endpoint

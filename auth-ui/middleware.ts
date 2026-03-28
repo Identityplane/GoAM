@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { handlePOSTCallback } from './lib/middleware/callback-handler'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  // Handle POST callbacks (e.g., from OIDC providers)
+  const callbackResponse = await handlePOSTCallback(request);
+  if (callbackResponse) return callbackResponse;
+
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const isDev = process.env.NODE_ENV === 'development'
 

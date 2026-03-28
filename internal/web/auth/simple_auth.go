@@ -93,6 +93,11 @@ func FinishSimpleAuthFlow(ctx *fasthttp.RequestCtx, session *model.Authenticatio
 		}
 	}
 
+	// Set the user id in the response
+	if session.Result != nil {
+		simpleAuthResponse.UserID = session.Result.UserID
+	}
+
 	// Detele the session
 	service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, realm.Tenant, realm.Realm, session.SessionIdHash)
 

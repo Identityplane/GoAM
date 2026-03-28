@@ -61,7 +61,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				RealmSettings: realm.RealmSettings,
 			})
 			if err != nil {
-				log.Panic().Err(err).Str("realm", realm.Realm).Msg("failed to create realm")
+				log.Fatal().Err(err).Str("realm", realm.Realm).Msg("failed to create realm")
 			}
 		}
 		// If realm exists, update it if in infrastructure as code mode
@@ -75,7 +75,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				RealmSettings: realm.RealmSettings,
 			})
 			if err != nil {
-				log.Panic().Err(err).Str("realm", realm.Realm).Msg("failed to update realm")
+				log.Fatal().Err(err).Str("realm", realm.Realm).Msg("failed to update realm")
 			}
 		}
 
@@ -88,7 +88,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				log.Debug().Str("flow_id", flow.Id).Msg("creating flow")
 				err := flowService.CreateFlow(realm.Tenant, realm.Realm, *flow)
 				if err != nil {
-					log.Panic().Err(err).Str("flow_id", flow.Id).Msg("failed to create flow")
+					log.Fatal().Err(err).Str("flow_id", flow.Id).Msg("failed to create flow")
 				}
 			}
 
@@ -97,7 +97,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				log.Debug().Str("flow_id", flow.Id).Msg("updating flow")
 				err := flowService.UpdateFlow(realm.Tenant, realm.Realm, *flow)
 				if err != nil {
-					log.Panic().Err(err).Str("flow_id", flow.Id).Msg("failed to update flow")
+					log.Fatal().Err(err).Str("flow_id", flow.Id).Msg("failed to update flow")
 				}
 			}
 		}
@@ -111,7 +111,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				log.Debug().Str("client_id", application.ClientId).Msg("creating application")
 				err := applicationService.CreateApplication(realm.Tenant, realm.Realm, *application)
 				if err != nil {
-					log.Panic().Err(err).Str("client_id", application.ClientId).Msg("failed to create application")
+					log.Fatal().Err(err).Str("client_id", application.ClientId).Msg("failed to create application")
 				}
 			}
 
@@ -120,7 +120,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				log.Debug().Str("client_id", application.ClientId).Msg("updating application")
 				err := applicationService.UpdateApplication(realm.Tenant, realm.Realm, *application)
 				if err != nil {
-					log.Panic().Err(err).Str("client_id", application.ClientId).Msg("failed to update application")
+					log.Fatal().Err(err).Str("client_id", application.ClientId).Msg("failed to update application")
 				}
 			}
 		}
@@ -132,7 +132,7 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 			log.Debug().Str("templates_path", templatesPath).Msg("loading custom templates")
 			err := templatesService.LoadTemplateOverridesFromPath(realm.Tenant, realm.Realm, templatesPath)
 			if err != nil {
-				log.Panic().Err(err).Str("templates_path", templatesPath).Msg("failed to load custom templates")
+				log.Fatal().Err(err).Str("templates_path", templatesPath).Msg("failed to load custom templates")
 			}
 		}
 	}

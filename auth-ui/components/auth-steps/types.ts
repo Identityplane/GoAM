@@ -13,6 +13,8 @@ export interface AuthStepProps {
   currentNode?: string;
   currentNodeType?: string;
   prompts?: Record<string, string>;
+  result?: any;
+  executionId?: string | null;
 }
 
 

@@ -38,14 +38,14 @@ func HandleMetadataRequest(ctx *fasthttp.RequestCtx) {
 	// Load realm
 	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
 	if !ok {
-		sendErrorResponse(ctx, fasthttp.StatusNotFound, "REALM_NOT_FOUND", "Realm not found", "")
+		sendErrorResponse(ctx, nil, fasthttp.StatusNotFound, "REALM_NOT_FOUND", "Realm not found", "")
 		return
 	}
 
 	// Load flows
 	flows, err := service.GetServices().FlowService.ListFlows(tenant, realm)
 	if err != nil {
-		sendErrorResponse(ctx, fasthttp.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Could not list flows", "")
+		sendErrorResponse(ctx, nil, fasthttp.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Could not list flows", "")
 		return
 	}
 

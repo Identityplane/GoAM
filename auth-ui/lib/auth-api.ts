@@ -32,6 +32,7 @@ export interface FlowResponse {
   result?: {
     success: boolean;
     redirect?: string;
+    user_id?: string;
     [key: string]: any;
   };
   error?: {

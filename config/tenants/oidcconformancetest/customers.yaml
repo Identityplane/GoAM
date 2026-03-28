@@ -1,6 +1,6 @@
 realm: customers
 realm_name: Test realm for OIDC conformance tests
-base_url: https://010354c3e77a.ngrok-free.app/oidcconformancetest/customers # Overwritte this url with your own public url for the realm
+#base_url: https://010354c3e77a.ngrok-free.app/oidcconformancetest/customers # Overwritte this url with your own public url for the realm
 
 flows:
   mock_success:
@@ -42,6 +42,24 @@ applications:
       arc_mapping:
         - acr: "urn:identityplane:arc:testlogin"
           flow: "mock_success"
+
+  oidc-federation-test:
+    client_id: oidc-federation-test
+    client_secret: oidc-federation-test-secret
+    confidential: true
+    consent_required: false
+    allowed_scopes:
+      - openid
+      - profile
+      - email
+    allowed_grants:
+      - authorization_code
+    redirect_uris:
+      - http://localhost:8081/acme/customers/authui/oidc-federation/callback
+    allowed_authentication_flows:
+      - mock_success
+    access_token_lifetime: 3600
+    id_token_lifetime: 3600
 
   second_client:
     client_id: second_client
