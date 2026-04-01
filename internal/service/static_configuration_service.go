@@ -17,10 +17,10 @@ import (
 
 // Represents the static configuration for a realm as yaml
 type realmYaml struct {
-	Realm        string                        `yaml:"realm"`
-	RealmName    string                        `yaml:"realm_name"`
-	Tenant       string                        `yaml:"tenant"`
-	BaseUrl      string                        `yaml:"base_url"`
+	Realm         string                        `yaml:"realm"`
+	RealmName     string                        `yaml:"realm_name"`
+	Tenant        string                        `yaml:"tenant"`
+	BaseUrl       string                        `yaml:"base_url"`
 	Applications  map[string]*model.Application `yaml:"applications"`
 	Flows         map[string]*model.Flow        `yaml:"flows"`
 	RealmSettings map[string]string             `yaml:"realm_settings"`
@@ -122,17 +122,6 @@ func (s *staticConfigurationServiceImpl) LoadConfigurationFromFiles(configRoot s
 				if err != nil {
 					log.Fatal().Err(err).Str("client_id", application.ClientId).Msg("failed to update application")
 				}
-			}
-		}
-
-		// Load custom templates if they exist
-		templatesService := GetServices().TemplatesService
-		templatesPath := filepath.Join(configRoot, "tenants", realm.Tenant, realm.Realm, "templates")
-		if _, err := os.Stat(templatesPath); err == nil {
-			log.Debug().Str("templates_path", templatesPath).Msg("loading custom templates")
-			err := templatesService.LoadTemplateOverridesFromPath(realm.Tenant, realm.Realm, templatesPath)
-			if err != nil {
-				log.Fatal().Err(err).Str("templates_path", templatesPath).Msg("failed to load custom templates")
 			}
 		}
 	}

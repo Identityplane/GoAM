@@ -6,7 +6,6 @@ import (
 
 	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/web/admin_api"
-	"github.com/Identityplane/GoAM/internal/web/auth"
 	"github.com/Identityplane/GoAM/internal/web/auth_api"
 	"github.com/Identityplane/GoAM/internal/web/auth_ui"
 	"github.com/Identityplane/GoAM/internal/web/debug"
@@ -81,7 +80,6 @@ func New() *router.Router {
 
 	// Static files
 	r.GET("/{tenant}/{realm}/static/{filename}", DisableRequestLogging(WrapMiddleware(StaticHandler)))
-	r.GET("/{tenant}/{realm}/assets/{filename}", DisableRequestLogging(WrapMiddleware(auth.HandleStaticAssets)))
 
 	// Health endpoints
 	r.GET("/healthz", DisableRequestLogging(WrapMiddleware(handleLiveness)))
@@ -91,12 +89,6 @@ func New() *router.Router {
 	// Swagger UI
 	r.GET("/swagger/", WrapMiddleware(HandleSwaggerUI))
 	r.GET("/swagger/{*path}", WrapMiddleware(HandleSwaggerUI))
-
-	// Main authentication routes
-	r.GET("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
-	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
-	r.GET("/{tenant}/{realm}/auth/{path}/{node}", WrapMiddleware(auth.HandleAuthRequest))
-	r.POST("/{tenant}/{realm}/auth/{path}/{node}", WrapMiddleware(auth.HandleAuthRequest))
 
 	// Auth UI reverse proxy (Development)
 	r.GET("/{tenant}/{realm}/authui", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {

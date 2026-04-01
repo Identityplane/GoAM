@@ -10,7 +10,6 @@ import (
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
-	"github.com/Identityplane/GoAM/internal/web/auth"
 	"github.com/Identityplane/GoAM/internal/web/auth_ui"
 	"github.com/Identityplane/GoAM/pkg/db"
 	dbinit "github.com/Identityplane/GoAM/pkg/db/init"
@@ -50,12 +49,6 @@ func Initialize(serverSettings *server_settings.GoamServerSettings) {
 	err = initServices(dbConnections)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize services")
-	}
-
-	// init assets
-	err = auth.InitAssets()
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to initialize assets")
 	}
 
 	// init initial admin user

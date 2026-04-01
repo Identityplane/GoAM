@@ -3,7 +3,6 @@ package integration
 import (
 	"net/http"
 	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/Identityplane/GoAM/test/integration"
@@ -43,53 +42,76 @@ func TestOAuth2AuthCodeConfidential_E2E(t *testing.T) {
 			t.Fatal("No session cookie found")
 		}
 		t.Run("Authenticate User", func(t *testing.T) {
-			authURL := "/acme/customers/auth/login-or-register"
 			cookieValue := sessionCookie.Value().Raw()
 
-			// Get initial form and submit username
-			getResp := e.GET(authURL).
+			// Resume the OAuth2-created auth session via JSON API
+			getResp := e.GET("/acme/customers/api/v1/login-or-register").
+				WithQuery("continue", "true").
+				WithCookie("session_id", cookieValue).
+				WithHeader("Accept", "application/json").
+				Expect().
+				Status(http.StatusOK).
+				JSON()
+
+			sessionID := getResp.Object().Value("sessionId").String().Raw()
+			currentNode := getResp.Object().Value("currentNode").String().Raw()
+			if sessionID == "" {
+				t.Fatal("No sessionId found in JSON response")
+			}
+			assert.Equal(t, "askUsername", currentNode)
+
+			// Submit username
+			usernameResp := e.POST("/acme/customers/api/v1/login-or-register").
+				WithHeader("Content-Type", "application/json").
+				WithJSON(map[string]any{
+					"sessionId":   sessionID,
+					"currentNode": "askUsername",
+					"responses": map[string]string{
+						"username": "foobar",
+					},
+				}).
 				WithCookie("session_id", cookieValue).
 				Expect().
 				Status(http.StatusOK).
-				Body()
+				JSON()
 
-			step := extractStepFromHTML(t, getResp.Raw())
-			usernameResp := e.POST(authURL).
-				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", step).
-				WithFormField("username", "foobar").
-				WithCookie("session_id", cookieValue).
-				Expect().
-				Status(http.StatusOK).
-				Body()
-
-			htmlContent := usernameResp.Raw()
-			step = extractStepFromHTML(t, htmlContent)
-
-			// Check if form has confirmation field
-			if strings.Contains(htmlContent, `name="confirmation"`) {
-				passwordResp := e.POST(authURL).
-					WithHeader("Content-Type", "application/x-www-form-urlencoded").
-					WithFormField("step", step).
-					WithFormField("confirmation", "true").
-					WithCookie("session_id", cookieValue).
-					Expect().
-					Status(http.StatusOK).
-					Body()
-
-				htmlContent = passwordResp.Raw()
-				step = extractStepFromHTML(t, htmlContent)
+			nextNode := usernameResp.Object().Value("currentNode").String().Raw()
+			if prompts, ok := usernameResp.Object().Value("prompts").Raw().(map[string]any); ok {
+				if _, hasConfirmation := prompts["confirmation"]; hasConfirmation {
+					confirmResp := e.POST("/acme/customers/api/v1/login-or-register").
+						WithHeader("Content-Type", "application/json").
+						WithJSON(map[string]any{
+							"sessionId":   sessionID,
+							"currentNode": nextNode,
+							"responses": map[string]string{
+								"confirmation": "true",
+							},
+						}).
+						WithCookie("session_id", cookieValue).
+						Expect().
+						Status(http.StatusOK).
+						JSON()
+					nextNode = confirmResp.Object().Value("currentNode").String().Raw()
+				}
 			}
 
-			// Submit password
-			e.POST(authURL).
-				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", step).
-				WithFormField("password", "foobar").
+			// Submit password (should finish and set redirect to finishauthorize)
+			passwordResp := e.POST("/acme/customers/api/v1/login-or-register").
+				WithHeader("Content-Type", "application/json").
+				WithJSON(map[string]any{
+					"sessionId":   sessionID,
+					"currentNode": nextNode,
+					"responses": map[string]string{
+						"password": "foobar",
+					},
+				}).
 				WithCookie("session_id", cookieValue).
 				Expect().
-				Status(http.StatusSeeOther).
-				Header("Location").Contains("http://localhost:8080/acme/customers/oauth2/finishauthorize")
+				Status(http.StatusOK).
+				JSON()
+
+			passwordResp.Object().Value("result").Object().
+				Value("redirect").String().Contains("/acme/customers/oauth2/finishauthorize")
 		})
 
 		var authCode string

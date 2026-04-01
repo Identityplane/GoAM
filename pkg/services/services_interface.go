@@ -24,7 +24,6 @@ type Services struct {
 	JWTService                 JWTService
 	CacheService               CacheService
 	AdminAuthzService          AdminAuthzService
-	TemplatesService           TemplatesService
 	EmailService               EmailService
 	UserClaimsService          UserClaimsService
 }

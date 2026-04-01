@@ -147,7 +147,7 @@ func TestOIDCPrompt_E2E(t *testing.T) {
 
 		// Verify we get redirected to the login page
 		location := resp.Header("Location").Raw()
-		if !strings.Contains(location, "/acme/customers/auth/login-or-register") {
+		if !strings.Contains(location, "/acme/customers/authui/login-or-register") {
 			t.Fatalf("Expected redirect to login page but got: %s", location)
 		}
 	})
