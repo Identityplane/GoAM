@@ -20,6 +20,28 @@ authui:
     type: ClusterIP
     port: 3000
 
+pgadmin:
+  enabled: true
+  preconfigurePostgresServer: true
+  image:
+    repository: dpage/pgadmin4
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  initImage:
+    repository: busybox
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 80
+  persistence:
+    enabled: true
+    size: 1Gi
+    # storageClass: ""
+  auth:
+    email: "admin@example.com"
+    password: "change-me"
+
 postgresql:
   enabled: true
   image:
@@ -36,8 +58,8 @@ postgresql:
     port: 5432
 
 service:
-  type: LoadBalancer
-  port: 8080
+  type: ClusterIP
+  port: 80
 
 resources: {}
   # limits:

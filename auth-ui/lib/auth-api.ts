@@ -56,10 +56,27 @@ export interface FlowRequest {
  */
 export class AuthAPI {
   /**
+   * Helper to build a URL from a potentially relative backend URL
+   */
+  private static buildUrl(backendUrl: string, path: string): URL {
+    // Ensure backendUrl doesn't end with / and path starts with /
+    const sanitizedBackend = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+    const sanitizedPath = path.startsWith('/') ? path : `/${path}`;
+    const fullPath = `${sanitizedBackend}${sanitizedPath}`;
+    
+    if (typeof window !== 'undefined') {
+      // On client-side, we can use window.location.origin as a fallback for relative URLs
+      return new URL(fullPath, window.location.origin);
+    }
+    // On server-side, URL must be absolute or it will throw
+    return new URL(fullPath);
+  }
+
+  /**
    * Fetches realm metadata from the backend
    */
   static async fetchMetadata(backendUrl: string, debug?: boolean): Promise<MetadataResponse> {
-    const url = new URL(`${backendUrl}/api/v1/`);
+    const url = this.buildUrl(backendUrl, '/api/v1/');
     if (debug) url.searchParams.set('debug', 'true');
 
     const response = await fetch(url.toString(), {
@@ -77,7 +94,7 @@ export class AuthAPI {
    * Starts a specific authentication flow
    */
   static async startFlow(backendUrl: string, flowRoute: string, debug?: boolean, isContinue?: boolean, isInit?: boolean): Promise<FlowResponse> {
-    const url = new URL(`${backendUrl}/api/v1/${flowRoute}`);
+    const url = this.buildUrl(backendUrl, `/api/v1/${flowRoute}`);
     if (debug) url.searchParams.set('debug', 'true');
     if (isContinue) url.searchParams.set('continue', 'true');
     if (isInit) url.searchParams.set('init', 'true');
@@ -108,7 +125,7 @@ export class AuthAPI {
    * Continues the authentication flow with user input
    */
   static async continueFlow(backendUrl: string, flowRoute: string, request: FlowRequest, debug?: boolean): Promise<FlowResponse> {
-    const url = new URL(`${backendUrl}/api/v1/${flowRoute}`);
+    const url = this.buildUrl(backendUrl, `/api/v1/${flowRoute}`);
     if (debug) url.searchParams.set('debug', 'true');
 
     const response = await fetch(url.toString(), {
@@ -140,7 +157,7 @@ export class AuthAPI {
    * Resumes an existing authentication session using its ID
    */
   static async resumeSession(backendUrl: string, sessionId: string, debug?: boolean): Promise<FlowResponse> {
-    const url = new URL(`${backendUrl}/api/v1/`);
+    const url = this.buildUrl(backendUrl, '/api/v1/');
     if (debug) url.searchParams.set('debug', 'true');
 
     const response = await fetch(url.toString(), {

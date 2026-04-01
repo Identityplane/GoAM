@@ -1,6 +1,6 @@
 realm: internal
 realm_name: IAM Management Users
-base_url: http://localhost:8081/internal/internal
+#base_url: http://localhost:8081/internal/internal
 
 flows:
   admin_userid_password:
@@ -25,7 +25,8 @@ applications:
     allowed_grants:
       - authorization_code_pkce
     redirect_uris:
-      - http://localhost:3000
+      - http://localhost:3000  # Local
+      - http://localhost:30080/ # Orbstack
     allowed_authentication_flows:
       - admin_userid_password
     access_token_lifetime: 600

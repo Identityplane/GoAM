@@ -18,7 +18,7 @@ func CreateSessionForOauth2Flow(ctx *fasthttp.RequestCtx, realm *model.Realm, fl
 	}
 
 	// Use the legacy auth path for integration tests and consistency
-	loginUri := fmt.Sprintf("%s/auth/%s", baseUrl, flow.Route)
+	loginUri := fmt.Sprintf("%s/authui/%s", baseUrl, flow.Route)
 	session, sessionID := service.GetServices().SessionsService.CreateAuthSessionObject(realm.Tenant, realm.Realm, flow.Id, loginUri)
 
 	// set the session id in both cookie and url fragment for bridge between flows

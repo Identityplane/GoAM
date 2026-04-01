@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { DebugInspector } from './debug-inspector';
 const DEBUG_STORAGE_KEY = 'goam_debug_execution_id';
+const DEBUG_WIDTH_KEY = 'goam_debug_width';
 
 // Helper to parse strings from settings into correct types (boolean, numbers etc)
 const parseSettings = (settings: Record<string, string>) => {
@@ -43,6 +44,18 @@ export default function LoginPage(): React.ReactElement | null {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [debugWidth, setDebugWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(DEBUG_WIDTH_KEY);
+      return saved ? parseInt(saved, 10) : 450;
+    }
+    return 450;
+  });
+
+  const handleWidthChange = useCallback((newWidth: number) => {
+    setDebugWidth(newWidth);
+    localStorage.setItem(DEBUG_WIDTH_KEY, newWidth.toString());
+  }, []);
 
   const [settings, setSettings] = useState<{
     backgroundColor: string;
@@ -252,7 +265,7 @@ export default function LoginPage(): React.ReactElement | null {
     // Otherwise, fallback to the local dev API.
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
     const configPromise = isDynamicRoute
-      ? Promise.resolve({ backend_url: `${baseUrl}/${tenantParam}/${realmParam}` })
+      ? Promise.resolve({ backend_url: baseUrl ? `${baseUrl}/${tenantParam}/${realmParam}` : `/${tenantParam}/${realmParam}` })
       : fetch(`/api/settings?config=${configName}`).then((res) => res.json());
 
     configPromise
@@ -413,119 +426,129 @@ export default function LoginPage(): React.ReactElement | null {
           }
         `}} />
       )}
-      {/* Debug Panel Toggle */}
-      <button
-        onClick={() => setShowDebug(!showDebug)}
-        className="fixed bottom-4 right-4 z-50 bg-black/50 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-colors backdrop-blur-sm"
-        title="Toggle Debug Panel"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" /></svg>
-      </button>
+      {/* Debug Controls */}
+      {isDebug && (
+        <div className="fixed bottom-4 right-4 z-[60] flex flex-col items-end gap-2">
+          {/* Main Toggle Button */}
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className="bg-black/60 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-all backdrop-blur-md border border-white/20 shadow-lg"
+            title="Toggle Debug Panel"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" /></svg>
+          </button>
 
-      {/* Debug Panel */}
-      {showDebug && (
-        <div className="fixed bottom-16 right-4 z-50 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-4 transition-all" style={{ fontFamily: 'sans-serif' }}>
-          <div className="text-sm font-semibold mb-3 border-b pb-2 flex justify-between items-center">
-            <span>Debug Panel</span>
-            <button onClick={() => setShowDebug(false)} className="text-gray-400 hover:text-gray-700">✕</button>
-          </div>
+          {/* Quick Inspector Button (Visible even when panel is closed) */}
+          {!showDebug && (
+            <button
+              onClick={() => setShowDebugSheet(!showDebugSheet)}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all shadow-lg border backdrop-blur-md",
+                showDebugSheet 
+                  ? "bg-primary text-primary-foreground border-primary" 
+                  : "bg-white/80 hover:bg-white text-slate-700 border-slate-200"
+              )}
+            >
+              {showDebugSheet ? "✕ Close Inspector" : "🔍 Inspect"}
+            </button>
+          )}
 
-          <div className="space-y-4 text-sm">
-            <div>
-              <label className="block text-gray-500 mb-1 text-xs uppercase font-semibold">Settings Config</label>
-              <select
-                className="w-full border rounded p-1.5 focus:ring-2 focus:ring-blue-500 outline-none"
-                value={configName}
-                onChange={(e) => setConfigName(e.target.value)}
-              >
-                <option value="identityplane">IdentityPlane</option>
-                <option value="acme">Acme (External Backend)</option>
-                <option value="blue">Blue Theme</option>
-                <option value="default">Light Gray</option>
-                <option value="forest">Forest Green</option>
-                <option value="sunset">Sunset Orange</option>
-                <option value="minimal">Minimal (No Sidebar)</option>
-              </select>
-            </div>
+          {/* Debug Panel Details */}
+          {showDebug && (
+            <div className="w-64 bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-slate-200 p-4 animate-in slide-in-from-top-4 duration-200" style={{ fontFamily: 'sans-serif' }}>
+              <div className="text-sm font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2 flex justify-between items-center">
+                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Flow Debugger</span>
+                <button onClick={() => setShowDebug(false)} className="p-1 hover:bg-slate-100 rounded-md transition-colors text-slate-400">✕</button>
+              </div>
 
-            {settings?.backend_url && metadata && (
-              <div className="pt-2 border-t">
-                <label className="block text-blue-600 mb-1 text-xs uppercase font-bold">Backend Flow</label>
-                <div className="flex gap-2">
+              <div className="space-y-4 text-sm">
+                <div>
+                  <label className="block text-slate-500 mb-1.5 text-[10px] uppercase font-bold tracking-tight">UI Theme</label>
                   <select
-                    className="flex-1 border rounded p-1.5 focus:ring-2 focus:ring-blue-500 outline-none truncate"
-                    value={selectedFlow}
-                    onChange={(e) => {
-                      const newFlow = e.target.value;
-                      setSelectedFlow(newFlow);
-                      handleStartFlow(newFlow);
-                    }}
+                    className="w-full border border-slate-200 rounded-lg p-2 bg-slate-50/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-xs"
+                    value={configName}
+                    onChange={(e) => setConfigName(e.target.value)}
                   >
-                    {metadata.flows.map(flow => (
-                      <option key={flow.id} value={flow.route}>
-                        {flow.id}
-                      </option>
-                    ))}
+                    <option value="identityplane">IdentityPlane</option>
+                    <option value="acme">Acme (External Backend)</option>
+                    <option value="blue">Blue Theme</option>
+                    <option value="default">Light Gray</option>
+                    <option value="forest">Forest Green</option>
+                    <option value="sunset">Sunset Orange</option>
+                    <option value="minimal">Minimal (No Sidebar)</option>
                   </select>
-                  <button
-                    onClick={() => handleStartFlow()}
-                    disabled={isLoading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 rounded flex items-center justify-center disabled:opacity-50"
-                    title="Start Flow"
-                  >
-                    🚀
-                  </button>
                 </div>
-                {metadata.realm && (
-                  <div className="mt-2 text-[10px] text-gray-400 italic">
-                    Connected to: {metadata.realm.name}
+
+                {settings?.backend_url && metadata && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <label className="block text-primary mb-1.5 text-[10px] uppercase font-bold tracking-tight">Active Flow</label>
+                    <div className="flex gap-2">
+                      <select
+                        className="flex-1 border border-slate-200 rounded-lg p-2 bg-slate-50/50 focus:ring-2 focus:ring-primary/20 outline-none truncate transition-all text-xs"
+                        value={selectedFlow}
+                        onChange={(e) => {
+                          const newFlow = e.target.value;
+                          setSelectedFlow(newFlow);
+                          handleStartFlow(newFlow);
+                        }}
+                      >
+                        {metadata.flows.map(flow => (
+                          <option key={flow.id} value={flow.route}>
+                            {flow.id}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleStartFlow()}
+                        disabled={isLoading}
+                        className="bg-primary hover:opacity-90 text-primary-foreground w-9 flex-none rounded-lg flex items-center justify-center disabled:opacity-50 transition-all active:scale-95 shadow-sm"
+                        title="Restart Flow"
+                      >
+                        🚀
+                      </button>
+                    </div>
                   </div>
                 )}
-              </div>
-            )}
 
-            <div>
-              <label className="block text-gray-500 mb-1 text-xs uppercase font-semibold">Current Step</label>
-              <select
-                className="w-full border rounded p-1.5 focus:ring-2 focus:ring-blue-500 outline-none"
-                value={currentStep}
-                onChange={(e) => {
-                  setError(null);
-                  setCurrentStep(e.target.value as AuthStep);
-                }}
-              >
-                <option value="login">1. Login</option>
-                <option value="register">1. Register</option>
-                <option value="password">2. Password</option>
-                <option value="otp">3. OTP</option>
-                <option value="terms">4. Terms</option>
-                <option value="success">5. Success</option>
-              </select>
+                <div>
+                  <label className="block text-slate-500 mb-1.5 text-[10px] uppercase font-bold tracking-tight">Fast-Forward</label>
+                  <select
+                    className="w-full border border-slate-200 rounded-lg p-2 bg-slate-50/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-xs"
+                    value={currentStep}
+                    onChange={(e) => {
+                      setError(null);
+                      setCurrentStep(e.target.value as AuthStep);
+                    }}
+                  >
+                    <option value="login">1. Login</option>
+                    <option value="register">1. Register</option>
+                    <option value="password">2. Password</option>
+                    <option value="otp">3. OTP</option>
+                    <option value="terms">4. Terms</option>
+                    <option value="success">5. Success</option>
+                  </select>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100">
+                  <button
+                    onClick={() => setShowDebugSheet(!showDebugSheet)}
+                    className={cn(
+                      "w-full py-2 rounded-lg transition-all text-xs font-bold border flex items-center justify-center gap-2 shadow-sm",
+                      showDebugSheet 
+                        ? "bg-primary text-primary-foreground border-primary" 
+                        : "bg-slate-900 text-white border-slate-900 hover:bg-slate-800"
+                    )}
+                  >
+                    {showDebugSheet ? "✕ Close Inspector" : "🔍 View Data"}
+                  </button>
+                </div>
+              </div>
             </div>
-
-            {isDebug && (
-              <div className="pt-2">
-                <button
-                  onClick={() => setShowDebugSheet(!showDebugSheet)}
-                  className={cn(
-                    "w-full py-1.5 rounded transition-colors text-xs font-semibold border",
-                    showDebugSheet ? "bg-primary text-primary-foreground" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  )}
-                >
-                  {showDebugSheet ? "✕ Close Debug Inspector" : "🔍 View Debug Data"}
-                </button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
 
-      {showDebugSheet && (
-        <DebugInspector 
-          debugData={debugData} 
-          onClose={() => setShowDebugSheet(false)} 
-        />
-      )}
+
 
       <div className={cn(
         "hidden relative overflow-hidden transition-all duration-300 shrink-0",
@@ -576,9 +599,11 @@ export default function LoginPage(): React.ReactElement | null {
       </div>
 
       <div className={cn(
-        "flex items-center justify-center p-8 relative transition-all duration-300 shrink-0",
-        showDebugSheet ? "w-full lg:w-2/3" : (settings?.show_sidebar ? "w-full lg:w-1/2" : "w-full")
-      )} style={{ backgroundColor: settings?.pageBackgroundColor || '#ffffff' }}>
+        "flex items-center justify-center p-8 relative grow transition-[width] duration-300",
+      )} style={{ 
+        backgroundColor: settings?.pageBackgroundColor || '#ffffff',
+        width: showDebugSheet ? `calc(100% - ${debugWidth}px)` : (settings?.show_sidebar ? "50%" : "100%")
+      }}>
         {(currentStep === 'password' || currentStep === 'otp') && (
           <Button
             variant="ghost"
@@ -635,6 +660,15 @@ export default function LoginPage(): React.ReactElement | null {
           </div>
         </div>
       </div>
+
+      {showDebugSheet && (
+        <DebugInspector 
+          debugData={debugData} 
+          onClose={() => setShowDebugSheet(false)} 
+          width={debugWidth}
+          onWidthChange={handleWidthChange}
+        />
+      )}
     </div>
   );
 }

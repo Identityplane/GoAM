@@ -6,3 +6,4 @@ WHITEPAPER.md
 makefile
 node_modules/
 auth-js/dist/ 
+.env*.local

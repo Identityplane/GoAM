@@ -13,3 +13,5 @@ data:
     run_db_migrations: true
     authui_uri_base: "http://{{ include "goam.fullname" . }}-authui:{{ .Values.authui.service.port }}"
     realm_configuration_folder: "/app/config"
+    initial_admin_user_id: "admin"
+    initial_admin_user_password: "change-me"

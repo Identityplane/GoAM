@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { DebugInspector } from '@/components/debug-inspector';
 
 const DEBUG_STORAGE_KEY = 'goam_debug_execution_id';
+const DEBUG_WIDTH_KEY = 'goam_debug_width';
 
 export default function CallbackPage() {
   const params = useParams();
@@ -16,6 +17,18 @@ export default function CallbackPage() {
   const [debugData, setDebugData] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [showDebugSheet, setShowDebugSheet] = useState(false);
+  const [debugWidth, setDebugWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(DEBUG_WIDTH_KEY);
+      return saved ? parseInt(saved, 10) : 450;
+    }
+    return 450;
+  });
+
+  const handleWidthChange = (newWidth: number) => {
+    setDebugWidth(newWidth);
+    localStorage.setItem(DEBUG_WIDTH_KEY, newWidth.toString());
+  };
   const [isDebug, setIsDebug] = useState(false);
   const processedRef = useRef(false);
 
@@ -127,18 +140,22 @@ export default function CallbackPage() {
           </button>
         </div>
         {showDebug && (
-          <button
-            onClick={() => setShowDebugSheet(!showDebugSheet)}
-            className="fixed bottom-4 right-4 z-50 bg-black/50 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-colors backdrop-blur-sm"
-            title="Toggle Debug Panel"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" /></svg>
-          </button>
+          <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+            <button
+              onClick={() => setShowDebugSheet(!showDebugSheet)}
+              className="bg-black/50 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-colors backdrop-blur-sm"
+              title="Toggle Debug Panel"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" /></svg>
+            </button>
+          </div>
         )}
         {showDebugSheet && (
           <DebugInspector 
             debugData={debugData} 
             onClose={() => setShowDebugSheet(false)} 
+            width={debugWidth}
+            onWidthChange={handleWidthChange}
           />
         )}
       </div>
@@ -154,18 +171,20 @@ export default function CallbackPage() {
         </p>
       </div>
       {showDebug && (
-          <button
-            onClick={() => setShowDebugSheet(!showDebugSheet)}
-            className="fixed bottom-4 right-4 z-50 bg-black/50 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-colors backdrop-blur-sm"
-            title="Toggle Debug Panel"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" /></svg>
-          </button>
-        )}
+        <button
+          onClick={() => setShowDebugSheet(!showDebugSheet)}
+          className="fixed bottom-4 right-4 z-50 bg-black/50 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer transition-colors backdrop-blur-sm"
+          title="Toggle Debug Panel"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" /></svg>
+        </button>
+      )}
       {showDebugSheet && (
         <DebugInspector 
           debugData={debugData} 
           onClose={() => setShowDebugSheet(false)} 
+          width={debugWidth}
+          onWidthChange={handleWidthChange}
         />
       )}
     </div>

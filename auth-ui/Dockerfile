@@ -24,6 +24,9 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Ensure .env.local is not present to avoid it being used during build
+RUN rm -f .env.local
+
 # Build the application
 RUN pnpm run build
 

@@ -74,6 +74,10 @@ func GetUrlOfRequest(ctx *fasthttp.RequestCtx) string {
 		protocol = "http"
 	}
 
+	if strings.HasSuffix(host, "cluster.local") {
+		protocol = "http"
+	}
+
 	return fmt.Sprintf("%s://%s", protocol, host)
 }
 

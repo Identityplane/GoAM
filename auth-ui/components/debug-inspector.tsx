@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 interface DebugInspectorProps {
   debugData: any;
   onClose: () => void;
+  width: number;
+  onWidthChange: (width: number) => void;
 }
 
 /**
@@ -43,9 +45,64 @@ const SyntaxHighlightedJson = ({ data }: { data: any }) => {
   );
 };
 
-export function DebugInspector({ debugData, onClose }: DebugInspectorProps) {
+export function DebugInspector({ debugData, onClose, width, onWidthChange }: DebugInspectorProps) {
+  const [isResizing, setIsResizing] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Calculate width from the right side
+      const newWidth = window.innerWidth - e.clientX;
+      
+      // Constrain width
+      if (newWidth > 300 && newWidth < window.innerWidth * 0.8) {
+        onWidthChange(newWidth);
+      }
+    };
+
+    const stopResizing = () => {
+      setIsResizing(false);
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', stopResizing);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', stopResizing);
+    };
+  }, [isResizing, onWidthChange]);
+
   return (
-    <div className="hidden lg:flex flex-col w-1/3 border-l border-slate-800 bg-slate-900 h-screen transition-all duration-300 animate-in slide-in-from-right shrink-0">
+    <div 
+      className={cn(
+        "hidden lg:flex flex-col border-l border-slate-800 bg-slate-900 h-screen shrink-0 relative shadow-2xl z-50",
+        !isResizing && "transition-all duration-300",
+        !isMounted && "animate-in slide-in-from-right duration-500"
+      )}
+      style={{ width: `${width}px` }}
+    >
+      {/* Resize Handle - Wider hit area but skinny visual */}
+      <div
+        className="absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize hover:bg-sky-500/20 active:bg-sky-500/40 transition-colors z-[100] group flex items-center justify-center"
+        onMouseDown={() => setIsResizing(true)}
+      >
+        <div className="w-[2px] h-full bg-slate-800 group-hover:bg-sky-500/50 transition-colors pointer-events-none" />
+        <div className="absolute top-1/2 -translate-y-1/2 w-4 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <div className="w-1 h-6 bg-slate-600 rounded-full" />
+        </div>
+      </div>
+
       <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/80 backdrop-blur-sm h-[64px] shrink-0 sticky top-0 z-10">
         <div>
           <h3 className="font-bold text-sm text-slate-100 tracking-tight">Debug Inspector</h3>
