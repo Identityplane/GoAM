@@ -35,3 +35,52 @@ If you are proposing a feature:
 * Keep the scope as narrow as possible, to make it easier to implement.
 * Remember that this is a volunteer-driven project, and that contributions
   are welcome :)
+
+## Setup dev environment
+
+### Go backend (API server)
+
+Prerequisites: Go (see `go.mod` for the required version).
+
+```
+go mod tidy
+go run cmd/main.go
+Visit: http://localhost:8081/readyz
+```
+
+### VS Code debugging
+
+Install [Delve](https://github.com/go-delve/delve) (`dlv`) on your machine; the Go extension uses it to debug. For example: `go install github.com/go-delve/delve/cmd/dlv@latest` (ensure `$(go env GOPATH)/bin` is on your `PATH`).
+
+[`.vscode/launch.json`](.vscode/launch.json) defines two launch configurations:
+
+- **Goiam SQLite** — runs the server with the default SQLite setup (suitable for everyday development).
+- **Goiam Postgres** — runs against `postgres://goiam:secret123@localhost:5432/goiamdb`. PostgreSQL must be available on `localhost:5432` with those credentials; run it locally (often via Kubernetes—see below—and port-forward or expose `5432`).
+
+### Auth UI (web app)
+
+The Auth UI is a separate web application. In development, GoAM reverse-proxies it under the realm route prefix:
+- `/{tenant}/{realm}/authui/…` (e.g. `/acme/customers/authui/login?debug`)
+
+Prerequisites: Node.js + `pnpm`.
+
+```
+cd auth-ui
+pnpm install
+pnpm run dev
+Visit: http://localhost:8081/acme/customers/authui/login?debug
+```
+
+### Kubernetes (optional)
+
+Prefer OrbStack; Minikube also works (you may need to adapt commands in the `Makefile`).
+
+Prerequisites:
+- kubectl with a working k8s cluster
+- helm
+- (optional) k9s
+
+```
+make docker-all   # build Docker images (GoAM + admin UI)
+make helm-deploy  # deploy locally via Helm
+```
