@@ -2,9 +2,9 @@
 [![CD](https://github.com/Identityplane/GoAM/actions/workflows/cd.yml/badge.svg)](https://github.com/Identityplane/GoAM/actions/workflows/cd.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Identityplane/GoAM)](https://goreportcard.com/report/github.com/Identityplane/GoAM)
 
-# GoIAM: Flexible and High-Performance Identity Access Management
+# GoAM: Flexible and High-Performance Identity Access Management
 
-GoIAM is a modern, high-performance Identity and Access Management system written in Go. It is designed to provide flexibility and scalability for managing authentication and authorization flows. It represents login and registration flows as **graphs**, enabling highly customizable and dynamic user journeys.
+GoAM is a modern, high-performance Identity and Access Management system written in Go. It is designed to provide flexibility and scalability for managing authentication and authorization flows. It represents login and registration flows as **graphs**, enabling highly customizable and dynamic user journeys.
 
 ![Example Login Graph](./docs/images/example_login.png)
 
@@ -32,7 +32,7 @@ We are implementing **OAuth2.1** which comes with the following changes to OAuth
 
 - **Graph-Based Flows**: Define login and registration flows as graphs, allowing for complex, multi-step processes.
 - **Customizable Nodes**: Each step in the graph is a node, which can be customized to handle specific logic, prompts, or conditions.
-- **Performance**: Built with Go and `fasthttp` for maximum performance and low latency. Login journies can be optimized to enable thousands of logins per second.
+- **Performance**: Built with Go and `fasthttp` for maximum performance and low latency. Login journeys can be optimized to enable thousands of logins per second.
 - **Multitenancy**: Support for multiple tenants with isolated realms per tenant. Each tenant can have multiple realms for different user populations (e.g. customers, staff).
 - **Extensibility**: Easily add custom nodes, flows, and integrations to meet your specific requirements.
 - **Customization**: Serve static assets like CSS and JavaScript for theming and customization.
@@ -84,7 +84,7 @@ This flow includes:
 1. Clone the repository:
    ```bash
    git clone https://github.com/Identityplane/GoAM.git
-   cd goiam
+   cd goam
    ```
 
 2. Install dependencies:
@@ -140,7 +140,7 @@ go run ./cmd/main.go
 
 ## Database Setup
 
-For local development, GoIAM uses SQLite. To set up the database:
+For local development, GoAM uses SQLite. To set up the database:
 
 1. Apply the initial migration:
    ```bash
@@ -156,7 +156,7 @@ For local development, GoIAM uses SQLite. To set up the database:
 
 ## Running Tests
 
-GoIAM includes both unit and integration tests to ensure reliability.
+GoAM includes both unit and integration tests to ensure reliability.
 
 1. Run unit tests:
    ```bash
