@@ -2,10 +2,29 @@
 
 import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
+import { useEffect } from 'react';
 import { AuthStepProps } from './types';
+import { getRedirectUrl } from '@/lib/success-redirect';
 
 export function SuccessStep({ formData, onRestart, result, executionId }: AuthStepProps) {
   const identifier = result?.user_id || formData.email || '';
+  const redirectUrl = getRedirectUrl(result);
+
+  useEffect(() => {
+    if (!redirectUrl) return;
+    window.location.assign(redirectUrl);
+  }, [redirectUrl]);
+
+  if (redirectUrl) {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="space-y-2 text-center mb-4">
+          <h2 className="text-3xl text-foreground">Redirecting…</h2>
+          <p className="text-muted-foreground">Finishing sign-in.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 text-center">

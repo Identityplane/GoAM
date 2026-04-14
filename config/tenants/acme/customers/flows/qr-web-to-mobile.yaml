@@ -1,5 +1,6 @@
 description: ''
 start: init
+start_secondary: initSecondary
 nodes:
   init:
     name: init

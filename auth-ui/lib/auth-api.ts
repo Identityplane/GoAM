@@ -1,4 +1,4 @@
-export type AuthStep = 'login' | 'register' | 'password' | 'askUserID' | 'askEmail' | 'askPassword' | 'askUsername' | 'askUsernamePassword' | 'askEmailPassword' | 'emailOTP' | 'passwordOrSocialLogin' | 'verifyYubikeyOtp' | 'registerPasskey' | 'otp' | 'terms' | 'success' | 'error' | 'not-implemented' | 'successResult' | 'failureResult' | 'listAvailableUsers' | (string & {});
+export type AuthStep = 'login' | 'register' | 'password' | 'askUserID' | 'askEmail' | 'askPassword' | 'askUsername' | 'askUsernamePassword' | 'askEmailPassword' | 'emailOTP' | 'passwordOrSocialLogin' | 'verifyYubikeyOtp' | 'registerPasskey' | 'otp' | 'terms' | 'success' | 'error' | 'not-implemented' | 'successResult' | 'failureResult' | 'listAvailableUsers' | 'continueOnOtherDevice' | (string & {});
 
 export interface StepConfig {
   step: AuthStep;
@@ -114,6 +114,38 @@ export class AuthAPI {
             error: 'FETCH_ERROR',
             error_description: `Server returned ${response.status}`,
           }
+        };
+      }
+    }
+
+    return response.json();
+  }
+
+  /**
+   * GET with continue + poll so the server re-runs the graph (e.g. detect cross-device completion while on QR).
+   * Sends cookies (session) when applicable.
+   */
+  static async pollFlow(backendUrl: string, flowRoute: string, debug?: boolean): Promise<FlowResponse> {
+    const url = this.buildUrl(backendUrl, `/api/v1/${flowRoute}`);
+    if (debug) url.searchParams.set('debug', 'true');
+    url.searchParams.set('continue', 'true');
+    url.searchParams.set('poll', 'true');
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      try {
+        return await response.json();
+      } catch (e) {
+        return {
+          error: {
+            error: 'FETCH_ERROR',
+            error_description: `Server returned ${response.status}`,
+          },
         };
       }
     }

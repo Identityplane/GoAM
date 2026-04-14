@@ -26,16 +26,17 @@ type FlowRequest struct {
 
 // FlowResponse represents a JSON API response for flow processing
 type FlowResponse struct {
-	RunId           string                    `json:"executionId"`
-	SessionID       string                    `json:"sessionId,omitempty"`
-	CurrentNode     string                    `json:"currentNode"`
-	CurrentNodeType string                    `json:"currentNodeType"`
-	Prompts         map[string]string         `json:"prompts,omitempty"`
-	Result          *model.SimpleAuthResponse `json:"result,omitempty"`
-	Error           *model.AuthError          `json:"error,omitempty"`
-	ErrorMessage    *string                   `json:"errorMessage,omitempty"`
-	Debug           any                       `json:"debug,omitempty"`
-	Flow            string                    `json:"flow,omitempty"`
+	RunId             string                    `json:"executionId"`
+	IsSecondaryDevice bool                      `json:"isSecondaryDevice"`
+	SessionID         string                    `json:"sessionId,omitempty"`
+	CurrentNode       string                    `json:"currentNode"`
+	CurrentNodeType   string                    `json:"currentNodeType"`
+	Prompts           map[string]string         `json:"prompts,omitempty"`
+	Result            *model.SimpleAuthResponse `json:"result,omitempty"`
+	Error             *model.AuthError          `json:"error,omitempty"`
+	ErrorMessage      *string                   `json:"errorMessage,omitempty"`
+	Debug             any                       `json:"debug,omitempty"`
+	Flow              string                    `json:"flow,omitempty"`
 }
 
 // FlowResult represents the final result of a successful flow
@@ -104,12 +105,15 @@ func handleJSONGetRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *mo
 
 	isContinue := queryArgs.Has("continue")
 	isInit := queryArgs.Has("init")
+	isPoll := queryArgs.Has("poll")
 
 	// Try to get existing session first from cookies
 	session, ok := auth.GetAuthenticationSession(ctx, realm.Tenant, realm.Realm)
 
-	// Determine if we should resume or create new
-	shouldResume := ok && session != nil && !session.Finished() && session.FlowId == flow.Id
+	// Determine if we should resume or create new.
+	// poll=true may reuse the cookie even when Finished() is true: the secondary branch can
+	// complete first (successResult) while the primary graph pointer still waits on qrMobileToWeb.
+	shouldResume := ok && session != nil && session.FlowId == flow.Id && (!session.Finished() || isPoll)
 
 	if isInit {
 		// If init is requested, we force a new session
@@ -153,8 +157,9 @@ func handleJSONGetRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *mo
 	var newSession *model.AuthenticationSession
 	// If we are resuming (shouldResume) or explicitly continuing (isContinue)
 	// and we already have a current node, we just return the state as is.
-	// This prevents the flow engine from running multiple times for the same state
-	if (shouldResume || isContinue) && session.Current != "" {
+	// This prevents the flow engine from running multiple times for the same state.
+	// poll=true re-runs the engine so clients can observe cross-device context updates (e.g. QR wait).
+	if (shouldResume || isContinue) && activeGraphNodeName(session) != "" && !isPoll {
 		newSession = session
 	} else {
 		var err error
@@ -190,6 +195,7 @@ func initializeSimpleFlow(queryArgs *fasthttp.Args, tenant string, realm string,
 func HandleResumeSession(ctx *fasthttp.RequestCtx) {
 	tenant := ctx.UserValue("tenant").(string)
 	realmName := ctx.UserValue("realm").(string)
+	evaluate := ctx.QueryArgs().Has("evaluate")
 
 	// Set JSON content type
 	ctx.SetContentType("application/json")
@@ -221,30 +227,38 @@ func HandleResumeSession(ctx *fasthttp.RequestCtx) {
 	}
 
 	// Find the flow. session.FlowId is the ID, not the route.
-	flows, err := service.GetServices().FlowService.ListFlows(tenant, realmName)
-	if err != nil {
-		sendErrorResponse(ctx, session, fasthttp.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Could not load flows", "")
-		return
-	}
-
-	var foundFlow *model.Flow
-	for i := range flows {
-		if flows[i].Id == session.FlowId {
-			foundFlow = &flows[i]
-			break
-		}
-	}
-
-	if foundFlow == nil {
+	// Must use GetFlowById so the flow definition YAML is loaded (ListFlows does not).
+	foundFlow, ok := service.GetServices().FlowService.GetFlowById(tenant, realmName, session.FlowId)
+	if !ok || foundFlow == nil {
 		sendErrorResponse(ctx, session, fasthttp.StatusNotFound, "FLOW_NOT_FOUND", "Flow not found", "")
 		return
 	}
 
+	responseSession := session
+	// Resume with secondary secret: run engine so we land on the secondary branch (e.g. askUserID).
+	lookupHash := lib.HashString(req.SessionID)
+	secondaryResume := session.SecondarySessionIDHash != "" && lookupHash == session.SecondarySessionIDHash
+	if secondaryResume {
+		session.IsSecondaryDevice = true
+	}
+
+	if evaluate || secondaryResume {
+
+		newSession, err := processJSONFlow(ctx, foundFlow, *session)
+		if err != nil {
+			sendErrorResponse(ctx, newSession, fasthttp.StatusBadRequest, "FLOW_ERROR", err.Error(), "")
+			return
+		}
+
+		service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realmName, *newSession)
+		responseSession = newSession
+	}
+
 	// Apply any response modifications (headers/cookies)
-	auth.SetHttpAuthContextToResponse(session, ctx, loadedRealm.Config)
+	auth.SetHttpAuthContextToResponse(responseSession, ctx, loadedRealm.Config)
 
 	// Send response
-	sendFlowResponse(ctx, session, foundFlow, loadedRealm.Config, req.SessionID)
+	sendFlowResponse(ctx, responseSession, foundFlow, loadedRealm.Config, req.SessionID)
 }
 
 // handleJSONPostRequest handles POST requests to submit flow responses
@@ -261,8 +275,8 @@ func handleJSONPostRequest(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *m
 		return
 	}
 
-	// Validate current node matches
-	if session.Current != req.CurrentNode {
+	// Validate current node matches (use active graph node: primary Current or secondary CurrentOnSecondaryDevice)
+	if session.GetCurrent() != req.CurrentNode {
 		sendErrorResponse(ctx, session, fasthttp.StatusBadRequest, "INVALID_NODE", "Current node mismatch", "")
 		return
 	}
@@ -290,7 +304,7 @@ func createNewJSONSession(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *mo
 
 	// Create new session
 	realmUrl := webutils.GetUrlForRealm(ctx, realm)
-	loginUri := realmUrl + "/api/v1/" + flow.Route
+	loginUri := realmUrl + "/authui/" + flow.Route
 
 	session, sessionId := service.GetServices().SessionsService.CreateAuthSessionObject(realm.Tenant, realm.Realm, flow.Id, loginUri)
 
@@ -310,7 +324,24 @@ func getJSONSessionByIDs(ctx *fasthttp.RequestCtx, tenant, realm, sessionID stri
 		return nil, false
 	}
 
+	reconcileSecondaryDeviceFromLookup(session, sessionID)
 	return session, true
+}
+
+// reconcileSecondaryDeviceFromLookup sets IsSecondaryDevice from which secret was used to load the session.
+// json:"-" on IsSecondaryDevice and cache paths can leave the flag wrong; graph and API rely on it.
+func reconcileSecondaryDeviceFromLookup(s *model.AuthenticationSession, rawSessionID string) {
+	if s == nil || rawSessionID == "" {
+		return
+	}
+	h := lib.HashString(rawSessionID)
+	if s.SecondarySessionIDHash != "" && h == s.SecondarySessionIDHash {
+		s.IsSecondaryDevice = true
+		return
+	}
+	if s.SessionIdHash != "" && h == s.SessionIdHash {
+		s.IsSecondaryDevice = false
+	}
 }
 
 func processJSONFlow(ctx *fasthttp.RequestCtx, flow *model.Flow, session model.AuthenticationSession) (*model.AuthenticationSession, error) {
@@ -349,11 +380,12 @@ func processJSONFlowWithResponses(ctx *fasthttp.RequestCtx, flow *model.Flow, se
 func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSession, flow *model.Flow, realm *model.Realm, sessionId string) {
 
 	response := FlowResponse{
-		RunId:           session.RunID,
-		SessionID:       sessionId, // Sensitive session id
-		CurrentNode:     session.Current,
-		CurrentNodeType: session.CurrentType,
-		Flow:            flow.Route,
+		RunId:             session.RunID,
+		SessionID:         sessionId, // Sensitive session id
+		CurrentNode:       activeGraphNodeName(session),
+		CurrentNodeType:   session.CurrentType,
+		Flow:              flow.Route,
+		IsSecondaryDevice: session.IsSecondaryDevice,
 	}
 
 	if session.Debug {
@@ -400,6 +432,17 @@ func sendFlowResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSes
 	json.NewEncoder(ctx).Encode(response)
 }
 
+// activeGraphNodeName returns the node name the client should send as currentNode (primary Current or secondary branch).
+func activeGraphNodeName(s *model.AuthenticationSession) string {
+	if s == nil {
+		return ""
+	}
+	if n := s.GetCurrent(); n != "" {
+		return n
+	}
+	return s.Current
+}
+
 func sendErrorResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSession, statusCode int, code, message, field string) {
 
 	ctx.SetStatusCode(statusCode)
@@ -412,7 +455,7 @@ func sendErrorResponse(ctx *fasthttp.RequestCtx, session *model.AuthenticationSe
 
 	if session != nil {
 		errorResp.RunId = session.RunID
-		errorResp.CurrentNode = session.Current
+		errorResp.CurrentNode = activeGraphNodeName(session)
 		if session.Debug {
 			errorResp.Debug = session
 		}

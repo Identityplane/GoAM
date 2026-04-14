@@ -19,6 +19,8 @@ import { PasswordOrSocialLoginStep } from './PasswordOrSocialLoginStep';
 import { AskUserIDStep } from './AskUserIDStep';
 import { ListAvailableUsersStep } from './ListAvailableUsersStep';
 import { ExternalRedirectStep } from './ExternalRedirectStep';
+import { QrCodeStep } from './QrCodeStep';
+import { ContinueOnOtherDeviceStep } from './ContinueOnOtherDeviceStep';
 import { AuthStep } from '@/lib/auth-api';
 import { AuthStepProps } from './types';
 
@@ -46,6 +48,9 @@ export const StepRegistry: Record<AuthStep, React.ComponentType<AuthStepProps>> 
   'genericOIDCLogin': ExternalRedirectStep,
   'successResult': SuccessStep,
   'failureResult': ErrorStep,
+  'qrMobileToWeb': QrCodeStep,
+  'qrWebToMobile': QrCodeStep,
+  'continueOnOtherDevice': ContinueOnOtherDeviceStep,
   // Add these if they are relevant AuthSteps (they might need to be added to the AuthStep union)
   // 'login-passkey': LoginPasskeyStep,
   // 'register-passkey': RegisterPasskeyStep,

@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft } from 'lucide-react';
 import { StepRegistry } from '@/components/auth-steps';
 import { AuthAPI } from '@/lib/auth-api';
-import type { AuthStep, StepConfig, FlowInfo, MetadataResponse } from '@/lib/auth-api';
+import type { AuthStep, FlowInfo, FlowResponse, MetadataResponse, StepConfig } from '@/lib/auth-api';
 import { cn } from '@/lib/utils';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { DebugInspector } from './debug-inspector';
@@ -33,6 +33,7 @@ export default function LoginPage(): React.ReactElement | null {
   const realmParam = params?.realm as string;
   const flowParam = params?.flow as string;
   const isDebug = searchParams.has('debug');
+  const secondaryId = searchParams.get('secondary') || undefined;
   const isDynamicRoute = !!tenantParam && !!realmParam;
 
   const [currentStep, setCurrentStep] = useState<AuthStep>('login');
@@ -89,6 +90,8 @@ export default function LoginPage(): React.ReactElement | null {
   const lastInitRef = useRef<string>('');
   const lastStartRef = useRef<string>('');
   const isTransitioningRef = useRef(false);
+  /** Graph node id when we entered the QR wait step (e.g. `qr`); poll until API returns a different `currentNode`. */
+  const qrPollBaselineNodeRef = useRef<string | null>(null);
 
   const handleStartFlow = async (flowOverride?: string) => {
     const flowToStart = flowOverride || selectedFlow;
@@ -231,8 +234,82 @@ export default function LoginPage(): React.ReactElement | null {
         isTransitioningRef.current = false;
       }
     },
-    [currentStep, settings, selectedFlow, executionId, sessionId]
+    [currentStep, settings, selectedFlow, executionId, sessionId, currentNode]
   );
+
+  useEffect(() => {
+    qrPollBaselineNodeRef.current = null;
+  }, [sessionId]);
+
+  useEffect(() => {
+    const step = String(currentStep);
+    const isQrWaitStep = step === 'qrMobileToWeb' || step === 'qrWebToMobile';
+    if (!isQrWaitStep || !settings?.backend_url || !selectedFlow) {
+      return;
+    }
+
+    if (qrPollBaselineNodeRef.current === null && currentNode) {
+      qrPollBaselineNodeRef.current = currentNode;
+    }
+    const baseline = qrPollBaselineNodeRef.current;
+    if (!baseline) {
+      return;
+    }
+
+    const applyResponse = (flowResponse: FlowResponse) => {
+      if (flowResponse.error) {
+        setError(flowResponse.error.error_description);
+        return;
+      }
+      if (flowResponse.result?.success) {
+        setResult(flowResponse.result);
+        setExecutionId(flowResponse.executionId ?? null);
+        setSessionId(flowResponse.sessionId ?? null);
+        setDebugData(flowResponse.debug ?? null);
+        if (flowResponse.result.redirect) {
+          window.location.href = flowResponse.result.redirect;
+        } else {
+          setCurrentNode(flowResponse.currentNode ?? null);
+          setCurrentNodeType(flowResponse.currentNodeType ?? null);
+          setPrompts(flowResponse.prompts ?? {});
+          setCurrentStep(
+            (flowResponse.currentNodeType || flowResponse.currentNode || 'success') as AuthStep
+          );
+        }
+        qrPollBaselineNodeRef.current = null;
+        return;
+      }
+      const nextNode = flowResponse.currentNode;
+      if (nextNode && nextNode !== baseline) {
+        setExecutionId(flowResponse.executionId ?? null);
+        setSessionId(flowResponse.sessionId ?? null);
+        setCurrentNode(nextNode);
+        setCurrentNodeType(flowResponse.currentNodeType ?? null);
+        setPrompts(flowResponse.prompts ?? {});
+        setCurrentStep(
+          (flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep
+        );
+        setDebugData(flowResponse.debug ?? null);
+        if (isDebug && flowResponse.executionId) {
+          localStorage.setItem(DEBUG_STORAGE_KEY, flowResponse.executionId);
+        }
+        if (flowResponse.errorMessage) {
+          setError(flowResponse.errorMessage);
+        }
+        qrPollBaselineNodeRef.current = null;
+      }
+    };
+
+    const tick = () => {
+      if (isTransitioningRef.current) return;
+      void AuthAPI.pollFlow(settings.backend_url!, selectedFlow, isDebug).then(applyResponse).catch((err) => {
+        console.error('Poll flow error:', err);
+      });
+    };
+
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [currentStep, currentNode, settings?.backend_url, selectedFlow, isDebug]);
 
   const handleRestart = () => {
     setFormData({
@@ -352,7 +429,10 @@ export default function LoginPage(): React.ReactElement | null {
               // Automatically start the flow
               setIsLoading(true);
               try {
-                const flowResponse = await AuthAPI.startFlow(data.backend_url, flowToStart, isDebug, false, true);
+                // If a secondary id is provided, we resume using that id and then continue normally.
+                const flowResponse = secondaryId
+                  ? await AuthAPI.resumeSession(data.backend_url, secondaryId, isDebug)
+                  : await AuthAPI.startFlow(data.backend_url, flowToStart, isDebug, false, true);
                 if (flowResponse.error) {
                   setError(flowResponse.error.error_description);
                   setCurrentStep('error');
@@ -360,13 +440,16 @@ export default function LoginPage(): React.ReactElement | null {
                   if (isDebug) setShowDebugSheet(true);
                 } else if (flowResponse.currentNodeType || flowResponse.currentNode) {
                   setExecutionId(flowResponse.executionId || null);
-                  setSessionId(flowResponse.sessionId || null);
+                  setSessionId(flowResponse.sessionId || (secondaryId ?? null));
                   setCurrentNode(flowResponse.currentNode || null);
                   setCurrentNodeType(flowResponse.currentNodeType || null);
                   setPrompts(flowResponse.prompts || {});
                   setCurrentStep((flowResponse.currentNodeType || flowResponse.currentNode) as AuthStep);
                   setResult(flowResponse.result || null);
                   setDebugData(flowResponse.debug || null);
+                  if (flowResponse.flow) {
+                    setSelectedFlow(flowResponse.flow);
+                  }
                 }
               } catch (err: any) {
                 console.error('Failed to start flow:', err);

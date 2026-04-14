@@ -45,6 +45,10 @@ flows:
     route: /device-login
     active: yes
     definition_location: device-login.yaml
+  qr-mobile-to-web:
+    route: /qr-mobile-to-web
+    active: yes
+    definition_location: qr_mobile_to_web.yaml
 
     
 applications:

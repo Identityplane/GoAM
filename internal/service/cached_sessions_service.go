@@ -49,14 +49,38 @@ func (s *cachedSessionsService) ResetAuthSessionObject(session *model.Authentica
 func (s *cachedSessionsService) CreateOrUpdateAuthenticationSession(ctx context.Context, tenant, realm string, session model.AuthenticationSession) error {
 	err := s.sessionsService.CreateOrUpdateAuthenticationSession(ctx, tenant, realm, session)
 	if err == nil {
-		// Cache the session
+		// Drop stale entries: lookups use primary SessionIdHash or SecondarySessionIDHash as cache key.
+		s.invalidateAuthSessionCacheKeys(tenant, realm, session.SessionIdHash, session.SecondarySessionIDHash)
+
 		cacheKey := fmt.Sprintf("auth_session:%s:%s:%s", tenant, realm, session.SessionIdHash)
 		if err := s.cache.Cache(cacheKey, &session, sessionCacheTTL, 1); err != nil {
 			log := logger.GetGoamLogger()
 			log.Error().Err(err).Msg("failed to cache auth session")
 		}
+		if session.SecondarySessionIDHash != "" {
+			secKey := fmt.Sprintf("auth_session:%s:%s:%s", tenant, realm, session.SecondarySessionIDHash)
+			if err := s.cache.Cache(secKey, &session, sessionCacheTTL, 1); err != nil {
+				log := logger.GetGoamLogger()
+				log.Error().Err(err).Msg("failed to cache auth session (secondary)")
+			}
+		}
 	}
 	return err
+}
+
+func (s *cachedSessionsService) invalidateAuthSessionCacheKeys(tenant, realm, primaryHash, secondaryHash string) {
+	key1 := fmt.Sprintf("auth_session:%s:%s:%s", tenant, realm, primaryHash)
+	if err := s.cache.Invalidate(key1); err != nil {
+		log := logger.GetGoamLogger()
+		log.Error().Err(err).Msg("failed to invalidate auth session cache")
+	}
+	if secondaryHash != "" {
+		key2 := fmt.Sprintf("auth_session:%s:%s:%s", tenant, realm, secondaryHash)
+		if err := s.cache.Invalidate(key2); err != nil {
+			log := logger.GetGoamLogger()
+			log.Error().Err(err).Msg("failed to invalidate auth session cache (secondary)")
+		}
+	}
 }
 
 // GetAuthenticationSessionByID retrieves an authentication session by its ID
