@@ -166,6 +166,10 @@ func TestManualSendSMTP_FromEnvFile(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping manual SMTP test in short mode")
 	}
+	// Explicit opt-in: do not allow .env to enable this test implicitly.
+	if os.Getenv("MANUAL_SMTP_TEST") != "1" {
+		t.Skip("set MANUAL_SMTP_TEST=1 to run this manual email send (uses repo .env)")
+	}
 
 	root := findRepoRoot(t)
 	envPath := filepath.Join(root, ".env")
@@ -175,23 +179,20 @@ func TestManualSendSMTP_FromEnvFile(t *testing.T) {
 	if err := godotenv.Load(envPath); err != nil {
 		t.Fatalf("load .env: %v", err)
 	}
-	if os.Getenv("MANUAL_SMTP_TEST") != "1" {
-		t.Skip("set MANUAL_SMTP_TEST=1 (in .env or the shell) to run this manual email send")
-	}
 
 	cfg := SmtpConfig{
-		Host:           strings.TrimSpace(os.Getenv("SMTP_HOST")),
+		Host:           strings.TrimSpace(os.Getenv("GOAM_SMTP_HOST")),
 		Port:           atoiDef(t, os.Getenv("GOAM_SMTP_PORT"), 587),
-		Username:       strings.TrimSpace(os.Getenv("SMTP_USERNAME")),
-		Password:       os.Getenv("SMTP_PASSWORD"),
-		FromEmail:      strings.TrimSpace(os.Getenv("SMTP_FROM_EMAIL")),
-		FromName:       strings.TrimSpace(os.Getenv("SMTP_FROM_NAME")),
-		UseImplicitTLS: envBool(os.Getenv("SMTP_USE_IMPLICIT_TLS")),
+		Username:       strings.TrimSpace(os.Getenv("GOAM_SMTP_USERNAME")),
+		Password:       os.Getenv("GOAM_SMTP_PASSWORD"),
+		FromEmail:      strings.TrimSpace(os.Getenv("GOAM_SMTP_FROM_EMAIL")),
+		FromName:       strings.TrimSpace(os.Getenv("GOAM_SMTP_FROM_NAME")),
+		UseImplicitTLS: envBool(os.Getenv("GOAM_SMTP_USE_IMPLICIT_TLS")),
 	}
 	to := strings.TrimSpace(os.Getenv("TEST_EMAIL_TO"))
 
 	if cfg.Host == "" || cfg.FromEmail == "" || to == "" {
-		t.Fatalf("missing required env after loading .env: SMTP_HOST, SMTP_FROM_EMAIL, TEST_EMAIL_TO")
+		t.Fatalf("missing required env after loading .env: GOAM_SMTP_HOST, GOAM_SMTP_FROM_EMAIL, TEST_EMAIL_TO")
 	}
 
 	svc := NewDefaultEmailService(cfg)
@@ -204,7 +205,7 @@ func TestManualSendSMTP_FromEnvFile(t *testing.T) {
 		"<p>This is a <strong>manual</strong> GoAM SMTP test (HTML).</p>",
 	))
 	require.NoError(t, err)
-	fmt.Printf("sent manual test email to %s\n", to)
+	t.Logf("sent manual test email to %s", to)
 }
 
 func findRepoRoot(t *testing.T) string {
