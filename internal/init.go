@@ -95,7 +95,7 @@ func initServices(dbConnections *db.DatabaseConnections) error {
 
 	// if the services factory is not set we set the default one
 	if services_init.GetServicesFactory() == nil {
-		services_init.SetServicesFactory(services_init.NewDefaultServicesFactory(dbConnections))
+		services_init.SetServicesFactory(services_init.NewDefaultServicesFactory(dbConnections, config.ServerSettings))
 	}
 
 	// Initialize services

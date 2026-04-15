@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5;">
+  <p>Hello{{if index . "name"}} <strong>{{index . "name"}}</strong>{{end}},</p>
+  <p>Welcome — your account is ready.</p>
+  {{if index . "app_name"}}<p>Application: <strong>{{index . "app_name"}}</strong></p>{{end}}
+  <p>Thank you for joining us.</p>
+</body>
+</html>

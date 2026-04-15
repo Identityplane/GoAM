@@ -9,6 +9,7 @@
         "request": "launch",
         "mode": "auto",
         "program": "${workspaceFolder}/cmd",
+        "envFile": "${workspaceFolder}/.env",
         "env": {
           "GOAM_INFRASTRUCTURE_AS_CODE_MODE": "true"
         },
@@ -21,6 +22,7 @@
         "request": "launch",
         "mode": "auto",
         "program": "${workspaceFolder}/cmd/main.go",
+        "envFile": "${workspaceFolder}/.env",
         "env": {
           "GOIAM_NOT_FOUND_REDIRECT_URL": "http://localhost:8080/",
           "GOIAM_USE_X_FORWARDED_FOR": "true",

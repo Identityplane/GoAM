@@ -2,9 +2,11 @@ package server_settings
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -42,6 +44,14 @@ type GoamServerSettings struct {
 	// Http server
 	ReadBufferSize  int `mapstructure:"read_buffer_size"`
 	WriteBufferSize int `mapstructure:"write_buffer_size"`
+
+	SmtpHost           string `mapstructure:"smtp_host"`
+	SmtpPort           int    `mapstructure:"smtp_port"`
+	SmtpUsername       string `mapstructure:"smtp_username"`
+	SmtpPassword       string `mapstructure:"smtp_password"`
+	SmtpFromEmail      string `mapstructure:"smtp_from_email"`
+	SmtpFromName       string `mapstructure:"smtp_from_name"`
+	SmtpUseImplicitTLS bool   `mapstructure:"smtp_use_implicit_tls"`
 }
 
 // ConfigDocumentation holds documentation for each configuration option
@@ -188,6 +198,55 @@ func GetConfigDocumentation() []ConfigDocumentation {
 			Examples:    []string{"http://localhost:3000", "http://localhost:4000"},
 			EnvVar:      "GOAM_AUTHUI_URI_BASE",
 		},
+		{
+			Field:       "smtp_host",
+			Description: "SMTP server hostname (empty disables sending)",
+			Default:     "",
+			Examples:    []string{"smtp.example.com", "smtp-relay.gmail.com"},
+			EnvVar:      "GOAM_SMTP_HOST",
+		},
+		{
+			Field:       "smtp_port",
+			Description: "SMTP server port (587 STARTTLS by default when implicit TLS is off)",
+			Default:     0,
+			Examples:    []string{"587", "465", "25"},
+			EnvVar:      "GOAM_SMTP_PORT",
+		},
+		{
+			Field:       "smtp_username",
+			Description: "SMTP authentication username",
+			Default:     "",
+			Examples:    []string{"user@example.com"},
+			EnvVar:      "GOAM_SMTP_USERNAME",
+		},
+		{
+			Field:       "smtp_password",
+			Description: "SMTP authentication password",
+			Default:     "",
+			Examples:    []string{},
+			EnvVar:      "GOAM_SMTP_PASSWORD",
+		},
+		{
+			Field:       "smtp_from_email",
+			Description: "Default envelope From address",
+			Default:     "",
+			Examples:    []string{"noreply@example.com"},
+			EnvVar:      "GOAM_SMTP_FROM_EMAIL",
+		},
+		{
+			Field:       "smtp_from_name",
+			Description: "Optional display name for the default From address",
+			Default:     "",
+			Examples:    []string{"Example Inc"},
+			EnvVar:      "GOAM_SMTP_FROM_NAME",
+		},
+		{
+			Field:       "smtp_use_implicit_tls",
+			Description: "If true, use TLS immediately (typical for port 465) instead of STARTTLS",
+			Default:     "false",
+			Examples:    []string{"true", "false"},
+			EnvVar:      "GOAM_SMTP_USE_IMPLICIT_TLS",
+		},
 	}
 }
 
@@ -220,6 +279,12 @@ func BindCobraFlags(cmd *cobra.Command) error {
 }
 
 func InitWithViper() (*GoamServerSettings, error) {
+
+	// Best-effort load of local .env for development/test runs.
+	// This does not override already-set environment variables.
+	if _, err := os.Stat(".env"); err == nil {
+		_ = godotenv.Load()
+	}
 
 	// We always use env variables with the GOAM prefix that take precedence over the config file
 	viper.SetEnvPrefix("GOAM")
