@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/pkg/model"
 	services "github.com/Identityplane/GoAM/pkg/services"
 )
@@ -22,8 +23,18 @@ func NewEmailSender(tenant, realm string, emailService services.EmailService) mo
 }
 
 func (e *EmailSenderImpl) SendEmail(email *model.SendEmailParams) error {
-
-	return e.emailService.SendEmail(e.tenant, e.realm, email)
+	// Fire-and-forget to keep request latency low.
+	go func() {
+		log := logger.GetGoamLogger()
+		if err := e.emailService.SendEmail(e.tenant, e.realm, email); err != nil {
+			log.Error().
+				Err(err).
+				Str("tenant", e.tenant).
+				Str("realm", e.realm).
+				Msg("async email send failed")
+		}
+	}()
+	return nil
 }
 
 func (e *EmailSenderImpl) SendOTPEmail(ctx context.Context, toEmail string, otp string) error {
