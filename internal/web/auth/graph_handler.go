@@ -10,6 +10,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/web/webutils"
 	"github.com/Identityplane/GoAM/pkg/model"
+	"github.com/rs/zerolog/log"
 
 	"github.com/valyala/fasthttp"
 )
@@ -21,118 +22,6 @@ type GraphHandler struct {
 	Tenant   string
 	Realm    string
 	Services *model.Repositories
-}
-
-// HandleAuthRequest processes authentication requests and manages the authentication flow
-// @Summary Process authentication request
-// @Description Handles authentication requests by executing the specified flow. Returns either a prompt for user input or a final result. Supports debug mode for additional information.
-// @Tags Authentication
-// @Accept application/x-www-form-urlencoded
-// @Produce text/html
-// @Param tenant path string true "Tenant ID"
-// @Param realm path string true "Realm ID"
-// @Param path path string true "Flow path/name"
-// @Param debug query boolean false "Enable debug mode"
-// @Param step formData string false "Current step in the flow"
-// @Param {prompt_key} formData string false "User input for the current step's prompts"
-// @Success 200 {string} string "HTML response containing either a prompt form or the final result"
-// @Failure 404 {string} string "Realm or flow not found"
-// @Failure 500 {string} string "Internal server error"
-// @Router /{tenant}/{realm}/auth/{path} [get]
-// @Router /{tenant}/{realm}/auth/{path} [post]
-func HandleAuthRequest(ctx *fasthttp.RequestCtx) {
-	tenantStr := ctx.UserValue("tenant").(string)
-	realmStr := ctx.UserValue("realm").(string)
-	flowPath := ctx.UserValue("path").(string)
-
-	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenantStr, realmStr)
-	if !ok {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		ctx.SetBodyString("realm not found")
-		return
-	}
-	realm := loadedRealm.Config
-
-	// If the base url is empty we use the fallback url
-	baseUrl := webutils.GetUrlForRealm(ctx, realm)
-
-	// Load the flow
-	flow, ok := service.GetServices().FlowService.GetFlowForExecution(flowPath, loadedRealm)
-	if !ok {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		ctx.SetBodyString("flow not found")
-		return
-	}
-
-	// Check if debug is in the query parameters and enable it if debug is allowed
-	debug := flow.DebugAllowed && ctx.QueryArgs().Has("debug")
-
-	// Create a new or load the authentication session
-	session, authErr := GetOrCreateAuthenticationSesssion(ctx, realm, flow, debug)
-	if authErr != nil {
-		ctx.SetStatusCode(authErr.HttpStatusCode)
-		RenderError(ctx, authErr.ErrorDescription, session, baseUrl)
-		return
-	}
-
-	// If there is no Oauth2 session and no SimpleAuth context we create a new one if we have a client id in the params
-	if session.Oauth2SessionInformation == nil && session.SimpleAuthSessionInformation == nil {
-
-		authErr := CreateSimpleAuthSession(ctx, flow, session, model.GRANT_SIMPLE_AUTH_COOKIE)
-		if authErr != nil {
-			ctx.SetStatusCode(authErr.HttpStatusCode)
-			RenderError(ctx, authErr.ErrorDescription, session, baseUrl)
-			return
-		}
-	}
-
-	// Set the http auth context from the request
-	SetHttpAuthContextFromRequest(session, ctx)
-
-	// Process the auth request
-	newSession, err := ProcessAuthRequest(ctx, flow, session)
-
-	// If there is an error we render the error, otherwiese the ProcessAuthRequest will render the result
-	if err != nil {
-		RenderError(ctx, err.Error(), newSession, baseUrl)
-		return
-	}
-
-	// Save the updated state in the session
-	service.GetServices().SessionsService.CreateOrUpdateAuthenticationSession(ctx, realm.Tenant, realm.Realm, *newSession)
-
-	// If the session has any additional response cookies we set them
-	SetHttpAuthContextToResponse(newSession, ctx, realm)
-
-	// If the result is set and finish uri is set we redirect to the finish uri
-	// without deleting the session so the endpoint can finish the flow
-	if newSession.Result != nil && newSession.FinishUri != "" {
-
-		// We forward to the finish authorization endpoint
-		webutils.RedirectTo(ctx, newSession.FinishUri)
-		return
-	}
-
-	// If we have a simple auth session we finish the flow
-	if newSession.Result != nil && newSession.SimpleAuthSessionInformation != nil {
-
-		FinishSimpleAuthFlow(ctx, newSession, realm)
-		if newSession.SimpleAuthSessionInformation.Request.RedirectURI != "" {
-			webutils.RedirectTo(ctx, newSession.SimpleAuthSessionInformation.Request.RedirectURI)
-			return
-		}
-
-	}
-
-	// If the result is set we clear the session unless its a debbug session
-	if newSession.Result != nil && !newSession.Debug {
-		service.GetServices().SessionsService.DeleteAuthenticationSession(ctx, realm.Tenant, realm.Realm, session.SessionIdHash)
-	}
-
-	// Render the result
-	currentNode := flow.Definition.Nodes[newSession.Current]
-
-	Render(ctx, flow.Definition, newSession, currentNode, newSession.Prompts, baseUrl)
 }
 
 func SetHttpAuthContextFromRequest(session *model.AuthenticationSession, ctx *fasthttp.RequestCtx) {
@@ -211,11 +100,12 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session *mod
 	}
 
 	// Load the inputs from the request
-	input := extractPromptsFromRequest(ctx, flow.Definition, session.Current)
+	input := extractPromptsFromRequest(ctx, flow.Definition, session.GetCurrent())
 
 	// if we have a node in the url we check if it is the current node
-	if len(input) == 0 && len(session.History) > 0 {
-		if flowNode != session.Current {
+	if len(input) == 0 && len(session.History) > 0 && flowNode != "" {
+		currentNode := session.GetCurrent()
+		if flowNode != currentNode {
 
 			// If it is not the current node we detect an invalid node transition which could be because of
 			// a backwards navigation in the browser. In that case we move back in the graph
@@ -253,18 +143,25 @@ func ProcessAuthRequest(ctx *fasthttp.RequestCtx, flow *model.Flow, session *mod
 	}
 
 	// This should be cleaned up in the future, its not beautiful to manually lookup the result node like this
-	currentNode := flow.Definition.Nodes[session.Current]
+	currentNodeName := session.GetCurrent()
+	currentNode := flow.Definition.Nodes[currentNodeName]
 	if currentNode == nil {
 		return newSession, fmt.Errorf("result node not found")
 	}
 
 	// Update the next login uri with the current node name
-	session.LoginUriNext = session.LoginUriBase + "/" + session.Current
+	session.LoginUriNext = session.LoginUriBase + "/" + currentNodeName
 
 	return newSession, nil
 }
 
 func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, bool) {
+
+	// If we have a session id in the query parameters, we use it
+	secretSessionId := ctx.QueryArgs().Peek("session")
+	if secretSessionId != nil {
+		return service.GetServices().SessionsService.GetAuthenticationSessionByID(ctx, tenant, realm, string(secretSessionId))
+	}
 
 	// Try load the session cookie from the request (there can be multiple cookies with the same name)
 	all_cookie_values := make([]string, 0)
@@ -281,9 +178,10 @@ func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*
 	}
 
 	// Go over all cookie and return the first valid one
-	for _, cookie := range all_cookie_values {
-		session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(ctx, tenant, realm, cookie)
+	for _, secretSessionId := range all_cookie_values {
+		session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(ctx, tenant, realm, secretSessionId)
 		if ok {
+			session.PrimarySecretSessionID = secretSessionId
 			return session, true
 		}
 	}
@@ -291,7 +189,51 @@ func GetAuthenticationSession(ctx *fasthttp.RequestCtx, tenant, realm string) (*
 	return nil, false
 }
 
+func GetAuthenticationSessionForSecondaryDevice(ctx *fasthttp.RequestCtx, tenant, realm string) (*model.AuthenticationSession, bool) {
+
+	secretSessionId := ctx.QueryArgs().Peek("secondary")
+	if secretSessionId == nil {
+		return nil, false
+	}
+
+	session, ok := service.GetServices().SessionsService.GetAuthenticationSessionByID(ctx, tenant, realm, string(secretSessionId))
+	if !ok {
+		return nil, false
+	}
+
+	loadedRealm, ok := service.GetServices().RealmService.GetRealm(tenant, realm)
+	if !ok {
+		return nil, false
+	}
+
+	// Set a cookie with the secondary session id
+	cookie, err := GetCookieForSessionId(ctx, string(secretSessionId), loadedRealm.Config)
+	if err != nil {
+		return nil, false
+	}
+	ctx.Response.Header.SetCookie(cookie)
+
+	return session, true
+
+}
+
 func GetOrCreateAuthenticationSesssion(ctx *fasthttp.RequestCtx, realm *model.Realm, flow *model.Flow, debug bool) (*model.AuthenticationSession, *model.AuthError) {
+
+	// Check if the session is from a secondary device
+	secondary := ctx.QueryArgs().Has("secondary")
+	if secondary {
+
+		session, ok := GetAuthenticationSessionForSecondaryDevice(ctx, realm.Tenant, realm.Realm)
+		if !ok {
+			return nil, model.NewSimpleAuthServerError("failed to get authentication session for secondary device")
+		}
+
+		if session != nil && session.Finished() {
+			return nil, model.NewSimpleAuthServerError("session not found")
+		}
+
+		return session, nil
+	}
 
 	// Try to get existing session first
 	session, ok := GetAuthenticationSession(ctx, realm.Tenant, realm.Realm)
@@ -331,6 +273,21 @@ func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, realm *model.Realm
 	// Set the debug flag
 	session.Debug = debug
 
+	c, err := GetCookieForSessionId(ctx, sessionID, realm)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.Response.Header.SetCookie(c)
+
+	log.Debug().Msg("created new authentication session")
+
+	return session, nil
+}
+
+func GetCookieForSessionId(ctx *fasthttp.RequestCtx, sessionId string, realm *model.Realm) (*fasthttp.Cookie, *model.AuthError) {
+
+	baseUrl := webutils.GetUrlForRealm(ctx, realm)
 	isHttps := strings.HasPrefix(baseUrl, "https://")
 
 	// Parse base url and get path
@@ -343,17 +300,14 @@ func CreateNewAuthenticationSession(ctx *fasthttp.RequestCtx, realm *model.Realm
 	c := &fasthttp.Cookie{}
 	c.SetPath(basePath)
 	c.SetKey(sessionCookieName)
-	c.SetValue(sessionID)
+	c.SetValue(sessionId)
 	c.SetSameSite(fasthttp.CookieSameSiteLaxMode)
 	c.SetHTTPOnly(true)
 	if isHttps {
 		c.SetSecure(true)
 	}
-	ctx.Response.Header.SetCookie(c)
 
-	log.Debug().Msg("created new authentication session")
-
-	return session, nil
+	return c, nil
 }
 
 func extractPromptsFromRequest(ctx *fasthttp.RequestCtx, flow *model.FlowDefinition, step string) map[string]string {

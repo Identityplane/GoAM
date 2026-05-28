@@ -31,9 +31,10 @@ type GraphNode struct {
 
 // This is the flow definition, usually stored as a yaml file
 type FlowDefinition struct {
-	Description string                `json:"description"`
-	Start       string                `json:"start"` // e.g., "init"
-	Nodes       map[string]*GraphNode `json:"nodes"`
+	Description    string                `json:"description"`
+	Start          string                `json:"start"`           // e.g., "init"
+	StartSecondary string                `json:"start_secondary"` // e.g., "initSecondary" for secondary devices
+	Nodes          map[string]*GraphNode `json:"nodes"`
 }
 
 // This is a flow together with meta information such as route, realm and tenant.

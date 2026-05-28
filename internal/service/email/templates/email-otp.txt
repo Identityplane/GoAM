@@ -1,0 +1,3 @@
+Your verification code is: {{index . "otp"}}
+
+If you did not request this code, you can ignore this message.

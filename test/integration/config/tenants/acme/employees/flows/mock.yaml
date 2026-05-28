@@ -1,0 +1,15 @@
+name: Mock Success
+start: init
+nodes:
+  init:
+    name: init
+    use: init
+    custom_config: {}
+    next:
+      start: successResult
+  successResult:
+    name: successResult
+    use: successResult
+    custom_config:
+      message: Mock success!
+    next: {}

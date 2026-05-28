@@ -36,13 +36,13 @@ func TestPersistentAuthSession_MarshalUnmarshal(t *testing.T) {
 	assert.Equal(t, tenant, persistentSession.Tenant)
 	assert.Equal(t, realm, persistentSession.Realm)
 	assert.Equal(t, session.RunID, persistentSession.RunID)
-	assert.Equal(t, session.SessionIdHash, persistentSession.SessionIDHash)
+	assert.Equal(t, session.SessionIdHash, persistentSession.PrimarySessionIDHash)
 	assert.True(t, session.CreatedAt.Equal(persistentSession.CreatedAt))
 	assert.True(t, session.ExpiresAt.Equal(persistentSession.ExpiresAt))
 	assert.NotEmpty(t, persistentSession.SessionInformation)
 
 	// Convert back to AuthenticationSession
-	recoveredSession, err := persistentSession.ToAuthenticationSession()
+	recoveredSession, err := persistentSession.ToAuthenticationSession(session.SessionIdHash)
 	assert.NoError(t, err)
 	assert.NotNil(t, recoveredSession)
 

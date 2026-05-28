@@ -60,6 +60,32 @@ nodes:
 	assert.Equal(t, "authSuccess", flow.Nodes["validatePassword"].Next["success"])
 }
 
+func TestLoadFlowDefinitonFromString_StartSecondary(t *testing.T) {
+	yamlContent := `
+description: secondary entry
+start: init
+start_secondary: initSecondary
+nodes:
+  init:
+    name: init
+    use: init
+    next:
+      start: done
+  initSecondary:
+    name: initSecondary
+    use: initSecondary
+    next:
+      start: done
+  done:
+    name: successResult
+    use: successResult
+    next: {}
+`
+	flow, err := LoadFlowDefinitonFromString(yamlContent)
+	assert.NoError(t, err)
+	assert.Equal(t, "initSecondary", flow.StartSecondary)
+}
+
 func TestLoadFlowDefinitonsFromDir(t *testing.T) {
 	// Test loading flow definitions from a directory
 	dir := t.TempDir()

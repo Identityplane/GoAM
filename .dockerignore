@@ -5,4 +5,7 @@ README.md
 WHITEPAPER.md
 makefile
 node_modules/
+**/node_modules/
+**/.next/
 auth-js/dist/ 
+.env*.local

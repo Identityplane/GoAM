@@ -300,8 +300,7 @@ func TestRunTelegramLoginNodeExistingUser(t *testing.T) {
 	mockUserRepo := repository.NewMockUserRepository()
 
 	services := &model.Repositories{
-		UserRepo:    mockUserRepo,
-		EmailSender: nil,
+		UserRepo: mockUserRepo,
 	}
 
 	// Create test data
@@ -366,8 +365,7 @@ func TestRunTelegramLoginNodeNewUser(t *testing.T) {
 	mockUserRepo := repository.NewMockUserRepository()
 
 	services := &model.Repositories{
-		UserRepo:    mockUserRepo,
-		EmailSender: nil,
+		UserRepo: mockUserRepo,
 	}
 
 	// Create test data

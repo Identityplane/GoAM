@@ -46,35 +46,71 @@ func TestOAuth2AuthCodeConfidential_E2E_Delayed(t *testing.T) {
 		}
 
 		t.Run("Authenticate User", func(t *testing.T) {
-			e.GET("/acme/customers/auth/login-or-register").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
-				Expect().
-				Status(http.StatusOK)
+			cookieValue := sessionCookie.Value().Raw()
 
-			e.POST("/acme/customers/auth/login-or-register").
-				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", "askUsername").
-				WithFormField("username", "foobar").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
+			getResp := e.GET("/acme/customers/api/v1/login-or-register").
+				WithQuery("continue", "true").
+				WithCookie("session_id", cookieValue).
+				WithHeader("Accept", "application/json").
 				Expect().
-				Status(http.StatusOK)
+				Status(http.StatusOK).
+				JSON()
 
-			e.POST("/acme/customers/auth/login-or-register").
-				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", "node_a1e9d8fa").
-				WithFormField("confirmation", "true").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
-				Expect().
-				Status(http.StatusOK)
+			sessionID := getResp.Object().Value("sessionId").String().Raw()
+			if sessionID == "" {
+				t.Fatal("No sessionId found in JSON response")
+			}
 
-			e.POST("/acme/customers/auth/login-or-register").
-				WithHeader("Content-Type", "application/x-www-form-urlencoded").
-				WithFormField("step", "node_26e37459").
-				WithFormField("password", "foobar").
-				WithCookie("session_id", sessionCookie.Value().Raw()).
+			usernameResp := e.POST("/acme/customers/api/v1/login-or-register").
+				WithHeader("Content-Type", "application/json").
+				WithJSON(map[string]any{
+					"sessionId":   sessionID,
+					"currentNode": "askUsername",
+					"responses": map[string]string{
+						"username": "foobar",
+					},
+				}).
+				WithCookie("session_id", cookieValue).
 				Expect().
-				Status(http.StatusSeeOther).
-				Header("Location").IsEqual("http://localhost:8080/acme/customers/oauth2/finishauthorize")
+				Status(http.StatusOK).
+				JSON()
+
+			nextNode := usernameResp.Object().Value("currentNode").String().Raw()
+			if prompts, ok := usernameResp.Object().Value("prompts").Raw().(map[string]any); ok {
+				if _, hasConfirmation := prompts["confirmation"]; hasConfirmation {
+					confirmResp := e.POST("/acme/customers/api/v1/login-or-register").
+						WithHeader("Content-Type", "application/json").
+						WithJSON(map[string]any{
+							"sessionId":   sessionID,
+							"currentNode": nextNode,
+							"responses": map[string]string{
+								"confirmation": "true",
+							},
+						}).
+						WithCookie("session_id", cookieValue).
+						Expect().
+						Status(http.StatusOK).
+						JSON()
+					nextNode = confirmResp.Object().Value("currentNode").String().Raw()
+				}
+			}
+
+			passwordResp := e.POST("/acme/customers/api/v1/login-or-register").
+				WithHeader("Content-Type", "application/json").
+				WithJSON(map[string]any{
+					"sessionId":   sessionID,
+					"currentNode": nextNode,
+					"responses": map[string]string{
+						"password": "foobar",
+					},
+				}).
+				WithCookie("session_id", cookieValue).
+				Expect().
+				Status(http.StatusOK).
+				JSON()
+
+			passwordResp.Object().Value("result").Object().
+				Value("redirect").String().Contains("/acme/customers/oauth2/finishauthorize")
 		})
 
 		var authCode string

@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/Identityplane/GoAM/internal/logger"
+	"github.com/Identityplane/GoAM/internal/security"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -17,17 +19,18 @@ const (
 // Represents a ongoing execution of a flow
 type AuthenticationSession struct {
 	RealmObject
-	RunID                        string             `json:"run_id"`            // Unique identifier for the flow execution
-	SessionIdHash                string             `json:"session_id_hash"`   // Hash of the session id
-	FlowId                       string             `json:"flow_id"`           // Id of the flow
-	Current                      string             `json:"current"`           // name of the active node
-	CurrentType                  string             `json:"current_type"`      // type of the active node
-	Context                      map[string]string  `json:"context"`           // dynamic values (inputs + outputs)
-	History                      []string           `json:"history"`           // executed node names
-	Error                        *string            `json:"error,omitempty"`   // Error message to be displayed to the user
-	Result                       *FlowResult        `json:"result,omitempty"`  // Result of the flow execution
-	User                         *User              `json:"user,omitempty"`    // The loaded user from the database
-	Prompts                      map[string]string  `json:"prompts,omitempty"` // Prompts to be shown to the user, if applicable
+	RunID                        string             `json:"run_id"`                    // Unique identifier for the flow execution
+	SessionIdHash                string             `json:"session_id_hash"`           // Hash of the session id
+	SecondarySessionIDHash       string             `json:"secondary_session_id_hash"` // Hash of the secondary session id
+	FlowId                       string             `json:"flow_id"`                   // Id of the flow
+	Current                      string             `json:"current"`                   // name of the active node
+	CurrentType                  string             `json:"current_type"`              // type of the active node
+	Context                      map[string]string  `json:"context"`                   // dynamic values (inputs + outputs)
+	History                      []string           `json:"history"`                   // executed node names
+	Error                        *string            `json:"error,omitempty"`           // Error message to be displayed to the user
+	Result                       *FlowResult        `json:"result,omitempty"`          // Result of the flow execution
+	User                         *User              `json:"user,omitempty"`            // The loaded user from the database
+	Prompts                      map[string]string  `json:"prompts,omitempty"`         // Prompts to be shown to the user, if applicable
 	Oauth2SessionInformation     *Oauth2Session     `json:"oauth2_request,omitempty"`
 	SimpleAuthSessionInformation *SimpleAuthContext `json:"simple_auth_request,omitempty"`
 	CreatedAt                    time.Time          `json:"created_at"` // Time the session was created
@@ -48,6 +51,28 @@ type AuthenticationSession struct {
 
 	// HttpAuthContext is the context for the http authentication
 	HttpAuthContext *HttpAuthContext `json:"http_auth_context,omitempty"`
+
+	// Support for secondary devices
+
+	PrimarySecretSessionID   string `json:"-"` // Primary session id for the primary device
+	SecondarySecretSessionID string `json:"-"` // Secondary session id for secondary devices during a flow
+	IsSecondaryDevice        bool   `json:"-"`
+	CurrentOnSecondaryDevice string `json:"current_on_secondary_device,omitempty"`
+}
+
+func (s *AuthenticationSession) InitSecondarySessionID() string {
+	secondarySecret := uuid.New().String()
+	s.SecondarySecretSessionID = secondarySecret
+	s.SecondarySessionIDHash = security.HashString(secondarySecret)
+	return secondarySecret
+}
+
+// GetCurrent returns the current node name
+func (s *AuthenticationSession) GetCurrent() string {
+	if s.IsSecondaryDevice {
+		return s.CurrentOnSecondaryDevice
+	}
+	return s.Current
 }
 
 func (s *AuthenticationSession) GetLatestHistory() string {

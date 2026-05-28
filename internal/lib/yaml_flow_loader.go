@@ -11,9 +11,10 @@ import (
 )
 
 type yamlFlowDefinition struct {
-	Description string                   `yaml:"description"`
-	Start       string                   `yaml:"start"`
-	Nodes       map[string]yamlGraphNode `yaml:"nodes"`
+	Description    string                   `yaml:"description"`
+	Start          string                   `yaml:"start"`
+	StartSecondary string                   `yaml:"start_secondary"`
+	Nodes          map[string]yamlGraphNode `yaml:"nodes"`
 }
 
 type yamlGraphNode struct {
@@ -59,9 +60,10 @@ func (y *yamlFlowDefinition) convertToFlowDefinition() (*model.FlowDefinition, e
 	}
 
 	return &model.FlowDefinition{
-		Description: y.Description,
-		Start:       y.Start,
-		Nodes:       nodes,
+		Description:    y.Description,
+		Start:          y.Start,
+		StartSecondary: y.StartSecondary,
+		Nodes:          nodes,
 	}, nil
 }
 

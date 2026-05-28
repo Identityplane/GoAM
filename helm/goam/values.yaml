@@ -1,0 +1,81 @@
+# Default values for goam.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: goiam
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+authui:
+  enabled: true
+  image:
+    repository: goiam-authui
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 3000
+
+pgadmin:
+  enabled: true
+  preconfigurePostgresServer: true
+  image:
+    repository: dpage/pgadmin4
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  initImage:
+    repository: busybox
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 80
+  persistence:
+    enabled: true
+    size: 1Gi
+    # storageClass: ""
+  auth:
+    email: "admin@example.com"
+    password: "change-me"
+
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "15-alpine"
+  persistence:
+    enabled: true
+    size: 1Gi
+  auth:
+    database: goiam
+    username: postgres
+    password: "change-me" # Override via values or use a secret management system
+  service:
+    port: 5432
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Environment variables for GoAM
+env:
+  GOAM_DATABASE_DRIVER: "postgres"
+  # Connection string will be constructed in the deployment template using secrets

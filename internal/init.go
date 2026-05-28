@@ -10,7 +10,7 @@ import (
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/logger"
 	"github.com/Identityplane/GoAM/internal/service"
-	"github.com/Identityplane/GoAM/internal/web/auth"
+	"github.com/Identityplane/GoAM/internal/web/auth_ui"
 	"github.com/Identityplane/GoAM/pkg/db"
 	dbinit "github.com/Identityplane/GoAM/pkg/db/init"
 	"github.com/Identityplane/GoAM/pkg/model"
@@ -32,6 +32,7 @@ var (
 func Initialize(serverSettings *server_settings.GoamServerSettings) {
 
 	config.InitConfiguration(serverSettings)
+	auth_ui.InitProxy(serverSettings.AuthUIUriBase)
 
 	// Print config path
 	log := logger.GetGoamLogger()
@@ -40,26 +41,20 @@ func Initialize(serverSettings *server_settings.GoamServerSettings) {
 	// Step 1: Initialize database connections
 	dbConnections, err := initDatabase()
 	if err != nil {
-		log.Panic().Err(err).Msg("failed to initialize database connections")
+		log.Fatal().Err(err).Msg("failed to initialize database connections")
 	}
 	DBConnections = dbConnections
 
 	// Step 2: Initialize services and realms
 	err = initServices(dbConnections)
 	if err != nil {
-		log.Panic().Err(err).Msg("failed to initialize services")
-	}
-
-	// init assets
-	err = auth.InitAssets()
-	if err != nil {
-		log.Panic().Err(err).Msg("failed to initialize assets")
+		log.Fatal().Err(err).Msg("failed to initialize services")
 	}
 
 	// init initial admin user
 	err = initInitialAdminUser(serverSettings, service.GetServices())
 	if err != nil {
-		log.Panic().Err(err).Msg("failed to initialize initial admin user")
+		log.Fatal().Err(err).Msg("failed to initialize initial admin user")
 	}
 
 }
@@ -100,7 +95,7 @@ func initServices(dbConnections *db.DatabaseConnections) error {
 
 	// if the services factory is not set we set the default one
 	if services_init.GetServicesFactory() == nil {
-		services_init.SetServicesFactory(services_init.NewDefaultServicesFactory(dbConnections))
+		services_init.SetServicesFactory(services_init.NewDefaultServicesFactory(dbConnections, config.ServerSettings))
 	}
 
 	// Initialize services

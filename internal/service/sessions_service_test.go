@@ -137,7 +137,7 @@ func (m *mockAuthSessionDB) CreateAuthSession(ctx context.Context, session *mode
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	key := session.Tenant + ":" + session.Realm + ":" + session.SessionIDHash
+	key := session.Tenant + ":" + session.Realm + ":" + session.PrimarySessionIDHash
 	m.sessions[key] = session
 	return nil
 }
@@ -161,6 +161,18 @@ func (m *mockAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant, re
 	key := tenant + ":" + realm + ":" + sessionIDHash
 	if session, ok := m.sessions[key]; ok {
 		return session, nil
+	}
+	return nil, nil
+}
+
+func (m *mockAuthSessionDB) GetAuthSessionBySecondaryHash(ctx context.Context, tenant, realm, secondarySessionIDHash string) (*model.PersistentAuthSession, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, session := range m.sessions {
+		if session.Tenant == tenant && session.Realm == realm && session.SecondarySessionIDHash == secondarySessionIDHash {
+			return session, nil
+		}
 	}
 	return nil, nil
 }
@@ -217,7 +229,7 @@ func (m *mockAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, sessi
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	key := session.Tenant + ":" + session.Realm + ":" + session.SessionIDHash
+	key := session.Tenant + ":" + session.Realm + ":" + session.PrimarySessionIDHash
 	m.sessions[key] = session
 	return nil
 }

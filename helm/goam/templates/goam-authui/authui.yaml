@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "goam.fullname" . }}-authui
+  labels:
+    {{- include "goam.labels" . | nindent 4 }}
+    app.kubernetes.io/component: authui
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "goam.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: authui
+  template:
+    metadata:
+      labels:
+        {{- include "goam.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: authui
+    spec:
+      containers:
+        - name: authui
+          image: "{{ .Values.authui.image.repository }}:{{ .Values.authui.image.tag }}"
+          imagePullPolicy: {{ .Values.authui.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "goam.fullname" . }}-authui
+  labels:
+    {{- include "goam.labels" . | nindent 4 }}
+    app.kubernetes.io/component: authui
+spec:
+  type: {{ .Values.authui.service.type }}
+  ports:
+    - port: {{ .Values.authui.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "goam.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: authui

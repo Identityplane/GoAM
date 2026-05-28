@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal/service"
+	"github.com/Identityplane/GoAM/pkg/model"
 	"github.com/Identityplane/GoAM/test/integration"
+	"github.com/google/uuid"
 )
 
 func TestJSONFlow_MockSuccessFlow(t *testing.T) {
@@ -140,6 +142,105 @@ func TestJSONFlow_UsernamePasswordRegisterFlow(t *testing.T) {
 
 }
 
+func TestJSONFlow_InvalidPassword(t *testing.T) {
+	e := integration.SetupIntegrationTest(t, "")
+
+	tenant := "acme"
+	realm := "customers"
+	username := "testuser-" + uuid.NewString()
+	password := "correct-password"
+
+	// Step 1: Register a user first so we can try to login
+	t.Run("Register user", func(t *testing.T) {
+		// Start registration flow to get session ID
+		resp := e.GET("/" + tenant + "/" + realm + "/api/v1/username-password-register").
+			WithHeader("Accept", "application/json").
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		sessionID := resp.Object().Value("sessionId").String().Raw()
+
+		// Submit first step (username)
+		request := FlowRequest{
+			SessionID:   sessionID,
+			CurrentNode: "askUsername",
+			Responses: map[string]string{
+				"username": username,
+			},
+		}
+
+		e.POST("/" + tenant + "/" + realm + "/api/v1/username-password-register").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(request).
+			Expect().
+			Status(http.StatusOK)
+
+		// Submit second step (password)
+		request = FlowRequest{
+			SessionID:   sessionID,
+			CurrentNode: "askPassword",
+			Responses: map[string]string{
+				"password": password,
+			},
+		}
+
+		e.POST("/" + tenant + "/" + realm + "/api/v1/username-password-register").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(request).
+			Expect().
+			Status(http.StatusOK)
+	})
+
+	// Step 2: Try to login with wrong password
+	t.Run("Login with wrong password", func(t *testing.T) {
+		// Start login flow
+		resp := e.GET("/" + tenant + "/" + realm + "/api/v1/login").
+			WithHeader("Accept", "application/json").
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		sessionID := resp.Object().Value("sessionId").String().Raw()
+
+		// Submit username to get to password prompt
+		resp = e.POST("/" + tenant + "/" + realm + "/api/v1/login").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(FlowRequest{
+				SessionID:   sessionID,
+				CurrentNode: "askUsername",
+				Responses: map[string]string{
+					"username": username,
+				},
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		resp.Object().HasValue("currentNode", "askPassword")
+
+		// Submit wrong password
+		request := FlowRequest{
+			SessionID:   sessionID,
+			CurrentNode: "askPassword",
+			Responses: map[string]string{
+				"password": "wrong-password",
+			},
+		}
+
+		resp = e.POST("/" + tenant + "/" + realm + "/api/v1/login").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(request).
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		// Should still be at the same node but with an error message
+		resp.Object().HasValue("currentNode", "askPassword")
+		resp.Object().Value("errorMessage").String().Contains("Invalid")
+	})
+}
+
 func TestJSONFlow_FlowWithoutApplication(t *testing.T) {
 	e := integration.SetupIntegrationTest(t, "")
 
@@ -174,6 +275,81 @@ func TestJSONFlow_FlowWithFailureResult(t *testing.T) {
 	})
 }
 
+func TestJSONFlow_SessionResumption(t *testing.T) {
+	e := integration.SetupIntegrationTest(t, "")
+	flowRoute := "username-password-register"
+
+	t.Run("init with no existing session", func(t *testing.T) {
+		resp := e.GET("/acme/customers/api/v1/" + flowRoute).
+			WithQuery("init", "true").
+			Expect().
+			Status(http.StatusOK)
+
+		resp.JSON().Object().Value("sessionId").String().NotEmpty()
+
+		// Verify cookie is set
+		resp.Cookie("session_id").Value().NotEmpty()
+	})
+
+	t.Run("init with existing sessions", func(t *testing.T) {
+		// 1. Create initial session
+		resp1 := e.GET("/acme/customers/api/v1/" + flowRoute).
+			Expect().
+			Status(http.StatusOK)
+
+		sessionID1 := resp1.JSON().Object().Value("sessionId").String().Raw()
+		cookie1 := resp1.Cookie("session_id").Value().Raw()
+
+		// 2. Call with init=true and existing cookie
+		resp2 := e.GET("/acme/customers/api/v1/" + flowRoute).
+			WithQuery("init", "true").
+			WithCookie("session_id", cookie1).
+			Expect().
+			Status(http.StatusOK)
+
+		sessionID2 := resp2.JSON().Object().Value("sessionId").String().Raw()
+		if sessionID1 == sessionID2 {
+			t.Errorf("Expected different session ID after init=true, got same: %s", sessionID1)
+		}
+
+		// The new cookie should also be different
+		cookie2 := resp2.Cookie("session_id").Value().Raw()
+		if cookie1 == cookie2 {
+			t.Errorf("Expected different cookie value after init=true")
+		}
+	})
+
+	t.Run("continue with no existing session", func(t *testing.T) {
+		e.GET("/acme/customers/api/v1/" + flowRoute).
+			WithQuery("continue", "true").
+			Expect().
+			Status(http.StatusNotFound).
+			JSON().Object().Value("error").Object().Value("error").IsEqual("SESSION_NOT_FOUND")
+	})
+
+	t.Run("continue with existing session", func(t *testing.T) {
+		// 1. Create initial session
+		resp1 := e.GET("/acme/customers/api/v1/" + flowRoute).
+			Expect().
+			Status(http.StatusOK)
+
+		sessionID1 := resp1.JSON().Object().Value("sessionId").String().Raw()
+		cookie1 := resp1.Cookie("session_id").Value().Raw()
+
+		// 2. Call with continue=true and existing cookie
+		resp2 := e.GET("/acme/customers/api/v1/" + flowRoute).
+			WithQuery("continue", "true").
+			WithCookie("session_id", cookie1).
+			Expect().
+			Status(http.StatusOK)
+
+		sessionID2 := resp2.JSON().Object().Value("sessionId").String().Raw()
+		if sessionID1 != sessionID2 {
+			t.Errorf("Expected same session ID after continue=true, got different: %s vs %s", sessionID1, sessionID2)
+		}
+	})
+}
+
 // JSON API request/response structures
 type FlowRequest struct {
 	ExecutionID string            `json:"executionId"`
@@ -188,6 +364,8 @@ type FlowResponse struct {
 	CurrentNode string            `json:"currentNode"`
 	Prompts     map[string]string `json:"prompts,omitempty"`
 	Result      *FlowResult       `json:"result,omitempty"`
+	Error       *model.AuthError  `json:"error,omitempty"`
+	ErrorMessage *string          `json:"errorMessage,omitempty"`
 	Debug       any               `json:"debug,omitempty"`
 }
 

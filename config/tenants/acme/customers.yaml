@@ -1,7 +1,41 @@
 realm: customers
 realm_name: Our beautiful Customers xoxo
 
+realm_settings:
+  backgroundColor: "#3F3FF3"
+  accentColor: "#3F3FF3"
+  logoSvg: ""
+  logoName: "Acme"
+  privacyPolicyUrl: "/privacy"
+  sidebarTitle: "Secure your world."
+  sidebarText: "Join Acme to manage your secure identity."
+  fontFamily: "Inter, \"Inter Fallback\""
+  enable_google: "true"
+  enable_apple: "true"
+  enable_telegram: "false"
+  enable_github: "false"
+  enable_passkey: "true"
+  primaryButtonColor: "#3F3FF3"
+  primaryButtonHoverColor: "#2d2dbd"
+  termsOfConditionsUrl: "#"
+  enable_tc_terms: "true"
+  enable_privacy_terms: "true"
+  enable_marketing_terms: "false"
+  preselect_tc_terms: "false"
+  preselect_privacy_terms: "false"
+  preselect_marketing_terms: "false"
+  copyrightText: "Copyright © 2025 Acme Security Inc."
+  enable_register: "true"
+  show_sidebar: "true"
+  pageBackgroundColor: "#ffffff"
+  inputBackgroundColor: "#f9fafb"
+
 flows:
+  login:
+    route: /login
+    active: yes
+    debug_allowed: yes
+    definition_location: login.yaml
   username-password-register:
     route: /username-password-register
     active: yes
@@ -87,6 +121,16 @@ flows:
     active: yes
     debug_allowed: yes
     definition_location: oidc-federation.yaml
+  qr-mobile-to-web:
+    route: /qr-mobile-to-web
+    active: yes
+    debug_allowed: yes
+    definition_location: qr_mobile_to_web.yaml
+  qr-web-to-mobile:
+    route: /qr-web-to-mobile
+    active: yes
+    debug_allowed: yes
+    definition_location: qr-web-to-mobile.yaml
 
 applications:
   customers-app:
@@ -97,7 +141,7 @@ applications:
       - simple-cookie
       - refresh_token
     redirect_uris:
-      - http://localhost:3000
+      - http://localhost:4000
     allowed_authentication_flows:
       - "*"
     access_token_lifetime: 3600

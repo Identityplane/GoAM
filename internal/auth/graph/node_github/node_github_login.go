@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/internal/logger"
@@ -53,13 +54,19 @@ func RunGithubLoginNode(state *model.AuthenticationSession, node *model.GraphNod
 	// If we have a code we exchange it for an access token, otherwise we return with a redirect to Github
 	if code == "" {
 
+		// Generate the callback URL for the Auth UI
+		// We assumes the Auth UI is reachable at [RealmBaseUrl]/authui/[FlowRoute]/callback
+		// We extract the flow route from the LoginUriBase which is [RealmBaseUrl]/api/v1/[FlowRoute]
+		authUiCallbackURL := strings.Replace(state.LoginUriBase, "/api/v1/", "/authui/", 1) + "/callback"
+
 		// Generate a new login with github
 		redirectURL := fmt.Sprintf(
-			"%s?client_id=%s&redirect_uri=%s&scope=%s",
+			"%s?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
 			githubAuthURL,
 			url.QueryEscape(githubClientID),
-			url.QueryEscape(state.LoginUriBase),
+			url.QueryEscape(authUiCallbackURL),
 			url.QueryEscape(githubScope),
+			url.QueryEscape(state.PrimarySecretSessionID),
 		)
 
 		return model.NewNodeResultWithPrompts(map[string]string{

@@ -6,15 +6,20 @@ import (
 	"github.com/Identityplane/GoAM/internal/service"
 	"github.com/Identityplane/GoAM/internal/service/email"
 	"github.com/Identityplane/GoAM/pkg/db"
+	"github.com/Identityplane/GoAM/pkg/server_settings"
 	services_interface "github.com/Identityplane/GoAM/pkg/services"
 )
 
 type DefaultServicesFactory struct {
-	dbConnections *db.DatabaseConnections
+	dbConnections  *db.DatabaseConnections
+	serverSettings *server_settings.GoamServerSettings
 }
 
-func NewDefaultServicesFactory(dbConnections *db.DatabaseConnections) ServicesFactory {
-	return &DefaultServicesFactory{dbConnections: dbConnections}
+func NewDefaultServicesFactory(dbConnections *db.DatabaseConnections, serverSettings *server_settings.GoamServerSettings) ServicesFactory {
+	return &DefaultServicesFactory{
+		dbConnections:  dbConnections,
+		serverSettings: serverSettings,
+	}
 }
 
 func (f *DefaultServicesFactory) CreateServices() (*services_interface.Services, error) {
@@ -36,10 +41,9 @@ func (f *DefaultServicesFactory) CreateServices() (*services_interface.Services,
 		OAuth2Service:              service.NewOAuth2Service(),
 		JWTService:                 service.NewCachedJWTService(service.NewJWTService(f.dbConnections.SigningKeyDB), cacheService),
 		CacheService:               cacheService,
-		TemplatesService:           service.NewTemplatesService(),
 		AdminAuthzService:          service.NewAdminAuthzService(),
 		SimpleAuthService:          service.NewSimpleAuthService(),
-		EmailService:               email.NewDefaultEmailService(),
+		EmailService:               email.NewDefaultEmailService(email.SmtpConfigFromServerSettings(f.serverSettings)),
 		UserClaimsService:          service.NewUserClaimsService(),
 	}
 

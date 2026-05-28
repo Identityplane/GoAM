@@ -19,3 +19,4 @@ goiam.db-shm
 .gitignore
 goiam.db-wal
 *.bin
+.env

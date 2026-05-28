@@ -25,21 +25,3 @@ type UserRepository interface {
 	// This initializes the user according to the realm requirements with id, and state
 	NewUserModel(state *AuthenticationSession) (*User, error)
 }
-
-type EmailSender interface {
-	SendEmail(email *SendEmailParams) error
-}
-
-type SendEmailParams struct {
-	Template string
-	To       []EmailAddress
-	Cc       []EmailAddress
-	Bcc      []EmailAddress
-
-	Params map[string]any
-}
-
-type EmailAddress struct {
-	Email string
-	Name  string
-}

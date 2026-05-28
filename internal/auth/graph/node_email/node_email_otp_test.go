@@ -69,7 +69,7 @@ func TestEmailOTP_NoUserInContext(t *testing.T) {
 
 	// Mock SendEmail call for initial OTP generation
 	mockUserRepo.On("GetByAttributeIndex", mock.Anything, model.AttributeTypeEmail, "test@example.com").Return(nil, nil)
-	mockEmailSender.On("SendEmail", mock.AnythingOfType("*model.SendEmailParams")).Return(nil)
+	mockEmailSender.On("SendOTPEmail", mock.Anything, "test@example.com", mock.AnythingOfType("string")).Return(nil)
 
 	// Test 1: Initial state - should return prompt
 	result, err := RunEmailOTPNode(session, node, map[string]string{}, services)
@@ -136,7 +136,7 @@ func TestEmailOTP_UserWithoutEmailInContext(t *testing.T) {
 	}
 
 	// Mock SendEmail call for initial OTP generation
-	mockEmailSender.On("SendEmail", mock.AnythingOfType("*model.SendEmailParams")).Return(nil)
+	mockEmailSender.On("SendOTPEmail", mock.Anything, "test@example.com", mock.AnythingOfType("string")).Return(nil)
 
 	// Test 1: Initial state - should return prompt
 	result, err := RunEmailOTPNode(session, node, map[string]string{}, services)
@@ -200,7 +200,7 @@ func TestEmailOTP_UserWithEmailInContext(t *testing.T) {
 	}
 
 	// Mock SendEmail call for initial OTP generation
-	mockEmailSender.On("SendEmail", mock.AnythingOfType("*model.SendEmailParams")).Return(nil)
+	mockEmailSender.On("SendOTPEmail", mock.Anything, "test@example.com", mock.AnythingOfType("string")).Return(nil)
 	mockUserRepo.On("UpdateUserAttribute", mock.Anything, mock.Anything).Return(nil)
 
 	// Test 1: Initial state - should return prompt

@@ -1,0 +1,74 @@
+description: ''
+start: init
+start_secondary: initSecondary
+nodes:
+  init:
+    name: init
+    use: init
+    next:
+      start: node_1adb4556
+  sucess:
+    name: successResult
+    use: successResult
+    next: {}
+  node_1adb4556:
+    name: askUsername
+    use: askUsername
+    next:
+      submitted: node_f12f2a07
+  node_f12f2a07:
+    name: qrWebToMobile
+    use: qrWebToMobile
+    next:
+      success: node_fb624ca9
+      abort: node_e0677291
+  node_12f1e0ba:
+    name: messageConfirmation
+    use: messageConfirmation
+    custom_config:
+      message: Login
+      message_title: Login
+      button_text: Login
+    next:
+      submitted: sucess
+  node_fb624ca9:
+    name: messageConfirmation
+    use: messageConfirmation
+    custom_config:
+      message: Logged in on mobile device
+    next: {}
+  node_e0677291:
+    name: failureResult
+    use: failureResult
+    next: {}
+  initSecondary:
+    name: initSecondary
+    use: initSecondary
+    next:
+      start: node_12f1e0ba
+editor:
+  nodes:
+    init:
+      x: -179.83975576197577
+      'y': 72.73533970548368
+    sucess:
+      x: 993.99776046787
+      'y': 689.2253027677027
+    node_1adb4556:
+      x: 84.08772558997839
+      'y': 58.76191231909229
+    node_f12f2a07:
+      x: 532.552654781404
+      'y': 36.748438597386496
+    node_12f1e0ba:
+      x: 518.7836803949085
+      'y': 515.8064909587924
+    node_fb624ca9:
+      x: 1259.787305056932
+      'y': -25.373814609828372
+    node_e0677291:
+      x: 1266.1508554874838
+      'y': 203.1221693942267
+    initSecondary:
+      x: 73.91499897466696
+      'y': 566.5958404894197

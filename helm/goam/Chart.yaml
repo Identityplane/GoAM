@@ -1,0 +1,6 @@
+apiVersion: v2
+name: goam
+description: A Helm chart for GoAM
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

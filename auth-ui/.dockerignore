@@ -1,0 +1,15 @@
+# Ignore local environment files
+.env*.local
+
+# Ignore node_modules
+node_modules/
+
+# Ignore Next.js build output
+.next/
+
+# Ignore other common items
+.git
+.gitignore
+.dockerignore
+LICENSE
+README.md

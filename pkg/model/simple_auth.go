@@ -30,7 +30,9 @@ type SimpleAuthResponse struct {
 	ExpiresIn             int                    `json:"expires_in,omitempty"`
 	RefreshTokenExpiresIn int                    `json:"refresh_token_expires_in,omitempty"`
 	Scope                 string                 `json:"scope,omitempty"`
+	UserID                string                 `json:"user_id,omitempty"`
 	Error                 string                 `json:"error,omitempty"`
+	Redirect              string                 `json:"redirect,omitempty"`
 }
 
 type AuthError struct {

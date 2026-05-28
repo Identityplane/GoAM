@@ -63,7 +63,9 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 	// Max attempts for the OTP
 	mfa_max_attempts := 10
 	if v, ok := node.CustomConfig[EMAIL_OTP_OPTION_MAX_ATTEMPTS]; ok {
-		mfa_max_attempts, _ = strconv.Atoi(v)
+		if v != "" {
+			mfa_max_attempts, _ = strconv.Atoi(v)
+		}
 	}
 	resendInSeconds := 30
 	if node.CustomConfig[EMAIL_RESEND_IN_SECONDS] != "" {
@@ -84,8 +86,10 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 	// If we have no OTP challenge we generate a new one
 	if otpChallange == "" {
 
-		otpChallange := generateOTP()
-		sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts, state, resendInSeconds)
+		otpChallange = generateOTP()
+		if err := sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts, state, resendInSeconds); err != nil {
+			return model.NewNodeResultWithError(err)
+		}
 		state.Context["email_otp"] = otpChallange
 
 		return otpPrompt(email, state)
@@ -95,7 +99,9 @@ func RunEmailOTPNode(state *model.AuthenticationSession, node *model.GraphNode, 
 
 		if err != nil || time.Now().After(resendAt) {
 
-			sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts, state, resendInSeconds)
+			if err := sendEmailOTP(email, otpChallange, user, services, mfa_max_attempts, state, resendInSeconds); err != nil {
+				return model.NewNodeResultWithError(err)
+			}
 			state.Context["message"] = ""
 		} else {
 			state.Context["message"] = MSG_RESEND_TOO_SOON
@@ -182,6 +188,9 @@ func generateOTP() string {
 
 // sendEmailOTP sends an email with the OTP to the email address
 func sendEmailOTP(email string, otp string, user *model.User, services *model.Repositories, maxFailedAttempts int, state *model.AuthenticationSession, resendInSeconds int) error {
+	if services.EmailSender == nil {
+		return errors.New("email sender is not configured")
+	}
 
 	if user != nil {
 		// Check if the email attribute is locked or the maximum number of failed attempts is reached
@@ -198,22 +207,10 @@ func sendEmailOTP(email string, otp string, user *model.User, services *model.Re
 		}
 	}
 
-	emailParams := &model.SendEmailParams{
-		Template: "email-otp",
-		To: []model.EmailAddress{
-			{Email: email},
-		},
-		Params: map[string]any{
-			"otp": otp,
-		},
-	}
-
 	resendAt := time.Now().Add(time.Duration(resendInSeconds) * time.Second)
 	state.Context["resend_at"] = resendAt.Format(time.RFC3339)
 
-	services.EmailSender.SendEmail(emailParams)
-
-	return nil
+	return services.EmailSender.SendOTPEmail(context.Background(), email, otp)
 }
 
 func getEmailAddress(state *model.AuthenticationSession, services *model.Repositories) (string, *model.User, error) {

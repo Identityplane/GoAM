@@ -6,10 +6,12 @@ import (
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_email"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_forms"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_github"
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_loa"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_oidc"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_options"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_passkeys"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_password"
+	"github.com/Identityplane/GoAM/internal/auth/graph/node_qr"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_system"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_telegram"
 	"github.com/Identityplane/GoAM/internal/auth/graph/node_totp"
@@ -29,11 +31,12 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	node_system.DebugNode.Name:         node_system.DebugNode,
 
 	// User Management
-	node_user.CreateUserNode.Name: node_user.CreateUserNode,
-	node_user.InitUserNode.Name:   node_user.InitUserNode,
-	node_user.LoadUserNode.Name:   node_user.LoadUserNode,
-	node_user.SaveUserNode.Name:   node_user.SaveUserNode,
-	node_user.AskUserIDNode.Name:  node_user.AskUserIDNode,
+	node_user.CreateUserNode.Name:         node_user.CreateUserNode,
+	node_user.InitUserNode.Name:           node_user.InitUserNode,
+	node_user.LoadUserNode.Name:           node_user.LoadUserNode,
+	node_user.SaveUserNode.Name:           node_user.SaveUserNode,
+	node_user.AskUserIDNode.Name:          node_user.AskUserIDNode,
+	node_user.EnsureUserByUserIdNode.Name: node_user.EnsureUserByUserIdNode,
 
 	// Username
 	node_username.AskUsernameNode.Name:            node_username.AskUsernameNode,
@@ -86,11 +89,26 @@ var NodeDefinitions = map[string]*model.NodeDefinition{
 	node_github.GithubLoginNode.Name: node_github.GithubLoginNode,
 
 	// Device
-	node_device.AddKnownDeviceNode.Name: node_device.AddKnownDeviceNode,
-	node_device.IsKnownDeviceNode.Name:  node_device.IsKnownDeviceNode,
+	node_device.AddKnownDeviceNode.Name:     node_device.AddKnownDeviceNode,
+	node_device.IsKnownDeviceNode.Name:      node_device.IsKnownDeviceNode,
+	node_device.ListAvailableUsersNode.Name: node_device.ListAvailableUsersNode,
 
 	// OIDC
 	node_oidc.GenericOIDCLoginNode.Name: node_oidc.GenericOIDCLoginNode,
+
+	// Action Token
+	node_system.InitSecondaryNode.Name:   node_system.InitSecondaryNode,
+	node_system.ActionTokenInitNode.Name: node_system.ActionTokenInitNode,
+
+	// QR
+	node_qr.QrWebToMobileNode.Name:         node_qr.QrWebToMobileNode,
+	node_qr.QrMobileToWebNode.Name:         node_qr.QrMobileToWebNode,
+	node_qr.ContinueOnOtherDeviceNode.Name: node_qr.ContinueOnOtherDeviceNode,
+
+	// LOA
+	node_loa.SetLOA1Node.Name: node_loa.SetLOA1Node,
+	node_loa.SetLOA2Node.Name: node_loa.SetLOA2Node,
+	node_loa.GetLOANode.Name:  node_loa.GetLOANode,
 }
 
 func GetNodeDefinitionByName(name string) *model.NodeDefinition {

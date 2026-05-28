@@ -2,11 +2,12 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/Identityplane/GoAM/internal/config"
 	"github.com/Identityplane/GoAM/internal/web/admin_api"
-	"github.com/Identityplane/GoAM/internal/web/auth"
 	"github.com/Identityplane/GoAM/internal/web/auth_api"
+	"github.com/Identityplane/GoAM/internal/web/auth_ui"
 	"github.com/Identityplane/GoAM/internal/web/debug"
 	"github.com/Identityplane/GoAM/internal/web/oauth2"
 
@@ -79,7 +80,6 @@ func New() *router.Router {
 
 	// Static files
 	r.GET("/{tenant}/{realm}/static/{filename}", DisableRequestLogging(WrapMiddleware(StaticHandler)))
-	r.GET("/{tenant}/{realm}/assets/{filename}", DisableRequestLogging(WrapMiddleware(auth.HandleStaticAssets)))
 
 	// Health endpoints
 	r.GET("/healthz", DisableRequestLogging(WrapMiddleware(handleLiveness)))
@@ -90,21 +90,43 @@ func New() *router.Router {
 	r.GET("/swagger/", WrapMiddleware(HandleSwaggerUI))
 	r.GET("/swagger/{*path}", WrapMiddleware(HandleSwaggerUI))
 
-	// Main authentication routes
-	r.GET("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
-	r.POST("/{tenant}/{realm}/auth/{path}", WrapMiddleware(auth.HandleAuthRequest))
-	r.GET("/{tenant}/{realm}/auth/{path}/{node}", WrapMiddleware(auth.HandleAuthRequest))
-	r.POST("/{tenant}/{realm}/auth/{path}/{node}", WrapMiddleware(auth.HandleAuthRequest))
+	// Auth UI reverse proxy (Development)
+	r.GET("/{tenant}/{realm}/authui", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		auth_ui.HandleAuthUIProxy(ctx)
+	}))
+	r.GET("/{tenant}/{realm}/authui/{path:*}", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		auth_ui.HandleAuthUIProxy(ctx)
+	}))
+	r.GET("/_next/{path:*}", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		auth_ui.HandleAuthUIProxy(ctx)
+	}))
+	r.GET("/__nextjs_font/{path:*}", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		auth_ui.HandleAuthUIProxy(ctx)
+	}))
 
 	// JSON API authentication routes
-	r.GET("/{tenant}/{realm}/api/v1/{path}", WrapMiddleware(auth_api.HandleJSONAuthRequest))
-	r.POST("/{tenant}/{realm}/api/v1/{path}", WrapMiddleware(auth_api.HandleJSONAuthRequest))
+	r.OPTIONS("/{tenant}/{realm}/api/v1/", WrapMiddleware(handleOptions))
+	r.GET("/{tenant}/{realm}/api/v1/", cors(WrapMiddleware(auth_api.HandleMetadataRequest)))
+	r.POST("/{tenant}/{realm}/api/v1/", cors(WrapMiddleware(auth_api.HandleResumeSession)))
+	r.OPTIONS("/{tenant}/{realm}/api/v1/{path}", WrapMiddleware(handleOptions))
+	r.GET("/{tenant}/{realm}/api/v1/{path}", cors(WrapMiddleware(auth_api.HandleJSONAuthRequest)))
+	r.POST("/{tenant}/{realm}/api/v1/{path}", cors(WrapMiddleware(auth_api.HandleJSONAuthRequest)))
 
 	// Oauth + OIDC
 	r.GET("/{tenant}/{realm}/oauth2/authorize", WrapMiddleware(oauth2.HandleAuthorizeEndpoint))
-	r.GET("/{tenant}/{realm}/oauth2/finishauthorize", WrapMiddleware(oauth2.FinsishOauth2AuthorizationEndpoint))
+	r.GET("/{tenant}/{realm}/oauth2/finishauthorize", WrapMiddleware(oauth2.FinishOauth2AuthorizationEndpoint))
 
 	r.GET("/{tenant}/{realm}/oauth2/.well-known/openid-configuration", cors(WrapMiddleware(oauth2.HandleOpenIDConfiguration)))
+	r.GET("/{tenant}/{realm}/.well-known/openid-configuration", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		tenant := ctx.UserValue("tenant").(string)
+		realm := ctx.UserValue("realm").(string)
+		ctx.Redirect(fmt.Sprintf("/%s/%s/oauth2/.well-known/openid-configuration", tenant, realm), fasthttp.StatusSeeOther)
+	}))
+	r.GET("/{tenant}/{realm}/.well-known/jwks.json", WrapMiddleware(func(ctx *fasthttp.RequestCtx) {
+		tenant := ctx.UserValue("tenant").(string)
+		realm := ctx.UserValue("realm").(string)
+		ctx.Redirect(fmt.Sprintf("/%s/%s/oauth2/.well-known/jwks.json", tenant, realm), fasthttp.StatusSeeOther)
+	}))
 	r.POST("/{tenant}/{realm}/oauth2/token", cors(WrapMiddleware(oauth2.HandleTokenEndpoint)))
 
 	// OIDC Userinfo endpoint

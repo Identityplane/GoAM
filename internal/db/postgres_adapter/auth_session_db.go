@@ -36,7 +36,7 @@ func (s *PostgresAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, s
 			SELECT 1 FROM auth_sessions 
 			WHERE tenant = $1 AND realm = $2 AND session_id_hash = $3
 		)`,
-		session.Tenant, session.Realm, session.SessionIDHash,
+		session.Tenant, session.Realm, session.PrimarySessionIDHash,
 	).Scan(&exists)
 	if err != nil {
 		return fmt.Errorf("failed to check if session exists: %w", err)
@@ -47,19 +47,21 @@ func (s *PostgresAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, s
 		query := `
 			UPDATE auth_sessions SET
 				run_id = $1,
-				created_at = $2,
-				expires_at = $3,
-				session_information = $4
-			WHERE tenant = $5 AND realm = $6 AND session_id_hash = $7
+				secondary_session_id_hash = $2,
+				created_at = $3,
+				expires_at = $4,
+				session_information = $5
+			WHERE tenant = $6 AND realm = $7 AND session_id_hash = $8
 		`
 		_, err = s.db.Exec(ctx, query,
 			session.RunID,
+			session.SecondarySessionIDHash,
 			session.CreatedAt,
 			session.ExpiresAt,
 			session.SessionInformation,
 			session.Tenant,
 			session.Realm,
-			session.SessionIDHash,
+			session.PrimarySessionIDHash,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to update auth session: %w", err)
@@ -68,15 +70,16 @@ func (s *PostgresAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, s
 		// Create new session
 		query := `
 			INSERT INTO auth_sessions (
-				tenant, realm, run_id, session_id_hash,
+				tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 				created_at, expires_at, session_information
-			) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		`
 		_, err = s.db.Exec(ctx, query,
 			session.Tenant,
 			session.Realm,
 			session.RunID,
-			session.SessionIDHash,
+			session.PrimarySessionIDHash,
+			session.SecondarySessionIDHash,
 			session.CreatedAt,
 			session.ExpiresAt,
 			session.SessionInformation,
@@ -91,7 +94,7 @@ func (s *PostgresAuthSessionDB) CreateOrUpdateAuthSession(ctx context.Context, s
 
 func (s *PostgresAuthSessionDB) GetAuthSessionByID(ctx context.Context, tenant, realm, runID string) (*model.PersistentAuthSession, error) {
 	query := `
-		SELECT tenant, realm, run_id, session_id_hash,
+		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 		       created_at, expires_at, session_information
 		FROM auth_sessions
 		WHERE tenant = $1 AND realm = $2 AND run_id = $3
@@ -102,7 +105,8 @@ func (s *PostgresAuthSessionDB) GetAuthSessionByID(ctx context.Context, tenant, 
 		&session.Tenant,
 		&session.Realm,
 		&session.RunID,
-		&session.SessionIDHash,
+		&session.PrimarySessionIDHash,
+		&session.SecondarySessionIDHash,
 		&session.CreatedAt,
 		&session.ExpiresAt,
 		&session.SessionInformation,
@@ -119,10 +123,10 @@ func (s *PostgresAuthSessionDB) GetAuthSessionByID(ctx context.Context, tenant, 
 
 func (s *PostgresAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant, realm, sessionIDHash string) (*model.PersistentAuthSession, error) {
 	query := `
-		SELECT tenant, realm, run_id, session_id_hash,
+		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 		       created_at, expires_at, session_information
 		FROM auth_sessions
-		WHERE tenant = $1 AND realm = $2 AND session_id_hash = $3
+		WHERE tenant = $1 AND realm = $2 AND (session_id_hash = $3 OR secondary_session_id_hash = $3)
 	`
 
 	var session model.PersistentAuthSession
@@ -130,7 +134,8 @@ func (s *PostgresAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant
 		&session.Tenant,
 		&session.Realm,
 		&session.RunID,
-		&session.SessionIDHash,
+		&session.PrimarySessionIDHash,
+		&session.SecondarySessionIDHash,
 		&session.CreatedAt,
 		&session.ExpiresAt,
 		&session.SessionInformation,
@@ -145,9 +150,38 @@ func (s *PostgresAuthSessionDB) GetAuthSessionByHash(ctx context.Context, tenant
 	return &session, nil
 }
 
+func (s *PostgresAuthSessionDB) GetAuthSessionBySecondaryHash(ctx context.Context, tenant, realm, secondarySessionIDHash string) (*model.PersistentAuthSession, error) {
+	query := `
+		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
+		       created_at, expires_at, session_information
+		FROM auth_sessions
+		WHERE tenant = $1 AND realm = $2 AND secondary_session_id_hash = $3
+	`
+
+	var session model.PersistentAuthSession
+	err := s.db.QueryRow(ctx, query, tenant, realm, secondarySessionIDHash).Scan(
+		&session.Tenant,
+		&session.Realm,
+		&session.RunID,
+		&session.PrimarySessionIDHash,
+		&session.SecondarySessionIDHash,
+		&session.CreatedAt,
+		&session.ExpiresAt,
+		&session.SessionInformation,
+	)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get auth session by secondary hash: %w", err)
+	}
+
+	return &session, nil
+}
+
 func (s *PostgresAuthSessionDB) ListAuthSessions(ctx context.Context, tenant, realm string) ([]model.PersistentAuthSession, error) {
 	query := `
-		SELECT tenant, realm, run_id, session_id_hash,
+		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 		       created_at, expires_at, session_information
 		FROM auth_sessions
 		WHERE tenant = $1 AND realm = $2
@@ -166,7 +200,8 @@ func (s *PostgresAuthSessionDB) ListAuthSessions(ctx context.Context, tenant, re
 			&session.Tenant,
 			&session.Realm,
 			&session.RunID,
-			&session.SessionIDHash,
+			&session.PrimarySessionIDHash,
+			&session.SecondarySessionIDHash,
 			&session.CreatedAt,
 			&session.ExpiresAt,
 			&session.SessionInformation,
@@ -183,7 +218,7 @@ func (s *PostgresAuthSessionDB) ListAuthSessions(ctx context.Context, tenant, re
 
 func (s *PostgresAuthSessionDB) ListAllAuthSessions(ctx context.Context, tenant string) ([]model.PersistentAuthSession, error) {
 	query := `
-		SELECT tenant, realm, run_id, session_id_hash,
+		SELECT tenant, realm, run_id, session_id_hash, secondary_session_id_hash,
 		       created_at, expires_at, session_information
 		FROM auth_sessions
 		WHERE tenant = $1
@@ -202,7 +237,8 @@ func (s *PostgresAuthSessionDB) ListAllAuthSessions(ctx context.Context, tenant 
 			&session.Tenant,
 			&session.Realm,
 			&session.RunID,
-			&session.SessionIDHash,
+			&session.PrimarySessionIDHash,
+			&session.SecondarySessionIDHash,
 			&session.CreatedAt,
 			&session.ExpiresAt,
 			&session.SessionInformation,

@@ -1,0 +1,145 @@
+{{- if .Values.pgadmin.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "goam.fullname" . }}-pgadmin-credentials
+  labels:
+    {{- include "goam.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pgadmin
+type: Opaque
+stringData:
+  email: {{ .Values.pgadmin.auth.email | quote }}
+  password: {{ .Values.pgadmin.auth.password | quote }}
+---
+{{- if and .Values.pgadmin.preconfigurePostgresServer .Values.postgresql.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "goam.fullname" . }}-pgadmin-servers
+  labels:
+    {{- include "goam.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pgadmin
+data:
+  servers.json: |
+    {
+      "Servers": {
+        "1": {
+          "Name": "GoAM Postgres",
+          "Group": "Servers",
+          "Host": "{{ include "goam.fullname" . }}-postgres",
+          "Port": {{ .Values.postgresql.service.port }},
+          "MaintenanceDB": {{ .Values.postgresql.auth.database | quote }},
+          "Username": {{ .Values.postgresql.auth.username | quote }},
+          "SSLMode": "prefer"
+        }
+      }
+    }
+---
+{{- end }}
+{{- if .Values.pgadmin.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "goam.fullname" . }}-pgadmin
+  labels:
+    {{- include "goam.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pgadmin
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.pgadmin.persistence.storageClass }}
+  storageClassName: {{ .Values.pgadmin.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.pgadmin.persistence.size }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "goam.fullname" . }}-pgadmin
+  labels:
+    {{- include "goam.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pgadmin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "goam.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: pgadmin
+  template:
+    metadata:
+      labels:
+        {{- include "goam.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: pgadmin
+    spec:
+      initContainers:
+        - name: init-perms
+          image: {{ .Values.pgadmin.initImage.repository }}:{{ .Values.pgadmin.initImage.tag }}
+          imagePullPolicy: {{ .Values.pgadmin.initImage.pullPolicy }}
+          command: ["sh", "-c", "mkdir -p /var/lib/pgadmin/sessions && chown -R 5050:5050 /var/lib/pgadmin"]
+          volumeMounts:
+            - name: pgadmin-storage
+              mountPath: /var/lib/pgadmin
+      containers:
+        - name: pgadmin
+          image: "{{ .Values.pgadmin.image.repository }}:{{ .Values.pgadmin.image.tag }}"
+          imagePullPolicy: {{ .Values.pgadmin.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          env:
+            - name: PGADMIN_DEFAULT_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "goam.fullname" . }}-pgadmin-credentials
+                  key: email
+            - name: PGADMIN_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "goam.fullname" . }}-pgadmin-credentials
+                  key: password
+          volumeMounts:
+            - name: pgadmin-storage
+              mountPath: /var/lib/pgadmin
+            {{- if and .Values.pgadmin.preconfigurePostgresServer .Values.postgresql.enabled }}
+            - name: pgadmin-config
+              mountPath: /pgadmin4/servers.json
+              subPath: servers.json
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: pgadmin-storage
+          {{- if .Values.pgadmin.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "goam.fullname" . }}-pgadmin
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if and .Values.pgadmin.preconfigurePostgresServer .Values.postgresql.enabled }}
+        - name: pgadmin-config
+          configMap:
+            name: {{ include "goam.fullname" . }}-pgadmin-servers
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "goam.fullname" . }}-pgadmin
+  labels:
+    {{- include "goam.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pgadmin
+spec:
+  type: {{ .Values.pgadmin.service.type }}
+  ports:
+    - port: {{ .Values.pgadmin.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "goam.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: pgadmin
+{{- end }}

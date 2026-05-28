@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "goam.fullname" . }}-config
+  labels:
+    {{- include "goam.labels" . | nindent 4 }}
+data:
+  goam.yaml: |
+    banner: "GOAM deployed via Helm"
+    listener_http: :8080
+    unsafe_disable_admin_auth: true
+    db: "postgres://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ include "goam.fullname" . }}-postgres:{{ .Values.postgresql.service.port }}/{{ .Values.postgresql.auth.database }}?sslmode=disable"
+    run_db_migrations: true
+    authui_uri_base: "http://{{ include "goam.fullname" . }}-authui:{{ .Values.authui.service.port }}"
+    realm_configuration_folder: "/app/config"
+    initial_admin_user_id: "admin"
+    initial_admin_user_password: "change-me"

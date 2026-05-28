@@ -1,0 +1,50 @@
+description: 'Display a QR code that a logged-in mobile device can scan to sign in on web (basic).'
+start: init
+start_secondary: initSecondary
+nodes:
+  init:
+    name: init
+    use: init
+    next:
+      start: qr
+
+  qr:
+    name: qrMobileToWeb
+    use: qrMobileToWeb
+    next:
+      success: webSuccess
+
+  webSuccess:
+    name: successResult
+    use: successResult
+    next: {}
+
+  initSecondary:
+    name: initSecondary
+    use: initSecondary
+    next:
+      start: askUserID
+
+  askUserID:
+    name: askUserID
+    use: askUserID
+    next:
+      submitted: continueOnOther
+      not_found: ensureUserByUserId
+
+  ensureUserByUserId:
+    name: ensureUserByUserId
+    use: ensureUserByUserId
+    next:
+      success: continueOnOther
+
+  continueOnOther:
+    name: continueOnOtherDevice
+    use: continueOnOtherDevice
+    next:
+      done: successResult
+
+  successResult:
+    name: successResult
+    use: successResult
+    next: {}

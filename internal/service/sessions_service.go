@@ -125,7 +125,7 @@ func (s *sessionsService) GetAuthenticationSession(ctx context.Context, tenant, 
 		return nil, false
 	}
 
-	session, err := persistentSession.ToAuthenticationSession()
+	session, err := persistentSession.ToAuthenticationSession(sessionIDHash)
 	if err != nil {
 		log := logger.GetGoamLogger()
 		log.Error().Err(err).Msg("failed to convert persistent session to auth session")

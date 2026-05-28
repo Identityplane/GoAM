@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS users (
     -- Unique UUID for the user
-    id VARCHAR(36) NOT NULL,
+    id VARCHAR(255) NOT NULL,
 
     -- Organization Context
     tenant VARCHAR(255) NOT NULL,
@@ -23,4 +23,3 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_users_tenant_realm ON users(tenant, realm);
 CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
-

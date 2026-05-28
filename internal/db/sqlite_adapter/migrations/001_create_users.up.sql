@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 
     -- Constraints
 
-    PRIMARY KEY (id, realm, id)
+    PRIMARY KEY (tenant, realm, id)
 );
 
 -- Create indexes

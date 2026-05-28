@@ -1,0 +1,7 @@
+Hello{{if index . "name"}} {{index . "name"}}{{end}},
+
+Welcome — your account is ready.
+
+{{if index . "app_name"}}Application: {{index . "app_name"}}
+{{end}}
+Thank you for joining us.

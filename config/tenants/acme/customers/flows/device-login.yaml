@@ -6,32 +6,79 @@ nodes:
     use: init
     custom_config: {}
     next:
-      start: checkKnownDevice
+      start: listAvailableUsers
 
-  checkKnownDevice:
-    name: checkKnownDevice
-    use: isKnownDevice
-    custom_config:
-      cookie_name: device
+  listAvailableUsers:
+    name: listAvailableUsers
+    use: listAvailableUsers
     next:
-      known_device: successResult
-      unknown_device: askUserID
-      oidc_requires_login: askUserID
+      success: getLoa
+      none: askUserID
+
+  getLoa:
+    name: getLoa
+    use: getLoa
+    next:
+      '1': successResult
+      '0': askPassword
+      'none': askUserID
+
+  askPassword:
+    name: askPassword
+    use: askPassword
+    custom_config:
+      message: Your session has expired. Please enter your password to continue.
+    next:
+      submitted: validatePassword
+
+  validatePassword:
+    name: validatePassword
+    use: validatePassword
+    next:
+      success: setLoa1
+      fail: askPassword
+
+  setLoa1:
+    name: setLoa1
+    use: setLoa1
+    next:
+      success: successResult
 
   askUserID:
     name: askUserID
     use: askUserID
     custom_config: {}
     next:
-      submitted: addKnownDevice
-      not_found: createUser
+      submitted: validatePasswordAtLogin
+      not_found: askPasswordForNewUser
+
+  askPasswordForNewUser:
+    name: askPasswordForNewUser
+    use: askPassword
+    custom_config:
+      message: User not found. Please choose a password to create your account.
+    next:
+      submitted: createUser
+
+  validatePasswordAtLogin:
+    name: validatePasswordAtLogin
+    use: validatePassword
+    next:
+      success: setLoa1AtLogin
+      fail: askUserID
+
+  setLoa1AtLogin:
+    name: setLoa1AtLogin
+    use: setLoa1
+    next:
+      success: addKnownDevice
 
   createUser:
     name: createUser
     use: createUser
     next:
-      success: addKnownDevice
-      existing: addKnownDevice
+      success: setLoa1AtLogin
+      existing: validatePasswordAtLogin
 
   addKnownDevice:
     name: addKnownDevice
@@ -46,6 +93,6 @@ nodes:
     name: successResult
     use: successResult
     custom_config:
-      message: Device login successful!
+      message: Login successful!
     next: {}
 
