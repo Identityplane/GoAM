@@ -130,6 +130,7 @@ go run ./cmd/main.go
 ```
 
 By default the HTTP listener is `:8080`. Check `http://localhost:8080/readyz`.
+With `run_db_migrations: true` (typical in local `goam.yaml`), SQLite is created and migrated on startup.
 
 #### Auth UI
 
@@ -177,16 +178,36 @@ This expects a working kubectl context and Helm. The chart lives at `helm/goam`.
 
 ## Database Setup
 
-For local development, GoAM uses SQLite. To set up the database:
+GoAM defaults to **SQLite**. The connection string is `GOAM_DB` / `db` in config (default: `goiam.db?_foreign_keys=on`). The file is created in the working directory (repo root if you run `go run ./cmd/main.go` from there).
 
-1. Apply the initial migration:
-  ```bash
-   sqlite3 cmd/goiam.db < internal/db/sqlite/migrations/001_create_users.sql
-  ```
-2. Verify the database is set up correctly:
-  ```bash
-   sqlite3 cmd/goiam.db
-  ```
+**Postgres** is used when the connection string starts with `postgres://`.
+
+### Migrations
+
+Schema changes live in:
+
+- `internal/db/sqlite_adapter/migrations/*.up.sql`
+- `internal/db/postgres_adapter/migrations/*.up.sql`
+
+Set `run_db_migrations: true` in `goam.yaml`, or `GOAM_RUN_DB_MIGRATIONS=true`. On startup GoAM applies pending `.up.sql` files. You do **not** need to run `sqlite3` by hand.
+
+The built-in default for `run_db_migrations` is `false`. Local `goam.yaml` usually turns it on.
+
+### Inspect SQLite (optional)
+
+```bash
+sqlite3 goiam.db
+.tables
+.quit
+```
+
+On PowerShell, do not use `<` to pipe a `.sql` file into `sqlite3`. If you ever need to apply a file manually:
+
+```powershell
+sqlite3 .\goiam.db ".read internal/db/sqlite_adapter/migrations/001_create_users.up.sql"
+```
+
+That still applies only one migration; prefer startup migrations instead.
 
 ---
 
