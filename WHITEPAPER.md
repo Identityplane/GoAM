@@ -2,7 +2,7 @@
 
 ## Concept Overview
 
-GoIAM is a cloud-native IAM built as a lightweight standalone service (Go binary), optimized for Kubernetes environments, but also capable of running standalone outside clusters.
+GoAM is a cloud-native IAM built as a lightweight standalone service (Go binary), optimized for Kubernetes environments, but also capable of running standalone outside clusters.
 
 It focuses on:
 
@@ -20,33 +20,35 @@ Authentication is modeled as flexible flow graphs, where:
 - **Flows**: Linked nodes with conditional transitions
 - **Configuration**: Flows are defined in YAML, version-controlled, and can be visualized and edited via a simple GUI
 
-
 Below is an example flow showing a typical authentication journey:
 
 ![Example Flow](docs/images/example_flow.png)
 
 The flow demonstrates:
+
 1. Username collection
 2. Passkey discovery and verification
 3. Password fallback if no passkey exists
 4. Success/failure handling
 
 Each node represents an atomic operation with clear inputs and outputs. The graph structure allows for:
+
 - Conditional branching based on user state
 - Parallel authentication paths
 - Fallback mechanisms
 - Clear visualization of the journey
 
-
 Custom Nodes can be written in Go, enabling extensions without waiting for platform updates.
 
 This is designed to support:
+
 - Custom login flows
 - Onboarding processes
 - Step-up authentication
 - Impersonation flows
 - Device linking
 - And more — not just standard username/password
+
 
 
 ## Performance and Scalability
@@ -72,7 +74,7 @@ GoIAM is architected for horizontal scalability and high throughput:
 
 ## Security Architecture
 
-GoIAM is built with zero-trust internal principles:
+GoAM is built with zero-trust internal principles:
 
 - OAuth 2.1 per default
 - Support for FAPI 2.0 Security Profile
@@ -86,10 +88,12 @@ GoIAM is built with zero-trust internal principles:
 ## Database and Storage
 
 ### Primary Backend Database
+
 - PostgreSQL
 - Optional: CockroachDB (for multi-region HA needs)
 
 ### Session Storage Options
+
 - In-memory caching
 - Redis cluster
 - Database
@@ -98,19 +102,18 @@ All components are intentionally relational-friendly using simple data types (st
 
 ## Multi-Tenancy Model
 
-GoIAM implements a two-layer multi-tenancy system:
+GoAM implements a two-layer multi-tenancy system:
 
 1. **Tenants**
-   - Organizational level (e.g., different business units, regional divisions)
-
+  - Organizational level (e.g., different business units, regional divisions)
 2. **Realms**
-   - Security boundaries under each tenant (e.g., Development, Production realms)
+  - Security boundaries under each tenant (e.g., Development, Production realms)
 
 Admin access and security boundaries are enforced separately at the tenant and realm levels. This model scales across SaaS, hybrid, and on-premises deployments with strong isolation guarantees.
 
 ## Architecture and Deployment
 
-GoIAM is implemented as a standalone Go executable. It is intended to run:
+GoAM is implemented as a standalone Go executable. It is intended to run:
 
 - As a containerized service in Kubernetes clusters (preferred for production)
 - As a standalone binary on VM infrastructure (flexible for legacy or edge deployments)
@@ -118,14 +121,13 @@ GoIAM is implemented as a standalone Go executable. It is intended to run:
 ### Configuration Models
 
 1. **Immutable Configuration**
-   - YAML-based configuration injected into containers at runtime
-   - Recommended for enterprise GitOps flows
-   - Enables rollbacks, A/B testing, version control, and performance optimization
-   - Flows are memory-resident
-
+  - YAML-based configuration injected into containers at runtime
+  - Recommended for enterprise GitOps flows
+  - Enables rollbacks, A/B testing, version control, and performance optimization
+  - Flows are memory-resident
 2. **Dynamic Configuration**
-   - Configuration stored in the database
-   - Mutable at runtime via Admin API or Terraform provider
-   - Provides operational flexibility
+  - Configuration stored in the database
+  - Mutable at runtime via Admin API or Terraform provider
+  - Provides operational flexibility
 
 For on-premise deployments, the immutable configuration is the recommended approach if the organization has GitOps capabilities. The dynamic configuration option is suitable for SaaS models or development environments.
