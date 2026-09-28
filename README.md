@@ -1,6 +1,5 @@
 [![CI](https://github.com/Identityplane/GoAM/actions/workflows/ci.yml/badge.svg)](https://github.com/Identityplane/GoAM/actions/workflows/ci.yml)
 [![CD](https://github.com/Identityplane/GoAM/actions/workflows/cd.yml/badge.svg)](https://github.com/Identityplane/GoAM/actions/workflows/cd.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Identityplane/GoAM)](https://goreportcard.com/report/github.com/Identityplane/GoAM)
 
 # GoAM: Flexible and High-Performance Identity Access Management
 
@@ -74,17 +73,19 @@ This flow includes:
 
 ### Prerequisites
 
-- Go 1.20+
-- SQLite (for local development)
-- Podman/Docker (for containerized deployment)
-- Minikube (for Kubernetes deployment)
+- Go 1.24+ (see `go.mod` for the exact version)
+- SQLite (default for local development; no extra install needed on most systems)
+- Docker (for container images)
+- kubectl and Helm (for Kubernetes deployment)
+
+The `docker` Makefile targets switch to the `orbstack` Docker context first. That is convenient on macOS with [OrbStack](https://orbstack.dev/). On other setups, skip those targets and run the equivalent `docker build` / `docker run` commands yourself.
 
 ### Installation
 
 1. Clone the repository:
    ```bash
    git clone https://github.com/Identityplane/GoAM.git
-   cd goam
+   cd GoAM
    ```
 
 2. Install dependencies:
@@ -94,47 +95,62 @@ This flow includes:
 
 ### Development
 
-The project includes a Makefile with various commands for development and deployment:
+The `makefile` defines the following targets for development and 
+deployment.
 
 #### Local Development
 ```bash
-
-make all      # Run all checks and build
-make test     # Run tests
-make build    # Build the binary
-
-# Containerized development with Podman
-make podman-build  # Build the container image
-make podman-run   # Run the container locally
+make vet       # go vet ./...
+make sec       # gosec (excludes the test directory)
+make test      # Run tests. (Short tests: go test -short)
+make test-all  # full test suite, including longer tests
+make swagger   # regenerate Swagger docs (requires swag: go install github.com/swaggo/swag/cmd/swag@latest)
+make build     # build the binary to bin/goam
 ```
 
-#### Kubernetes Deployment
-```bash
-# Start Minikube cluster
-make k8s-start
+`make all` is intended to run swagger, vet, sec, tests, and build. The `staticcheck` step listed in that target is currently commented out in the makefile.
 
-# Set up environment for Minikube (run this manually)
-eval $(minikube docker-env)
-
-# Build and deploy to Kubernetes
-make docker-build  # Build image in K8S cluster
-make k8s-deploy   # Apply K8S resources
-
-# Access the service
-make k8s-open     # Open service in browser
-make k8s-logs     # View logs
-make k8s-shell    # Access container shell
-
-# Clean up
-make k8s-clean    # Remove all K8S resources
-```
-
-### Manual Server Start
-
-Alternatively, you can run the server directly:
+Run the server without building a binary:
 ```bash
 go run ./cmd/main.go
 ```
+
+By default the HTTP listener is `:8080`. Check `http://localhost:8080/readyz`.
+
+#### Auth UI
+
+The login UI is a separate Next.js app in `auth-ui/`. In development, GoAM reverse-proxies it at `/{tenant}/{realm}/authui/…`.
+
+```bash
+cd auth-ui
+pnpm install
+pnpm run dev
+```
+
+Then open `http://localhost:8080/acme/customers/authui/login?debug` (with the GoAM server running).
+
+#### Container images
+```bash
+make docker         # build goam:latest
+make docker-authui  # build goam-authui:latest
+make docker-all     # build both images
+make docker-run     # run goam:latest on port 8080
+```
+
+Equivalent commands without the OrbStack context switch:
+```bash
+docker build -t goam:latest .
+docker build -t goam-authui:latest ./auth-ui
+docker run --rm -p 8080:8080 --name goam-dev goam:latest
+```
+
+#### Kubernetes (Helm)
+```bash
+make docker-all    # build GoAM and Auth UI images
+make helm-deploy   # helm upgrade --install, then restart and wait for the deployments
+```
+
+This expects a working kubectl context and Helm. The chart lives at `helm/goam`.
 
 ---
 
@@ -156,17 +172,16 @@ For local development, GoAM uses SQLite. To set up the database:
 
 ## Running Tests
 
-GoAM includes both unit and integration tests to ensure reliability.
+```bash
+make test      # short tests (skips longer cases)
+make test-all  # full suite, including integration tests
+```
 
-1. Run unit tests:
-   ```bash
-   go test ./test/unit
-   ```
-
-2. Run integration tests:
-   ```bash
-   go test ./test/integration
-   ```
+Or call Go directly:
+```bash
+go test -short -timeout 30000ms ./...
+go test -timeout 30000ms ./...
+```
 
 ---
 
