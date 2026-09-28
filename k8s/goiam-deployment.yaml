@@ -13,8 +13,8 @@ spec:
         app: goiam
     spec:
       containers:
-        - name: goiam
-          image: goiam:latest
+        - name: goam
+          image: goam:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 8080

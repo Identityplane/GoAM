@@ -16,15 +16,15 @@ COPY . .
 
 # Explicitly declare ARG again to be safe
 ARG TARGETARCH
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o goiam ./cmd
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o goam ./cmd
 
 # Final image
 FROM alpine
 
 WORKDIR /app
 
-COPY --from=builder /app/goiam .
+COPY --from=builder /app/goam .
 COPY --from=builder /app/config ./config
 
-ENV GOIAM_CONFIG_PATH=/app/config
-CMD ["./goiam"]
+ENV GOAM_REALM_CONFIGURATION_FOLDER=/app/config
+CMD ["./goam"]

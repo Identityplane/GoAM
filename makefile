@@ -1,7 +1,7 @@
 .PHONY: all vet sec staticcheck test build swagger
 
-IMAGE_NAME=goiam
-IMAGE_AUTHUI=goiam-authui
+IMAGE_NAME=goam
+IMAGE_AUTHUI=goam-authui
 TAG=latest
 PORT=8080
 
@@ -12,7 +12,7 @@ sec:            ; gosec -exclude-dir=test ./...
 #staticcheck:    ; staticcheck -config=.staticcheck.conf ./...
 test:           ; go test -short -timeout 30000ms ./...
 test-all:           ; go test -timeout 30000ms ./...
-build:          ; go build -o bin/goiam ./cmd
+build:          ; go build -o bin/goam ./cmd
 
 docker:
 	docker context use orbstack
