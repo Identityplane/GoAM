@@ -20,3 +20,5 @@ goiam.db-shm
 goiam.db-wal
 *.bin
 .env
+*/.next
+*/node_modules/
