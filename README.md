@@ -1,6 +1,5 @@
-[![CI](https://github.com/Identityplane/GoAM/actions/workflows/ci.yml/badge.svg)](https://github.com/Identityplane/GoAM/actions/workflows/ci.yml)
-[![CD](https://github.com/Identityplane/GoAM/actions/workflows/cd.yml/badge.svg)](https://github.com/Identityplane/GoAM/actions/workflows/cd.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Identityplane/GoAM)](https://goreportcard.com/report/github.com/Identityplane/GoAM)
+![CI](https://github.com/Identityplane/GoAM/actions/workflows/ci.yml/badge.svg)
+![CD](https://github.com/Identityplane/GoAM/actions/workflows/cd.yml/badge.svg)
 
 # GoAM: Flexible and High-Performance Identity Access Management
 
@@ -12,6 +11,7 @@ GoAM is a modern, high-performance Identity and Access Management system written
 
 **OAuth2 / OIDC Support:**
 GoAM is compliant with the OIDC basic-certification-test-plan. The following features are supported:
+
 - AuthCode Flow
 - AuthCode with PKCE Flow
 - Access Token
@@ -24,8 +24,10 @@ GoAM is compliant with the OIDC basic-certification-test-plan. The following fea
 - OIDC acr_values
 
 We are implementing **OAuth2.1** which comes with the following changes to OAuth2.
+
 - Redirect URIs exact string matching
 - One-time-use refresh tokens
+
 
 
 ## Key Features
@@ -37,8 +39,8 @@ We are implementing **OAuth2.1** which comes with the following changes to OAuth
 - **Extensibility**: Easily add custom nodes, flows, and integrations to meet your specific requirements.
 - **Customization**: Serve static assets like CSS and JavaScript for theming and customization.
 
-
 Supported Login Features:
+
 - Captcha
 - Remember this device
 - Email
@@ -57,12 +59,16 @@ GoAM is designed to be extended so you can implement your own login steps as sim
 
 ---
 
+
+
 ## Example Login Flow
+
 Below is an example of a **username-password authentication flow** represented as a graph. The graph structure allows endless possibilities - from simple password login to complex flows combining multiple auth methods (OIDC, LDAP, Social, MFA), risk scoring, consent collection, and audit logging. New authentication methods and business logic can be easily added as custom nodes.
 
 ![Example Login Graph](./docs/images/example_graph.png)
 
 This flow includes:
+
 1. **Ask Username**: Prompt the user for their username.
 2. **Check if they have a passkey**: Lookup the database if a passkey is registered
 3. **Validate Credentials**: Validate the passkeys or check the username and password against the database.
@@ -70,115 +76,172 @@ This flow includes:
 
 ---
 
+
+
 ## Getting Started
+
+
 
 ### Prerequisites
 
-- Go 1.20+
-- SQLite (for local development)
-- Podman/Docker (for containerized deployment)
-- Minikube (for Kubernetes deployment)
+- Go 1.24+ (see `go.mod` for the exact version)
+- SQLite (default for local development; no extra install needed on most systems)
+- Docker (for container images)
+- kubectl and Helm (for Kubernetes deployment)
+
+The `docker` Makefile targets switch to the `orbstack` Docker context first. That is convenient on macOS with [OrbStack](https://orbstack.dev/). On other setups, skip those targets and run the equivalent `docker build` / `docker run` commands yourself.
 
 ### Installation
 
 1. Clone the repository:
-   ```bash
+  ```bash
    git clone https://github.com/Identityplane/GoAM.git
-   cd goam
-   ```
-
+   cd GoAM
+  ```
 2. Install dependencies:
-   ```bash
+  ```bash
    go mod tidy
-   ```
+  ```
+
+
 
 ### Development
 
-The project includes a Makefile with various commands for development and deployment:
+The `makefile` defines the following targets for development and 
+deployment.
 
 #### Local Development
+
 ```bash
-
-make all      # Run all checks and build
-make test     # Run tests
-make build    # Build the binary
-
-# Containerized development with Podman
-make podman-build  # Build the container image
-make podman-run   # Run the container locally
+make vet       # go vet ./...
+make sec       # gosec (excludes the test directory)
+make test      # Run tests (go test -short)
+make test-all  # full test suite, including longer tests
+make swagger   # regenerate Swagger docs (requires swag: go install github.com/swaggo/swag/cmd/swag@latest)
+make build     # build the binary to bin/goam
 ```
 
-#### Kubernetes Deployment
-```bash
-# Start Minikube cluster
-make k8s-start
+`make all` is intended to run swagger, vet, sec, tests, and build. The `staticcheck` step listed in that target is currently commented out in the makefile.
 
-# Set up environment for Minikube (run this manually)
-eval $(minikube docker-env)
+Run the server without building a binary:
 
-# Build and deploy to Kubernetes
-make docker-build  # Build image in K8S cluster
-make k8s-deploy   # Apply K8S resources
-
-# Access the service
-make k8s-open     # Open service in browser
-make k8s-logs     # View logs
-make k8s-shell    # Access container shell
-
-# Clean up
-make k8s-clean    # Remove all K8S resources
-```
-
-### Manual Server Start
-
-Alternatively, you can run the server directly:
 ```bash
 go run ./cmd/main.go
 ```
 
+By default the HTTP listener is `:8080`. Check `http://localhost:8080/readyz`.
+With `run_db_migrations: true` (typical in local `goam.yaml`), SQLite is created and migrated on startup.
+
+#### Auth UI
+
+The login UI is a separate Next.js app in `auth-ui/`. In development, GoAM reverse-proxies it at `/{tenant}/{realm}/authui/…`.
+
+```bash
+cd auth-ui
+pnpm install
+pnpm run dev
+```
+
+Then open `http://localhost:8080/acme/customers/authui/login?debug` (with the GoAM server running).
+
+#### Container images
+
+```bash
+make docker         # build goam:latest
+make docker-authui  # build goam-authui:latest
+make docker-all     # build both images
+make docker-run     # run goam:latest on port 8080
+```
+
+Equivalent commands without the OrbStack context switch:
+
+```bash
+docker build -t goam:latest .
+docker build -t goam-authui:latest ./auth-ui
+docker run --rm -p 8080:8080 --name goam-dev goam:latest
+```
+
+
+
+#### Kubernetes (Helm)
+
+```bash
+make docker-all    # build GoAM and Auth UI images
+make helm-deploy   # helm upgrade --install, then restart and wait for the deployments
+```
+
+This expects a working kubectl context and Helm. The chart lives at `helm/goam`.
+
 ---
+
+
 
 ## Database Setup
 
-For local development, GoAM uses SQLite. To set up the database:
+GoAM defaults to **SQLite**. The connection string is `GOAM_DB` / `db` in config (default: `goiam.db?_foreign_keys=on`). The file is created in the working directory (repo root if you run `go run ./cmd/main.go` from there).
 
-1. Apply the initial migration:
-   ```bash
-   sqlite3 cmd/goiam.db < internal/db/sqlite/migrations/001_create_users.sql
-   ```
+**Postgres** is used when the connection string starts with `postgres://`.
 
-2. Verify the database is set up correctly:
-   ```bash
-   sqlite3 cmd/goiam.db
-   ```
+### Migrations
+
+Schema changes live in:
+
+- `internal/db/sqlite_adapter/migrations/*.up.sql`
+- `internal/db/postgres_adapter/migrations/*.up.sql`
+
+Set `run_db_migrations: true` in `goam.yaml`, or `GOAM_RUN_DB_MIGRATIONS=true`. On startup GoAM applies pending `.up.sql` files. You do **not** need to run `sqlite3` by hand.
+
+The built-in default for `run_db_migrations` is `false`. Local `goam.yaml` usually turns it on.
+
+### Inspect SQLite (optional)
+
+```bash
+sqlite3 goiam.db
+.tables
+.quit
+```
+
+On PowerShell, do not use `<` to pipe a `.sql` file into `sqlite3`. If you ever need to apply a file manually:
+
+```powershell
+sqlite3 .\goiam.db ".read internal/db/sqlite_adapter/migrations/001_create_users.up.sql"
+```
+
+That still applies only one migration; prefer startup migrations instead.
 
 ---
+
+
 
 ## Running Tests
 
-GoAM includes both unit and integration tests to ensure reliability.
+```bash
+make test      # short tests (skips longer cases)
+make test-all  # full suite, including integration tests
+```
 
-1. Run unit tests:
-   ```bash
-   go test ./test/unit
-   ```
+Or call Go directly:
 
-2. Run integration tests:
-   ```bash
-   go test ./test/integration
-   ```
+```bash
+go test -short -timeout 30000ms ./...
+go test -timeout 30000ms ./...
+```
 
 ---
+
+
 
 ## Project Structure
 
-- **`/cmd`**: Entry point for the application.
-- **`/internal/auth/graph`**: Core logic for graph-based flows.
-- **`/internal/web`**: Web server and handlers.
-- **`/config`**: Configuration files for flows and templates.
-- **`/test`**: Unit and integration tests.
+- `/cmd`: Entry point for the application.
+- `/internal/auth/graph`: Core logic for graph-based flows.
+- `/internal/web`: Web server and handlers.
+- `/config`: Configuration files for flows and templates.
+- `/test`: Unit and integration tests.
 
 ---
+
+
 
 ## Example Flow Configuration
 
@@ -229,10 +292,11 @@ nodes:
 
 ---
 
+
+
 ## OIDC Conformance
 
 We are using the OIDC conformance test suite to validate spec conformance. The test logs can be found at: `test/oidc-conformance/logs` 
-
 
 ![Conformance Log](test/oidc-conformance/logs/Screenshot.png)
 

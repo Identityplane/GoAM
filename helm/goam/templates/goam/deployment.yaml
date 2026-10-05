@@ -17,7 +17,7 @@ spec:
         app.kubernetes.io/component: api
     spec:
       containers:
-        - name: goiam
+        - name: goam
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
