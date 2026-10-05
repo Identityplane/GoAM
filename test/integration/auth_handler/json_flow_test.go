@@ -2,6 +2,7 @@ package authhandler
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Identityplane/GoAM/internal/service"
@@ -140,6 +141,120 @@ func TestJSONFlow_UsernamePasswordRegisterFlow(t *testing.T) {
 			HasValue("success", true)
 	})
 
+}
+
+func TestJSONFlow_UsernamePasswordRegisterValidation(t *testing.T) {
+	e := integration.SetupIntegrationTest(t, "")
+
+	t.Run("empty username stays on askUsername", func(t *testing.T) {
+		resp := e.GET("/acme/customers/api/v1/username-password-register").
+			WithHeader("Accept", "application/json").
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		sessionID := resp.Object().Value("sessionId").String().Raw()
+
+		resp = e.POST("/acme/customers/api/v1/username-password-register").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(FlowRequest{
+				SessionID:   sessionID,
+				CurrentNode: "askUsername",
+				Responses: map[string]string{
+					"username": "",
+				},
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		resp.Object().HasValue("currentNode", "askUsername")
+		resp.Object().Value("errorMessage").String().Contains("Username is required")
+	})
+
+	t.Run("short password stays on askPassword", func(t *testing.T) {
+		resp := e.GET("/acme/customers/api/v1/username-password-register").
+			WithQuery("init", "true").
+			WithHeader("Accept", "application/json").
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		sessionID := resp.Object().Value("sessionId").String().Raw()
+
+		resp = e.POST("/acme/customers/api/v1/username-password-register").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(FlowRequest{
+				SessionID:   sessionID,
+				CurrentNode: "askUsername",
+				Responses: map[string]string{
+					"username": "validation-user",
+				},
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		resp.Object().HasValue("currentNode", "askPassword")
+
+		resp = e.POST("/acme/customers/api/v1/username-password-register").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(FlowRequest{
+				SessionID:   sessionID,
+				CurrentNode: "askPassword",
+				Responses: map[string]string{
+					"password": "short12",
+				},
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		resp.Object().HasValue("currentNode", "askPassword")
+		resp.Object().Value("errorMessage").String().Contains("at least 8")
+	})
+
+	t.Run("long password stays on askPassword", func(t *testing.T) {
+		resp := e.GET("/acme/customers/api/v1/username-password-register").
+			WithQuery("init", "true").
+			WithHeader("Accept", "application/json").
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		sessionID := resp.Object().Value("sessionId").String().Raw()
+
+		resp = e.POST("/acme/customers/api/v1/username-password-register").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(FlowRequest{
+				SessionID:   sessionID,
+				CurrentNode: "askUsername",
+				Responses: map[string]string{
+					"username": "validation-user-long",
+				},
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		resp.Object().HasValue("currentNode", "askPassword")
+
+		resp = e.POST("/acme/customers/api/v1/username-password-register").
+			WithHeader("Content-Type", "application/json").
+			WithJSON(FlowRequest{
+				SessionID:   sessionID,
+				CurrentNode: "askPassword",
+				Responses: map[string]string{
+					"password": strings.Repeat("a", 65),
+				},
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON()
+
+		resp.Object().HasValue("currentNode", "askPassword")
+		resp.Object().Value("errorMessage").String().Contains("at most 64")
+	})
 }
 
 func TestJSONFlow_InvalidPassword(t *testing.T) {

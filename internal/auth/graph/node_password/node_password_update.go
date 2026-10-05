@@ -19,7 +19,11 @@ var UpdatePasswordNode = &model.NodeDefinition{
 	RequiredContext:      []string{"user"},
 	OutputContext:        []string{}, // or we may skip outputs if conditions imply it
 	PossibleResultStates: []string{"success", "fail"},
-	Run:                  RunUpdatePasswordNode,
+	CustomConfigOptions: map[string]string{
+		"minLength": "Minimum password length when setting a new password (default: 8)",
+		"maxLength": "Maximum password length when setting a new password (default: 64)",
+	},
+	Run: RunUpdatePasswordNode,
 }
 
 func RunUpdatePasswordNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
@@ -28,14 +32,28 @@ func RunUpdatePasswordNode(state *model.AuthenticationSession, node *model.Graph
 		return model.NewNodeResultWithError(errors.New("user must be loaded before updating password"))
 	}
 
+	if state.Context == nil {
+		state.Context = map[string]string{}
+	}
+
 	// If the password is not set in the input, use the password from the context
-	if input["password"] != "" {
-		state.Context["password"] = input["password"]
+	if password, submitted := input["password"]; submitted {
+		state.Context["password"] = password
 	}
 
 	if state.Context["password"] == "" {
 		return model.NewNodeResultWithPrompts(map[string]string{"password": "password"})
 	}
+
+	var customConfig map[string]string
+	if node != nil {
+		customConfig = node.CustomConfig
+	}
+	if err := lib.ValidateNewPassword(state.Context["password"], lib.PasswordLimitsForStore(customConfig)); err != nil {
+		state.Error = lib.StringPtr(err.Error())
+		return model.NewNodeResultWithPrompts(map[string]string{"password": "password"})
+	}
+	state.Error = nil
 
 	hashed, err := lib.HashPassword(state.Context["password"])
 	if err != nil {

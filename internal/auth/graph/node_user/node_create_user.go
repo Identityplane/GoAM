@@ -19,14 +19,40 @@ var CreateUserNode = &model.NodeDefinition{
 		"checkUsernameUnique": "If set to 'true' the username will be checked for uniqueness. In that case username must be present in the context or user object.",
 		"checkEmailUnique":    "If set to 'true' the email will be checked for uniqueness. In that case email must be present in the context or user object.",
 		"skipSaveUser":        "If set to 'true' the user will not be saved to the database after creation and only the context will be updated",
+		"minLength":           "Minimum password length when a password is present in the context (default: 8). Username/password keys that are absent are not validated (OIDC/mock flows).",
+		"maxLength":           "Maximum password length when a password is present in the context (default: 64).",
 	},
 	OutputContext:        []string{"user_id"},
-	PossibleResultStates: []string{"success", "existing"},
+	PossibleResultStates: []string{"success", "existing", "fail"},
 	Run:                  RunCreateUserNode,
 }
 
 func RunCreateUserNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
 	ctx := context.Background()
+
+	if state.Context == nil {
+		state.Context = map[string]string{}
+	}
+
+	var customConfig map[string]string
+	if node != nil {
+		customConfig = node.CustomConfig
+	}
+
+	if username, ok := state.Context["username"]; ok {
+		if err := lib.ValidateUsername(username); err != nil {
+			state.Error = lib.StringPtr(err.Error())
+			return model.NewNodeResultWithCondition("fail")
+		}
+		state.Context["username"] = lib.NormalizeUsername(username)
+	}
+
+	if password, ok := state.Context["password"]; ok {
+		if err := lib.ValidateNewPassword(password, lib.PasswordLimitsForStore(customConfig)); err != nil {
+			state.Error = lib.StringPtr(err.Error())
+			return model.NewNodeResultWithCondition("fail")
+		}
+	}
 
 	// Check if the username is unique
 	if node.CustomConfig["checkUsernameUnique"] == "true" {

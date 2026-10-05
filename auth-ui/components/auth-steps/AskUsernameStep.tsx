@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field';
 import { AuthStepProps } from './types';
 
-export function AskUsernameStep({ isLoading, onContinue, accentColor, formData, settings }: AuthStepProps) {
+export function AskUsernameStep({ isLoading, onContinue, accentColor, formData, settings, error }: AuthStepProps) {
   const [username, setUsername] = useState(formData.username || '');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,6 +34,7 @@ export function AskUsernameStep({ isLoading, onContinue, accentColor, formData, 
               disabled={isLoading}
               autoFocus
             />
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </Field>
         </FieldGroup>
 

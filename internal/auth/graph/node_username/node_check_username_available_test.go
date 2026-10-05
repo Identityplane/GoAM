@@ -202,9 +202,10 @@ func TestRunCheckUsernameAvailableNode_MissingUsernameInContext(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "available", result.Condition) // Empty username is treated as available
+	assert.Equal(t, "taken", result.Condition) // Empty username is treated as taken
 	assert.Empty(t, result.Prompts)
-	assert.Nil(t, state.Error) // No error should be set for empty username
+	assert.NotNil(t, state.Error)
+	assert.Equal(t, "Username is required", *state.Error)
 }
 
 func TestRunCheckUsernameAvailableNode_EmptyUsername(t *testing.T) {
@@ -234,9 +235,10 @@ func TestRunCheckUsernameAvailableNode_EmptyUsername(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "available", result.Condition)
+	assert.Equal(t, "taken", result.Condition)
 	assert.Empty(t, result.Prompts)
-	assert.Nil(t, state.Error) // No error should be set when username is available (even if empty)
+	assert.NotNil(t, state.Error)
+	assert.Equal(t, "Username is required", *state.Error)
 }
 
 func TestRunCheckUsernameAvailableNode_IntegrationWithRealContext(t *testing.T) {

@@ -3,6 +3,7 @@ package node_username
 import (
 	"context"
 
+	"github.com/Identityplane/GoAM/internal/lib"
 	"github.com/Identityplane/GoAM/pkg/model"
 )
 
@@ -19,8 +20,17 @@ var CheckUsernameAvailableNode = &model.NodeDefinition{
 }
 
 func RunCheckUsernameAvailableNode(state *model.AuthenticationSession, node *model.GraphNode, input map[string]string, services *model.Repositories) (*model.NodeResult, error) {
-	username := state.Context["username"]
+	if state.Context == nil {
+		state.Context = map[string]string{}
+	}
+	username := lib.NormalizeUsername(state.Context["username"])
 	ctx := context.Background()
+
+	if err := lib.ValidateUsername(username); err != nil {
+		state.Error = lib.StringPtr(err.Error())
+		return model.NewNodeResultWithCondition("taken")
+	}
+	state.Context["username"] = username
 
 	// Load use Repository
 	userRepo := services.UserRepo
