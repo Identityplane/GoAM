@@ -124,6 +124,49 @@ Content-Type: application/json
 }
 ```
 
+#### 4. Validation error (same node, HTTP 200)
+
+If the submitted username or password is empty, or a new password is outside the configured length, the flow **does not advance**. The response stays on the same node, keeps the prompts, and sets `errorMessage` for the client to show.
+
+```http
+POST /acme/customers/api/v1/username-password-register
+Content-Type: application/json
+
+{
+  "sessionId": "4fd68cbe-4162-4066-ad4f-8440ef080710",
+  "currentNode": "askPassword",
+  "responses": {
+    "password": "short12"
+  }
+}
+```
+
+```json
+{
+  "executionId": "57bf784b-8af9-4049-b3b5-9acaa2462683",
+  "sessionId": "4fd68cbe-4162-4066-ad4f-8440ef080710",
+  "currentNode": "askPassword",
+  "prompts": {
+    "password": "password"
+  },
+  "errorMessage": "Password must be at least 8 characters"
+}
+```
+
+Typical messages:
+
+| Condition | `errorMessage` |
+| --- | --- |
+| Username missing or only whitespace | `Username is required` |
+| Password missing | `Password is required` |
+| New password shorter than `minLength` | `Password must be at least N characters` |
+| New password longer than `maxLength` | `Password must be at most N characters` |
+
+Usernames are trimmed. Passwords are not (spaces count). Length is counted in Unicode characters (runes), not bytes.
+
+This is **not** an HTTP 400. 400 is for a malformed request (missing `client_id`, invalid JSON). Input validation is part of the flow: retry the same `currentNode` with a corrected value.
+
+See [Username and password nodes](nodes/username-password.md) for `minLength` / `maxLength` on flow YAML.
 
 ## Application Integration
 
@@ -279,3 +322,4 @@ if (nextStep.result) {
 3. **Flow not found**: Requested flow doesn't exist or is inactive
 4. **Malformed request**: Invalid JSON or missing required fields
 5. Flow internal errors
+6. **Prompt validation**: HTTP 200 with `errorMessage` and the same `currentNode` (empty username/password, or password length on register)
