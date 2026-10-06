@@ -102,7 +102,7 @@ func TestOAuth2AuthCodeConfidential_E2E(t *testing.T) {
 					"sessionId":   sessionID,
 					"currentNode": nextNode,
 					"responses": map[string]string{
-						"password": "foobar",
+						"password": "foobar12",
 					},
 				}).
 				WithCookie("session_id", cookieValue).

@@ -40,6 +40,9 @@ nodes:
   node_26e37459:
     name: askPassword
     use: askPassword
+    custom_config:
+      minLength: "8"
+      maxLength: "64"
     next:
       submitted: node_e0d0650f
   node_e0d0650f:

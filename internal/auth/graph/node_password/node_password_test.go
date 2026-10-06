@@ -1,6 +1,7 @@
 package node_password
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -70,6 +71,40 @@ func TestUpdatePasswordNode(t *testing.T) {
 
 	// Verify mock expectations were met
 	mockUserRepo.AssertExpectations(t)
+}
+
+func TestUpdatePasswordNode_RejectsShortPassword(t *testing.T) {
+	testUser := &model.User{
+		ID:     uuid.NewString(),
+		Status: "active",
+	}
+	session := &model.AuthenticationSession{
+		Context: map[string]string{},
+		User:    testUser,
+	}
+	updateNode := &model.GraphNode{CustomConfig: map[string]string{}}
+
+	result, err := RunUpdatePasswordNode(session, updateNode, map[string]string{"password": "short12"}, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "password", result.Prompts["password"])
+	assert.Equal(t, "Password must be at least 8 characters", *session.Error)
+}
+
+func TestUpdatePasswordNode_RejectsLongPassword(t *testing.T) {
+	testUser := &model.User{
+		ID:     uuid.NewString(),
+		Status: "active",
+	}
+	session := &model.AuthenticationSession{
+		Context: map[string]string{},
+		User:    testUser,
+	}
+	updateNode := &model.GraphNode{CustomConfig: map[string]string{}}
+
+	result, err := RunUpdatePasswordNode(session, updateNode, map[string]string{"password": strings.Repeat("a", 65)}, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "password", result.Prompts["password"])
+	assert.Equal(t, "Password must be at most 64 characters", *session.Error)
 }
 
 func TestPasswordUpdateAndValidation(t *testing.T) {

@@ -6,6 +6,8 @@ nodes:
     use: askPassword
     custom_config:
       message: Please register your account
+      minLength: "8"
+      maxLength: "64"
     next:
       submitted: createUser
   askUsername:
