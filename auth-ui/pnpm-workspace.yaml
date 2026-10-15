@@ -1,0 +1,6 @@
+packages:
+  - "auth-ui"
+allowBuilds:
+  sharp: true
+overrides:
+  lodash: 4.18.1
