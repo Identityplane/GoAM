@@ -1,7 +1,7 @@
 .PHONY: all vet sec staticcheck test build swagger
 
-IMAGE_NAME=goiam
-IMAGE_AUTHUI=goiam-authui
+IMAGE_NAME=goam
+IMAGE_AUTHUI=goam-authui
 TAG=latest
 PORT=8080
 
@@ -27,6 +27,7 @@ docker-all: docker docker-authui
 docker-run:
 	docker run --rm -p $(PORT):$(PORT) \
 		--name $(IMAGE_NAME)-dev \
+		-e GOAM_RUN_DB_MIGRATIONS=true \
 		$(IMAGE_NAME):$(TAG)
 
 helm-deploy:
